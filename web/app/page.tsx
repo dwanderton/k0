@@ -169,7 +169,6 @@ export default function Home() {
   const [view, setView] = useState(0); // index of the card on screen
   const [following, setFollowing] = useState(true); // carousel keeps up with live
   const recRef = useRef<SpeechRecognitionLike | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
   const activeRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -189,8 +188,6 @@ export default function Home() {
     return () => {
       activeRef.current = false;
       recRef.current?.stop();
-      streamRef.current?.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
       abortRef.current?.abort();
     };
   }, []);
@@ -272,15 +269,12 @@ export default function Home() {
     }
     // iOS Safari won't surface the mic prompt for SpeechRecognition on its own —
     // it just fails with `not-allowed`. Priming getUserMedia forces the real
-    // permission grant first. Keep the stream ALIVE while the recognizer runs
-    // (voomer pattern): stopping the tracks and immediately calling start()
-    // races the hardware release and the recognizer sees the mic busy/denied.
-    // Released in stop().
+    // permission grant first. Harmless on desktop: the mic permission is
+    // per-origin, so the recognizer reuses this grant without a second prompt.
     if (navigator.mediaDevices?.getUserMedia) {
       try {
-        streamRef.current = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-        });
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach((t) => t.stop());
       } catch {
         activeRef.current = false;
         setStatus("denied");
@@ -308,22 +302,13 @@ export default function Home() {
     rec.onerror = (e) => {
       if (e.error === "not-allowed" || e.error === "service-not-allowed") {
         activeRef.current = false;
-        releaseMic();
         setStatus("denied");
       }
     };
-    // Chrome ends recognition after silence — restart while the mic is meant
-    // to be on. try/catch: InvalidStateError if a prior start is still winding
-    // down; the next onend brings us back (voomer pattern).
+    // Chrome ends recognition after silence — restart while the mic is meant to be on.
     rec.onend = () => {
       setInterim("");
-      if (activeRef.current) {
-        try {
-          rec.start();
-        } catch {
-          /* restart raced; next onend retries */
-        }
-      }
+      if (activeRef.current) rec.start();
     };
     recRef.current = rec;
     activeRef.current = true;
@@ -334,14 +319,8 @@ export default function Home() {
   function stop() {
     activeRef.current = false;
     recRef.current?.stop();
-    releaseMic();
     setInterim("");
     setStatus("idle");
-  }
-
-  function releaseMic() {
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    streamRef.current = null;
   }
 
   const listening = status === "listening";
