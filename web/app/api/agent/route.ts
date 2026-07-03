@@ -1,5 +1,6 @@
-import { streamText, stepCountIs, tool, jsonSchema, type ToolSet } from "ai";
+import { streamText, stepCountIs, tool, type ToolSet } from "ai";
 import { createMCPClient } from "@ai-sdk/mcp";
+import { z } from "zod";
 
 export const maxDuration = 60;
 
@@ -14,16 +15,10 @@ const readVercelDoc = tool({
     "no .md). Call this AFTER search_vercel_documentation locates the page: " +
     "QUOTE and ANCHOR must be copied word-for-word from what this returns, " +
     "because only this is the real page text the browser highlight matches.",
-  inputSchema: jsonSchema<{ path: string }>({
-    type: "object",
-    properties: {
-      path: {
-        type: "string",
-        description: "Docs path, e.g. 'fluid-compute' or 'functions/streaming'.",
-      },
-    },
-    required: ["path"],
-    additionalProperties: false,
+  inputSchema: z.object({
+    path: z
+      .string()
+      .describe("Docs path, e.g. 'fluid-compute' or 'functions/streaming'."),
   }),
   execute: async ({ path }) => {
     const clean = String(path ?? "")
@@ -138,6 +133,38 @@ const FINAL_STEP = `${"\n\n"}TOOLS ARE DONE. Answer NOW from what you already re
 Reply in the EXACT DOC/ANSWER/QUOTE/ANCHOR/SOURCE format, or NONE.
 No prose. No explanation. The format or NONE.`;
 
+/** The card contract. The stream is line-oriented text (the client parses it
+ *  as it streams), so zod validates the assembled card at finish — the
+ *  verdict lands in the trace, and cross-field rules (ANCHOR inside QUOTE,
+ *  SOURCE carries the highlight fragment) live here, not in prose checks. */
+const OutputSchema = z
+  .object({
+    DOC: z.string().min(1),
+    ANSWER: z.string().min(1),
+    QUOTE: z.string().min(1),
+    ANCHOR: z.string().min(1),
+    SOURCE: z.url(), // zod 4: z.string().url() is deprecated
+  })
+  .refine((c) => c.QUOTE.toLowerCase().includes(c.ANCHOR.toLowerCase()), {
+    message: "ANCHOR must appear inside QUOTE",
+  })
+  .refine((c) => c.SOURCE.includes("#:~:text="), {
+    message: "SOURCE must carry a #:~:text= highlight fragment",
+  });
+
+/** Pull the card fields out of the streamed text for validation. */
+function extractCard(text: string) {
+  const field = (k: string) =>
+    text.match(new RegExp(`^${k}:\\s*(.*)$`, "mi"))?.[1]?.trim() ?? "";
+  return {
+    DOC: field("DOC"),
+    ANSWER: field("ANSWER"),
+    QUOTE: field("QUOTE"),
+    ANCHOR: field("ANCHOR"),
+    SOURCE: field("SOURCE"),
+  };
+}
+
 /** Debug lines start with NUL and end with \n; the client splits them out of the
  *  card text and renders them as a light-grey trace. NUL never appears in prose. */
 const DBG = "\u0000";
@@ -216,6 +243,7 @@ export async function POST(req: Request) {
         }
       };
       let step = 0;
+      let answer = ""; // accumulated card text, validated at finish
       try {
         dbg(`model: ${MODEL} · ttft`);
         for await (const part of result.stream) {
@@ -264,13 +292,29 @@ export async function POST(req: Request) {
               break;
             }
             case "text-delta":
+              answer += part.text;
               controller.enqueue(encoder.encode(part.text));
               break;
-            case "finish":
+            case "finish": {
               dbg(
                 `■ done: ${part.finishReason} · tokens ${part.totalUsage.inputTokens ?? "?"}/${part.totalUsage.outputTokens ?? "?"}`,
               );
+              // Validate the assembled card against the output contract —
+              // the verdict rides the trace so bad cards are visible in the
+              // UI dropdown and countable by the scorecard.
+              if (answer.trim() && !answer.trim().toUpperCase().startsWith("NONE")) {
+                const check = OutputSchema.safeParse(extractCard(answer));
+                dbg(
+                  check.success
+                    ? "✓ card valid (zod)"
+                    : `⚠ card invalid (zod): ${check.error.issues
+                        .map((i) => `${i.path.join(".") || "card"}: ${i.message}`)
+                        .join("; ")
+                        .slice(0, 200)}`,
+                );
+              }
               break;
+            }
             case "error":
               dbg(`⚠ error: ${oneline(String(part.error))}`);
               break;
