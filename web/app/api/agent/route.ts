@@ -218,14 +218,25 @@ export async function POST(req: Request) {
             case "tool-error":
               dbg(`⚠ ${part.toolName} errored: ${oneline(String(part.error))}`);
               break;
-            case "finish-step":
-              dbg(`✓ step ${step}: ${part.finishReason}`);
+            case "finish-step": {
+              // Gateway reports per-step cost in providerMetadata; surface it
+              // so the scorecard can compute cost-per-insight from the trace.
+              const gw = part.providerMetadata?.gateway as
+                | { cost?: string | number }
+                | undefined;
+              dbg(
+                `✓ step ${step}: ${part.finishReason}` +
+                  (gw?.cost != null ? ` · $${gw.cost}` : ""),
+              );
               break;
+            }
             case "text-delta":
               controller.enqueue(encoder.encode(part.text));
               break;
             case "finish":
-              dbg(`■ done: ${part.finishReason}`);
+              dbg(
+                `■ done: ${part.finishReason} · tokens ${part.totalUsage.inputTokens ?? "?"}/${part.totalUsage.outputTokens ?? "?"}`,
+              );
               break;
             case "error":
               dbg(`⚠ error: ${oneline(String(part.error))}`);
