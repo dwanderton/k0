@@ -18,7 +18,7 @@ interface SpeechRecognitionEventLike {
   results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }>;
 }
 
-type Status = "idle" | "listening" | "denied" | "unsupported";
+type Status = "idle" | "listening" | "denied" | "unsupported" | "unavailable";
 
 /** One finalized utterance. This is what streams to the agent. */
 interface Segment {
@@ -177,6 +177,10 @@ export default function Home() {
   const [following, setFollowing] = useState(true); // carousel keeps up with live
   const recRef = useRef<SpeechRecognitionLike | null>(null);
   const activeRef = useRef(false);
+  // Rapid-restart guard: a healthy recognizer runs for seconds before Chrome
+  // ends it; ending right after start means it's failing on arrival.
+  const recStartedAtRef = useRef(0);
+  const rapidEndsRef = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   // In-flight queries — several can run at once; only unmount aborts them.
   const inflightRef = useRef(new Set<AbortController>());
@@ -373,13 +377,28 @@ export default function Home() {
         setStatus("denied");
       }
     };
-    // Chrome ends recognition after silence — restart while the mic is meant to be on.
+    // Chrome ends recognition after silence — restart while the mic is meant
+    // to be on. But an end within ~1s of start means the recognizer is dying
+    // on arrival (another tab holds the mic, speech service unreachable) —
+    // restarting forever just flickers the recording light. Three rapid ends
+    // in a row: stop and say what still works.
     rec.onend = () => {
       setInterim("");
-      if (activeRef.current) rec.start();
+      if (!activeRef.current) return;
+      const rapid = Date.now() - recStartedAtRef.current < 1000;
+      rapidEndsRef.current = rapid ? rapidEndsRef.current + 1 : 0;
+      if (rapidEndsRef.current >= 3) {
+        activeRef.current = false;
+        setStatus("unavailable");
+        return;
+      }
+      recStartedAtRef.current = Date.now();
+      rec.start();
     };
     recRef.current = rec;
     activeRef.current = true;
+    rapidEndsRef.current = 0;
+    recStartedAtRef.current = Date.now();
     setStatus("listening");
     rec.start();
   }
@@ -444,7 +463,9 @@ export default function Home() {
                   ? "Microphone access denied. Allow access in the browser, then start listening again."
                   : status === "unsupported"
                     ? "Speech recognition isn't available in this browser. Use Chrome."
-                    : "Press Start Listening — your side of the call transcribes here."}
+                    : status === "unavailable"
+                      ? "Speech recognition keeps disconnecting — usually another tab is listening. Close it, then start again."
+                      : "Press Start Listening — your side of the call transcribes here."}
               </p>
             )}
             {segments.map((s) => (
