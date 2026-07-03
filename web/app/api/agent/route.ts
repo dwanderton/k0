@@ -3,6 +3,30 @@ import { createMCPClient } from "@ai-sdk/mcp";
 
 export const maxDuration = 60;
 
+const DEFAULT_MODEL = "morph/morph-v3-fast";
+
+/** Every model routes through the gateway's lowest time-to-first-token provider. */
+const GATEWAY_OPTIONS = {
+  gateway: {
+    sort: "ttft" as const,
+  },
+};
+
+/** Model spectrum: speed ↔ capability. Keys are what the client sends. */
+const SPECTRUM: Record<
+  "fastest" | "gptoss" | "llama" | "zai" | "gemini" | "fable",
+  { model?: string }
+> = {
+  fastest: {},
+  gptoss: { model: "openai/gpt-oss-120b" },
+  llama: { model: "meta/llama-3.1-8b" },
+  zai: { model: "zai/glm-4.7" },
+  gemini: { model: "google/gemini-3-pro-preview" },
+  fable: { model: "anthropic/claude-fable-5" },
+};
+
+type SpectrumKey = keyof typeof SPECTRUM;
+
 const SYSTEM = `You are k0, a live knowledge-base copilot for a Vercel Solutions Architect mid-call.
 Input: the SA's side of the call, one utterance per line. The LAST line is the newest.
 If the newest line contains or restates a customer question about Vercel, answer it from
@@ -27,10 +51,15 @@ Rules:
 - Never fake certainty: a verbatim quote that answers the question, or NONE.`;
 
 export async function POST(req: Request) {
-  const { transcript } = await req.json();
+  const { transcript, model } = await req.json();
   if (typeof transcript !== "string" || !transcript.trim()) {
     return Response.json({ error: "transcript required" }, { status: 400 });
   }
+  const choice: SpectrumKey =
+    typeof model === "string" && model in SPECTRUM
+      ? (model as SpectrumKey)
+      : "fastest";
+  const spectrum = SPECTRUM[choice];
 
   const token = process.env.VERCEL_MCP_TOKEN;
   if (!token) {
@@ -59,7 +88,8 @@ export async function POST(req: Request) {
   );
 
   const result = streamText({
-    model: "openai/gpt-5.4-mini",
+    model: spectrum.model ?? DEFAULT_MODEL,
+    providerOptions: GATEWAY_OPTIONS,
     system: SYSTEM,
     prompt: transcript,
     tools,

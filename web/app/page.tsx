@@ -39,6 +39,17 @@ function clock() {
   return new Date().toLocaleTimeString("en-US", { hour12: false });
 }
 
+/** Model spectrum: speed ↔ capability. Values match the API route's map. */
+const MODELS = [
+  { key: "fastest", label: "Fastest" },
+  { key: "gptoss", label: "GPT-OSS 120B" },
+  { key: "llama", label: "Llama 3.1 8B" },
+  { key: "zai", label: "GLM 4.7" },
+  { key: "gemini", label: "Gemini 3 Pro" },
+  { key: "fable", label: "Fable 5" },
+] as const;
+type ModelKey = (typeof MODELS)[number]["key"];
+
 function parseCard(text: string) {
   const field = (k: string) =>
     text.match(new RegExp(`^${k}:\\s*(.*)$`, "mi"))?.[1]?.trim() ?? "";
@@ -120,6 +131,9 @@ export default function Home() {
   const [current, setCurrent] = useState<Suggestion | null>(null);
   const [cards, setCards] = useState<Suggestion[]>([]);
   const [agentError, setAgentError] = useState(false);
+  const [modelKey, setModelKey] = useState<ModelKey>("fastest");
+  const modelRef = useRef<ModelKey>("fastest");
+  modelRef.current = modelKey;
   const recRef = useRef<SpeechRecognitionLike | null>(null);
   const activeRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -159,7 +173,7 @@ export default function Home() {
         const res = await fetch("/api/agent", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ transcript }),
+          body: JSON.stringify({ transcript, model: modelRef.current }),
           signal: ctrl.signal,
         });
         if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
@@ -319,7 +333,7 @@ export default function Home() {
           aria-label="k0 suggestions"
           className="flex min-h-[420px] flex-col rounded-[10px] border border-line bg-card"
         >
-          <div className="flex items-center gap-2.5 border-b border-line px-3.5 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider">
+          <div className="flex items-center justify-between gap-2.5 border-b border-line px-3.5 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider">
             <span className={listening ? "text-live" : "text-muted"}>
               <span
                 className={`mr-1.5 inline-block h-[7px] w-[7px] -translate-y-px rounded-full bg-current ${
@@ -328,6 +342,18 @@ export default function Home() {
               />
               {listening ? "Listening" : "Idle"}
             </span>
+            <select
+              aria-label="Model"
+              value={modelKey}
+              onChange={(e) => setModelKey(e.target.value as ModelKey)}
+              className="cursor-pointer rounded-md border border-line bg-card px-2 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-ink"
+            >
+              {MODELS.map((m) => (
+                <option key={m.key} value={m.key}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="flex max-h-[460px] flex-1 flex-col gap-4 overflow-y-auto p-4">
             {agentError && (
