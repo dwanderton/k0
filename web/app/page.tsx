@@ -171,17 +171,23 @@ export default function Home() {
   const [trace, setTrace] = useState<{
     turn: number;
     lines: string[];
-    outcome: "streaming" | "card" | "none" | "failed";
+    outcome: "streaming" | "card" | "none" | "duplicate" | "failed";
   } | null>(null);
   const [view, setView] = useState(0); // index of the card on screen
   const [following, setFollowing] = useState(true); // carousel keeps up with live
   const recRef = useRef<SpeechRecognitionLike | null>(null);
   const activeRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const abortRef = useRef<AbortController | null>(null);
+  // In-flight queries — several can run at once; only unmount aborts them.
+  const inflightRef = useRef(new Set<AbortController>());
   const queriedRef = useRef(0);
   // Segments answered (card or NONE) — never resent to the agent.
   const consumedRef = useRef(0);
+  // Last card pushed, with the transcript span it answered — dedupes
+  // overlapping concurrent turns that surface the same doc twice.
+  const lastCardRef = useRef<{ id: number; start: number; doc: string } | null>(
+    null,
+  );
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
@@ -197,18 +203,21 @@ export default function Home() {
     return () => {
       activeRef.current = false;
       recRef.current?.stop();
-      abortRef.current?.abort();
+      inflightRef.current.forEach((c) => c.abort());
     };
   }, []);
 
   // Continuous querying: every finalized utterance re-queries the agent.
-  // Latest wins — a newer line aborts the in-flight one.
+  // Queries run concurrently — a newer line never aborts an in-flight one;
+  // a finished answer is work already paid for, so it lands if appropriate.
+  // Turns can settle out of order; cards insert sorted by turn.
   //
   // Garbage-collect answered transcript: once a query settles with a card
   // OR a NONE, everything up to that point is consumed — later queries send
   // only the unconsumed tail. Otherwise the agent keeps seeing (and
   // re-answering) old topics: mention fluid compute, get the card, talk
   // about cats → without trimming, the same fluid-compute card comes back.
+  // Overlapping turns that surface the same doc dedupe on landing.
   // Failures do NOT consume — those lines get another chance on the next
   // utterance.
   useEffect(() => {
@@ -220,10 +229,11 @@ export default function Home() {
     const heard = unconsumed[unconsumed.length - 1].text;
     const transcript = unconsumed.map((s) => s.text).join("\n");
     const id = segments.length;
+    // Transcript span this turn answers: segments [start, id).
+    const start = consumedRef.current;
 
-    abortRef.current?.abort();
     const ctrl = new AbortController();
-    abortRef.current = ctrl;
+    inflightRef.current.add(ctrl);
     setAgentError(false);
     setCurrent({ id, heard, at: clock(), text: "", debug: [] });
     setTrace({ turn: id, lines: [], outcome: "streaming" });
@@ -257,33 +267,64 @@ export default function Home() {
         if (!card.trim()) {
           // Stream carried only a trace (or nothing) — a model/tool failure,
           // not a NONE. The trace panel below shows what the agent did.
-          setAgentError(true);
+          // Only the newest turn drives the error banner: an old turn
+          // failing after a newer one answered is noise, not a problem.
+          if (id === queriedRef.current) setAgentError(true);
           setTrace((t) =>
             t && t.turn === id ? { ...t, lines: debug, outcome: "failed" } : t,
           );
         } else if (!p.none && (p.quote || p.answer)) {
           // Card delivered — everything sent in this query is consumed.
           consumedRef.current = Math.max(consumedRef.current, id);
-          setCards((cs) => [...cs, { id, heard, at: clock(), text: card, debug }]);
+          // Concurrent turns share transcript lines, so two in-flight
+          // queries can answer the same topic. A card is a duplicate when
+          // it cites the last card's doc AND their spans overlap — the same
+          // doc from a fresh, later span is a genuine re-ask and lands.
+          const lc = lastCardRef.current;
+          const dup =
+            lc !== null &&
+            !!p.doc &&
+            lc.doc.toLowerCase() === p.doc.toLowerCase() &&
+            lc.start < id &&
+            start < lc.id;
+          if (!dup) {
+            lastCardRef.current = { id, start, doc: p.doc };
+            setCards((cs) =>
+              [...cs, { id, heard, at: clock(), text: card, debug }].sort(
+                (a, b) => a.id - b.id,
+              ),
+            );
+          }
           setTrace((t) =>
-            t && t.turn === id ? { ...t, lines: debug, outcome: "card" } : t,
+            t && t.turn === id
+              ? { ...t, lines: debug, outcome: dup ? "duplicate" : "card" }
+              : t,
           );
-        } else {
+        } else if (p.none) {
           // NONE: the agent looked and decided no doc applies — not a
           // failure, and equally consumed: don't re-litigate small talk.
           consumedRef.current = Math.max(consumedRef.current, id);
           setTrace((t) =>
             t && t.turn === id ? { ...t, lines: debug, outcome: "none" } : t,
           );
+        } else {
+          // Prose without card fields: a format failure, NOT a NONE.
+          // Don't consume — these lines get another chance next utterance.
+          if (id === queriedRef.current) setAgentError(true);
+          setTrace((t) =>
+            t && t.turn === id ? { ...t, lines: debug, outcome: "failed" } : t,
+          );
         }
       } catch (err) {
         if ((err as Error).name !== "AbortError") {
           setCurrent((c) => (c && c.id === id ? null : c));
-          setAgentError(true);
+          if (id === queriedRef.current) setAgentError(true);
           setTrace((t) =>
             t && t.turn === id ? { ...t, outcome: "failed" } : t,
           );
         }
+      } finally {
+        inflightRef.current.delete(ctrl);
       }
     })();
   }, [segments]);
@@ -554,7 +595,9 @@ export default function Home() {
                   ? "card"
                   : trace.outcome === "none"
                     ? "none — no doc needed"
-                    : "failed"}
+                    : trace.outcome === "duplicate"
+                      ? "duplicate — already on a card"
+                      : "failed"}
             </span>
           </div>
           <div className="flex max-h-[220px] flex-col gap-0.5 overflow-y-auto p-4 font-mono text-[10px] leading-relaxed text-[#b6b6be]">
