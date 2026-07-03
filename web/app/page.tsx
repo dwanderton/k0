@@ -41,10 +41,9 @@ function clock() {
 
 /** Model spectrum: speed ↔ capability. Values match the API route's map. */
 const MODELS = [
-  { key: "fastest", label: "Fastest" },
+  { key: "fastest", label: "Fastest (zai/glm-4.7)" },
   { key: "gptoss", label: "GPT-OSS 120B" },
-  { key: "llama", label: "Llama 3.1 8B" },
-  { key: "zai", label: "GLM 4.7" },
+  { key: "qwen", label: "Qwen 3 32B" },
   { key: "gemini", label: "Gemini 3 Pro" },
   { key: "fable", label: "Fable 5" },
 ] as const;
@@ -188,7 +187,10 @@ export default function Home() {
         }
         const p = parseCard(text);
         setCurrent((c) => (c && c.id === id ? null : c));
-        if (!p.none && (p.quote || p.answer)) {
+        if (!text.trim()) {
+          // Stream ended with no text at all — a model/tool failure, not a NONE.
+          setAgentError(true);
+        } else if (!p.none && (p.quote || p.answer)) {
           setCards((cs) => [{ id, heard, at: clock(), text }, ...cs]);
         }
       } catch (err) {

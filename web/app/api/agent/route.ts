@@ -3,7 +3,7 @@ import { createMCPClient } from "@ai-sdk/mcp";
 
 export const maxDuration = 60;
 
-const DEFAULT_MODEL = "morph/morph-v3-fast";
+const DEFAULT_MODEL = "zai/glm-4.7";
 
 /** Every model routes through the gateway's lowest time-to-first-token provider. */
 const GATEWAY_OPTIONS = {
@@ -14,13 +14,12 @@ const GATEWAY_OPTIONS = {
 
 /** Model spectrum: speed ↔ capability. Keys are what the client sends. */
 const SPECTRUM: Record<
-  "fastest" | "gptoss" | "llama" | "zai" | "gemini" | "fable",
+  "fastest" | "gptoss" | "qwen" | "gemini" | "fable",
   { model?: string }
 > = {
   fastest: {},
   gptoss: { model: "openai/gpt-oss-120b" },
-  llama: { model: "meta/llama-3.1-8b" },
-  zai: { model: "zai/glm-4.7" },
+  qwen: { model: "alibaba/qwen-3-32b" },
   gemini: { model: "google/gemini-3-pro-preview" },
   fable: { model: "anthropic/claude-fable-5" },
 };
@@ -93,9 +92,16 @@ export async function POST(req: Request) {
     system: SYSTEM,
     prompt: transcript,
     tools,
-    stopWhen: stepCountIs(5),
+    stopWhen: stepCountIs(8),
+    // Some models spend every step re-searching and never emit text — after
+    // step 5, cut tool access so the model must write the answer.
+    prepareStep: ({ stepNumber }) =>
+      stepNumber >= 5 ? { toolChoice: "none" as const } : undefined,
     onFinish: () => mcp.close(),
-    onError: () => mcp.close(),
+    onError: (event) => {
+      console.error("agent stream error:", event.error);
+      mcp.close();
+    },
   });
 
   return result.toTextStreamResponse();
