@@ -20,11 +20,14 @@ interface SpeechRecognitionEventLike {
 
 type Status = "idle" | "listening" | "denied" | "unsupported" | "unavailable";
 
-/** One finalized utterance. This is what streams to the agent. */
+/** One finalized utterance. This is what streams to the agent — except
+ *  system lines (mic errors), which render in the transcript but never
+ *  reach the agent. */
 interface Segment {
   id: number;
   at: string;
   text: string;
+  sys?: boolean;
 }
 
 /** One agent response, streamed in the strict DOC/ANSWER/QUOTE/ANCHOR/SOURCE format. */
@@ -233,8 +236,14 @@ export default function Home() {
 
     const unconsumed = segments.slice(consumedRef.current);
     if (unconsumed.length === 0) return;
-    const heard = unconsumed[unconsumed.length - 1].text;
-    const transcript = unconsumed.map((s) => s.text).join("\n");
+    // System lines (mic errors) render in the transcript but never reach
+    // the agent — and a system line is not a question, so it triggers no
+    // query of its own.
+    if (unconsumed[unconsumed.length - 1].sys) return;
+    const spoken = unconsumed.filter((s) => !s.sys);
+    if (spoken.length === 0) return;
+    const heard = spoken[spoken.length - 1].text;
+    const transcript = spoken.map((s) => s.text).join("\n");
     const id = segments.length;
     // Transcript span this turn answers: segments [start, id).
     const start = consumedRef.current;
@@ -349,6 +358,12 @@ export default function Home() {
     setFollowing((f) => !f);
   }
 
+  /** Mic failures land in the transcript as timestamped system lines —
+   *  the placeholder text only shows while the transcript is empty. */
+  function logSystem(text: string) {
+    setSegments((s) => [...s, { id: s.length, at: clock(), text, sys: true }]);
+  }
+
   function start() {
     const w = window as unknown as Record<string, unknown>;
     const Rec = w.SpeechRecognition ?? w.webkitSpeechRecognition;
@@ -379,6 +394,11 @@ export default function Home() {
         activeRef.current = false;
         setMicError(e.error);
         setStatus("denied");
+        logSystem(
+          e.error === "service-not-allowed"
+            ? "mic error: service-not-allowed — speech service blocked; use desktop Chrome"
+            : "mic error: not-allowed — allow the mic for this site, and check Chrome has mic access in System Settings → Privacy & Security",
+        );
       }
     };
     // Chrome ends recognition after silence — restart while the mic is meant
@@ -394,6 +414,9 @@ export default function Home() {
       if (rapidEndsRef.current >= 3) {
         activeRef.current = false;
         setStatus("unavailable");
+        logSystem(
+          "mic error: recognition keeps disconnecting — usually another tab is listening; close it and start again",
+        );
         return;
       }
       recStartedAtRef.current = Date.now();
@@ -479,7 +502,13 @@ export default function Home() {
                 <div className="mb-1 font-mono text-[11px] font-semibold tabular-nums text-muted">
                   {s.at}
                 </div>
-                <div className="rounded-lg border border-line bg-[#f4f4f5] px-3 py-2.5">
+                <div
+                  className={`rounded-lg border border-line px-3 py-2.5 ${
+                    s.sys
+                      ? "bg-card font-mono text-[12px] text-error"
+                      : "bg-[#f4f4f5]"
+                  }`}
+                >
                   {s.text}
                 </div>
               </div>
