@@ -3,13 +3,18 @@
   "version": "0.1.0",
   "private": true,
   "packageManager": "pnpm@11.0.4",
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start"
   },
   "dependencies": {
+    "@ai-sdk/mcp": "^2.0.5",
     "@vercel/analytics": "^2.0.1",
+    "ai": "^7.0.12",
     "geist": "^1.7.2",
     "next": "16.2.10",
     "react": "19.2.7",
