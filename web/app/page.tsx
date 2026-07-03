@@ -39,6 +39,17 @@ function clock() {
   return new Date().toLocaleTimeString("en-US", { hour12: false });
 }
 
+/** Fix common speech-recognition mishears before they reach the transcript. */
+const TIDY_RULES: [RegExp, string][] = [
+  [/\bthe cell\b/gi, "Vercel"],
+  [/\bfor sale\b/gi, "Vercel"],
+  [/\bgerbil\b/gi, "durable"],
+];
+
+function tidyTranscript(text: string) {
+  return TIDY_RULES.reduce((t, [re, sub]) => t.replace(re, sub), text);
+}
+
 /** Model spectrum: speed ↔ capability. Values match the API route's map. */
 const MODELS = [
   { key: "fastest", label: "Fastest (zai/glm-4.7)" },
@@ -218,14 +229,14 @@ export default function Home() {
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const r = e.results[i];
         if (r.isFinal) {
-          const text = r[0].transcript.trim();
+          const text = tidyTranscript(r[0].transcript.trim());
           if (text)
             setSegments((s) => [...s, { id: s.length, at: clock(), text }]);
         } else {
           pending += r[0].transcript;
         }
       }
-      setInterim(pending);
+      setInterim(tidyTranscript(pending));
     };
     rec.onerror = (e) => {
       if (e.error === "not-allowed" || e.error === "service-not-allowed") {
