@@ -1,0 +1,28 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Node (if the POC grows into an app)
+node_modules/
+.next/
+out/
+dist/
+*.log
+
+# Env / secrets
+.env
+.env*.local
+
+# Vercel
+.vercel
+
+# Claude Code
+.claude/
+
+# Private working notes
+concept.md
