@@ -48,6 +48,7 @@ function clock() {
 const TIDY_RULES: [RegExp, string][] = [
   [/\bthe cell\b/gi, "Vercel"],
   [/\bfor sale\b/gi, "Vercel"],
+  [/\bwill sell\b/gi, "Vercel"],
   [/\bgerbil\b/gi, "durable"],
 ];
 
@@ -450,7 +451,9 @@ export default function Home() {
     !listening && cards.length === 0 && !streaming
       ? "Idle"
       : following
-        ? "Live"
+        ? streaming
+          ? "Live · Searching…" // connected AND the agent is working right now
+          : "Live"
         : `Paused${behind > 0 ? ` · ${behind} newer` : ""}`;
 
   return (
@@ -544,9 +547,11 @@ export default function Home() {
         >
           <div className="flex items-center justify-between gap-2.5 border-b border-line px-3.5 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider">
             <span className={following ? "text-live" : "text-muted"}>
+              {/* The dot pulses while something is truthfully live: the mic
+                  listening, or the agent mid-search. Stops when both stop. */}
               <span
                 className={`mr-1.5 inline-block h-[7px] w-[7px] -translate-y-px rounded-full bg-current ${
-                  listening ? "dot-listening" : ""
+                  listening || streaming ? "dot-listening" : ""
                 }`}
               />
               {modeLabel}
@@ -603,19 +608,23 @@ export default function Home() {
               </p>
             )}
 
-            {liveView ? (
-              currentIsCard ? (
-                <SuggestionCard s={current!} />
-              ) : (
-                <div className="card-rise flex flex-col gap-2" aria-hidden="true">
-                  <div className="h-3 w-1/3 animate-pulse rounded bg-line" />
-                  <div className="h-4 w-full animate-pulse rounded bg-line" />
-                  <div className="h-4 w-5/6 animate-pulse rounded bg-line" />
-                  <div className="h-4 w-2/3 animate-pulse rounded bg-line" />
-                </div>
-              )
+            {/* The settled card stays mounted while a query runs — swapping
+                it for a skeleton and back replays the entrance animation on
+                information that isn't new. The streaming card takes over
+                only once it has real card content (same key → no remount
+                when it settles); the skeleton only marks where the FIRST
+                answer will appear. */}
+            {liveView && currentIsCard ? (
+              <SuggestionCard key={current!.id} s={current!} />
             ) : shownCard ? (
               <SuggestionCard key={shownCard.id} s={shownCard} />
+            ) : streaming ? (
+              <div className="card-rise flex flex-col gap-2" aria-hidden="true">
+                <div className="h-3 w-1/3 animate-pulse rounded bg-line" />
+                <div className="h-4 w-full animate-pulse rounded bg-line" />
+                <div className="h-4 w-5/6 animate-pulse rounded bg-line" />
+                <div className="h-4 w-2/3 animate-pulse rounded bg-line" />
+              </div>
             ) : (
               !agentError && (
                 <p className="text-sm text-muted">
