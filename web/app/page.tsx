@@ -50,12 +50,6 @@ function tidyTranscript(text: string) {
   return TIDY_RULES.reduce((t, [re, sub]) => t.replace(re, sub), text);
 }
 
-/** Model spectrum: speed ↔ capability. Values match the API route's map. */
-const MODELS = [
-  { key: "fastest", label: "Fastest (openai/gpt-5.4-mini)" },
-] as const;
-type ModelKey = (typeof MODELS)[number]["key"];
-
 /** The agent stream interleaves a NUL-prefixed, newline-terminated debug trace
  *  (reasoning + tool calls) with the card text. Peel the two apart. */
 const NUL = "\u0000";
@@ -154,9 +148,6 @@ export default function Home() {
   const [cards, setCards] = useState<Suggestion[]>([]);
   const [agentError, setAgentError] = useState(false);
   const [debug, setDebug] = useState<string[]>([]);
-  const [modelKey, setModelKey] = useState<ModelKey>("fastest");
-  const modelRef = useRef<ModelKey>("fastest");
-  modelRef.current = modelKey;
   const recRef = useRef<SpeechRecognitionLike | null>(null);
   const activeRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -197,7 +188,7 @@ export default function Home() {
         const res = await fetch("/api/agent", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ transcript, model: modelRef.current }),
+          body: JSON.stringify({ transcript }),
           signal: ctrl.signal,
         });
         if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
@@ -373,18 +364,9 @@ export default function Home() {
               />
               {listening ? "Listening" : "Idle"}
             </span>
-            <select
-              aria-label="Model"
-              value={modelKey}
-              onChange={(e) => setModelKey(e.target.value as ModelKey)}
-              className="cursor-pointer rounded-md border border-line bg-card px-2 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-ink"
-            >
-              {MODELS.map((m) => (
-                <option key={m.key} value={m.key}>
-                  {m.label}
-                </option>
-              ))}
-            </select>
+            <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-muted">
+              gpt-5.4-mini · ttft
+            </span>
           </div>
           <div className="flex max-h-[460px] flex-1 flex-col gap-4 overflow-y-auto p-4">
             {agentError && (

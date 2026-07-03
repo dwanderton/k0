@@ -48,28 +48,11 @@ const readVercelDoc = tool({
   },
 });
 
-const DEFAULT_MODEL = "openai/gpt-5.4-mini";
-
-/** Every model routes through the gateway's lowest time-to-first-token provider. */
-const GATEWAY_OPTIONS = {
-  gateway: {
-    sort: "ttft" as const,
-  },
-};
-
-/** Model spectrum: speed ↔ capability. Keys are what the client sends. */
-const SPECTRUM: Record<
-  "fastest" | "gptoss" | "qwen" | "gemini" | "fable",
-  { model?: string }
-> = {
-  fastest: {},
-  gptoss: { model: "openai/gpt-oss-120b" },
-  qwen: { model: "alibaba/qwen-3-32b" },
-  gemini: { model: "google/gemini-3-pro-preview" },
-  fable: { model: "anthropic/claude-fable-5" },
-};
-
-type SpectrumKey = keyof typeof SPECTRUM;
+// Routed through the gateway's lowest time-to-first-token provider. gpt-5.4-mini
+// is the one model that reliably runs the search -> read_vercel_doc -> quote
+// flow; others either loop re-searching or fabricate quotes (see git history).
+const MODEL = "openai/gpt-5.4-mini";
+const GATEWAY_OPTIONS = { gateway: { sort: "ttft" as const } };
 
 const SYSTEM = `k0 = live docs copilot. Help Vercel SA mid-call.
 Input: SA side of call. One line per utterance. LAST line newest.
@@ -114,16 +97,10 @@ const oneline = (s: string, n = 160) =>
   s.replace(/\s+/g, " ").trim().slice(0, n);
 
 export async function POST(req: Request) {
-  const { transcript, model } = await req.json();
+  const { transcript } = await req.json();
   if (typeof transcript !== "string" || !transcript.trim()) {
     return Response.json({ error: "transcript required" }, { status: 400 });
   }
-  const choice: SpectrumKey =
-    typeof model === "string" && model in SPECTRUM
-      ? (model as SpectrumKey)
-      : "fastest";
-  const spectrum = SPECTRUM[choice];
-  const modelId = spectrum.model ?? DEFAULT_MODEL;
 
   const token = process.env.VERCEL_MCP_TOKEN;
   if (!token) {
@@ -159,7 +136,7 @@ export async function POST(req: Request) {
   };
 
   const result = streamText({
-    model: modelId,
+    model: MODEL,
     providerOptions: GATEWAY_OPTIONS,
     system: SYSTEM,
     prompt: transcript,
@@ -190,7 +167,7 @@ export async function POST(req: Request) {
       };
       let step = 0;
       try {
-        dbg(`model: ${modelId} · ttft`);
+        dbg(`model: ${MODEL} · ttft`);
         for await (const part of result.stream) {
           switch (part.type) {
             case "start-step":
