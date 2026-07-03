@@ -180,6 +180,8 @@ export default function Home() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const queriedRef = useRef(0);
+  // Segments answered (card or NONE) — never resent to the agent.
+  const consumedRef = useRef(0);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
@@ -199,14 +201,24 @@ export default function Home() {
     };
   }, []);
 
-  // Continuous querying: every finalized utterance re-queries the agent with
-  // the full transcript. Latest wins — a newer line aborts the in-flight one.
+  // Continuous querying: every finalized utterance re-queries the agent.
+  // Latest wins — a newer line aborts the in-flight one.
+  //
+  // Garbage-collect answered transcript: once a query settles with a card
+  // OR a NONE, everything up to that point is consumed — later queries send
+  // only the unconsumed tail. Otherwise the agent keeps seeing (and
+  // re-answering) old topics: mention fluid compute, get the card, talk
+  // about cats → without trimming, the same fluid-compute card comes back.
+  // Failures do NOT consume — those lines get another chance on the next
+  // utterance.
   useEffect(() => {
     if (segments.length === 0 || segments.length === queriedRef.current) return;
     queriedRef.current = segments.length;
 
-    const heard = segments[segments.length - 1].text;
-    const transcript = segments.map((s) => s.text).join("\n");
+    const unconsumed = segments.slice(consumedRef.current);
+    if (unconsumed.length === 0) return;
+    const heard = unconsumed[unconsumed.length - 1].text;
+    const transcript = unconsumed.map((s) => s.text).join("\n");
     const id = segments.length;
 
     abortRef.current?.abort();
@@ -250,12 +262,16 @@ export default function Home() {
             t && t.turn === id ? { ...t, lines: debug, outcome: "failed" } : t,
           );
         } else if (!p.none && (p.quote || p.answer)) {
+          // Card delivered — everything sent in this query is consumed.
+          consumedRef.current = Math.max(consumedRef.current, id);
           setCards((cs) => [...cs, { id, heard, at: clock(), text: card, debug }]);
           setTrace((t) =>
             t && t.turn === id ? { ...t, lines: debug, outcome: "card" } : t,
           );
         } else {
-          // NONE: the agent looked and decided no doc applies — not a failure.
+          // NONE: the agent looked and decided no doc applies — not a
+          // failure, and equally consumed: don't re-litigate small talk.
+          consumedRef.current = Math.max(consumedRef.current, id);
           setTrace((t) =>
             t && t.turn === id ? { ...t, lines: debug, outcome: "none" } : t,
           );
