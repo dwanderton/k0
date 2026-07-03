@@ -166,6 +166,13 @@ export default function Home() {
   const [current, setCurrent] = useState<Suggestion | null>(null);
   const [cards, setCards] = useState<Suggestion[]>([]); // oldest → newest
   const [agentError, setAgentError] = useState(false);
+  // Latest query's full trace — survives NONE and failures, where no card
+  // (and no per-card dropdown) ever lands.
+  const [trace, setTrace] = useState<{
+    turn: number;
+    lines: string[];
+    outcome: "streaming" | "card" | "none" | "failed";
+  } | null>(null);
   const [view, setView] = useState(0); // index of the card on screen
   const [following, setFollowing] = useState(true); // carousel keeps up with live
   const recRef = useRef<SpeechRecognitionLike | null>(null);
@@ -207,6 +214,7 @@ export default function Home() {
     abortRef.current = ctrl;
     setAgentError(false);
     setCurrent({ id, heard, at: clock(), text: "", debug: [] });
+    setTrace({ turn: id, lines: [], outcome: "streaming" });
 
     (async () => {
       try {
@@ -226,6 +234,9 @@ export default function Home() {
           raw += decoder.decode(value, { stream: true });
           const { card, debug } = splitStream(raw);
           setCurrent((c) => (c && c.id === id ? { ...c, text: card, debug } : c));
+          setTrace((t) =>
+            t && t.turn === id ? { ...t, lines: debug } : t,
+          );
         }
         raw += decoder.decode(); // flush any trailing multi-byte remainder
         const { card, debug } = splitStream(raw);
@@ -233,15 +244,29 @@ export default function Home() {
         setCurrent((c) => (c && c.id === id ? null : c));
         if (!card.trim()) {
           // Stream carried only a trace (or nothing) — a model/tool failure,
-          // not a NONE. The card's trace dropdown shows what the agent did.
+          // not a NONE. The trace panel below shows what the agent did.
           setAgentError(true);
+          setTrace((t) =>
+            t && t.turn === id ? { ...t, lines: debug, outcome: "failed" } : t,
+          );
         } else if (!p.none && (p.quote || p.answer)) {
           setCards((cs) => [...cs, { id, heard, at: clock(), text: card, debug }]);
+          setTrace((t) =>
+            t && t.turn === id ? { ...t, lines: debug, outcome: "card" } : t,
+          );
+        } else {
+          // NONE: the agent looked and decided no doc applies — not a failure.
+          setTrace((t) =>
+            t && t.turn === id ? { ...t, lines: debug, outcome: "none" } : t,
+          );
         }
       } catch (err) {
         if ((err as Error).name !== "AbortError") {
           setCurrent((c) => (c && c.id === id ? null : c));
           setAgentError(true);
+          setTrace((t) =>
+            t && t.turn === id ? { ...t, outcome: "failed" } : t,
+          );
         }
       }
     })();
@@ -488,6 +513,46 @@ export default function Home() {
           </div>
         </section>
       </div>
+
+      {/* Agent trace — full-width debug panel. Survives NONE and failures,
+          where no card (and no per-card dropdown) ever lands. */}
+      {trace && (
+        <section
+          aria-label="Agent trace"
+          className="mt-[18px] rounded-[10px] border border-line bg-card"
+        >
+          <div className="flex items-center justify-between gap-2.5 border-b border-line px-3.5 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-muted">
+            <span>Agent trace — turn {trace.turn}</span>
+            <span
+              className={
+                trace.outcome === "failed"
+                  ? "text-error"
+                  : trace.outcome === "card"
+                    ? "text-live"
+                    : "text-muted"
+              }
+            >
+              {trace.outcome === "streaming"
+                ? "running…"
+                : trace.outcome === "card"
+                  ? "card"
+                  : trace.outcome === "none"
+                    ? "none — no doc needed"
+                    : "failed"}
+            </span>
+          </div>
+          <div className="flex max-h-[220px] flex-col gap-0.5 overflow-y-auto p-4 font-mono text-[10px] leading-relaxed text-[#b6b6be]">
+            {trace.lines.length === 0 && (
+              <span className="text-muted">waiting for the agent…</span>
+            )}
+            {trace.lines.map((line, k) => (
+              <div key={k} className="whitespace-pre-wrap break-words">
+                {line}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
