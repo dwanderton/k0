@@ -53,7 +53,6 @@ function tidyTranscript(text: string) {
 /** Model spectrum: speed ↔ capability. Values match the API route's map. */
 const MODELS = [
   { key: "fastest", label: "Fastest (openai/gpt-5.4-mini)" },
-  { key: "qwen", label: "Qwen 3 32B" },
 ] as const;
 type ModelKey = (typeof MODELS)[number]["key"];
 
