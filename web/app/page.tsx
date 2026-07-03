@@ -18,13 +18,16 @@ interface SpeechRecognitionEventLike {
   results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }>;
 }
 
-type Status = "idle" | "listening" | "denied" | "unsupported";
+type Status = "idle" | "listening" | "denied" | "unsupported" | "unavailable";
 
-/** One finalized utterance. This is what streams to the agent. */
+/** One finalized utterance. This is what streams to the agent — except
+ *  system lines (mic errors), which render in the transcript but never
+ *  reach the agent. */
 interface Segment {
   id: number;
   at: string;
   text: string;
+  sys?: boolean;
 }
 
 /** One agent response, streamed in the strict DOC/ANSWER/QUOTE/ANCHOR/SOURCE format. */
@@ -45,6 +48,7 @@ function clock() {
 const TIDY_RULES: [RegExp, string][] = [
   [/\bthe cell\b/gi, "Vercel"],
   [/\bfor sale\b/gi, "Vercel"],
+  [/\bwill sell\b/gi, "Vercel"],
   [/\bgerbil\b/gi, "durable"],
 ];
 
@@ -161,6 +165,9 @@ function SuggestionCard({ s }: { s: Suggestion }) {
 
 export default function Home() {
   const [status, setStatus] = useState<Status>("idle");
+  // Raw SpeechRecognition error code — "not-allowed" (permission) and
+  // "service-not-allowed" (speech service blocked) need different advice.
+  const [micError, setMicError] = useState("");
   const [segments, setSegments] = useState<Segment[]>([]);
   const [interim, setInterim] = useState("");
   const [current, setCurrent] = useState<Suggestion | null>(null);
@@ -171,15 +178,27 @@ export default function Home() {
   const [trace, setTrace] = useState<{
     turn: number;
     lines: string[];
-    outcome: "streaming" | "card" | "none" | "failed";
+    outcome: "streaming" | "card" | "none" | "duplicate" | "failed";
   } | null>(null);
   const [view, setView] = useState(0); // index of the card on screen
   const [following, setFollowing] = useState(true); // carousel keeps up with live
   const recRef = useRef<SpeechRecognitionLike | null>(null);
   const activeRef = useRef(false);
+  // Rapid-restart guard: a healthy recognizer runs for seconds before Chrome
+  // ends it; ending right after start means it's failing on arrival.
+  const recStartedAtRef = useRef(0);
+  const rapidEndsRef = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const abortRef = useRef<AbortController | null>(null);
+  // In-flight queries — several can run at once; only unmount aborts them.
+  const inflightRef = useRef(new Set<AbortController>());
   const queriedRef = useRef(0);
+  // Segments answered (card or NONE) — never resent to the agent.
+  const consumedRef = useRef(0);
+  // Last card pushed, with the transcript span it answered — dedupes
+  // overlapping concurrent turns that surface the same doc twice.
+  const lastCardRef = useRef<{ id: number; start: number; doc: string } | null>(
+    null,
+  );
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
@@ -195,23 +214,43 @@ export default function Home() {
     return () => {
       activeRef.current = false;
       recRef.current?.stop();
-      abortRef.current?.abort();
+      inflightRef.current.forEach((c) => c.abort());
     };
   }, []);
 
-  // Continuous querying: every finalized utterance re-queries the agent with
-  // the full transcript. Latest wins — a newer line aborts the in-flight one.
+  // Continuous querying: every finalized utterance re-queries the agent.
+  // Queries run concurrently — a newer line never aborts an in-flight one;
+  // a finished answer is work already paid for, so it lands if appropriate.
+  // Turns can settle out of order; cards insert sorted by turn.
+  //
+  // Garbage-collect answered transcript: once a query settles with a card
+  // OR a NONE, everything up to that point is consumed — later queries send
+  // only the unconsumed tail. Otherwise the agent keeps seeing (and
+  // re-answering) old topics: mention fluid compute, get the card, talk
+  // about cats → without trimming, the same fluid-compute card comes back.
+  // Overlapping turns that surface the same doc dedupe on landing.
+  // Failures do NOT consume — those lines get another chance on the next
+  // utterance.
   useEffect(() => {
     if (segments.length === 0 || segments.length === queriedRef.current) return;
     queriedRef.current = segments.length;
 
-    const heard = segments[segments.length - 1].text;
-    const transcript = segments.map((s) => s.text).join("\n");
+    const unconsumed = segments.slice(consumedRef.current);
+    if (unconsumed.length === 0) return;
+    // System lines (mic errors) render in the transcript but never reach
+    // the agent — and a system line is not a question, so it triggers no
+    // query of its own.
+    if (unconsumed[unconsumed.length - 1].sys) return;
+    const spoken = unconsumed.filter((s) => !s.sys);
+    if (spoken.length === 0) return;
+    const heard = spoken[spoken.length - 1].text;
+    const transcript = spoken.map((s) => s.text).join("\n");
     const id = segments.length;
+    // Transcript span this turn answers: segments [start, id).
+    const start = consumedRef.current;
 
-    abortRef.current?.abort();
     const ctrl = new AbortController();
-    abortRef.current = ctrl;
+    inflightRef.current.add(ctrl);
     setAgentError(false);
     setCurrent({ id, heard, at: clock(), text: "", debug: [] });
     setTrace({ turn: id, lines: [], outcome: "streaming" });
@@ -245,29 +284,64 @@ export default function Home() {
         if (!card.trim()) {
           // Stream carried only a trace (or nothing) — a model/tool failure,
           // not a NONE. The trace panel below shows what the agent did.
-          setAgentError(true);
+          // Only the newest turn drives the error banner: an old turn
+          // failing after a newer one answered is noise, not a problem.
+          if (id === queriedRef.current) setAgentError(true);
           setTrace((t) =>
             t && t.turn === id ? { ...t, lines: debug, outcome: "failed" } : t,
           );
         } else if (!p.none && (p.quote || p.answer)) {
-          setCards((cs) => [...cs, { id, heard, at: clock(), text: card, debug }]);
+          // Card delivered — everything sent in this query is consumed.
+          consumedRef.current = Math.max(consumedRef.current, id);
+          // Concurrent turns share transcript lines, so two in-flight
+          // queries can answer the same topic. A card is a duplicate when
+          // it cites the last card's doc AND their spans overlap — the same
+          // doc from a fresh, later span is a genuine re-ask and lands.
+          const lc = lastCardRef.current;
+          const dup =
+            lc !== null &&
+            !!p.doc &&
+            lc.doc.toLowerCase() === p.doc.toLowerCase() &&
+            lc.start < id &&
+            start < lc.id;
+          if (!dup) {
+            lastCardRef.current = { id, start, doc: p.doc };
+            setCards((cs) =>
+              [...cs, { id, heard, at: clock(), text: card, debug }].sort(
+                (a, b) => a.id - b.id,
+              ),
+            );
+          }
           setTrace((t) =>
-            t && t.turn === id ? { ...t, lines: debug, outcome: "card" } : t,
+            t && t.turn === id
+              ? { ...t, lines: debug, outcome: dup ? "duplicate" : "card" }
+              : t,
           );
-        } else {
-          // NONE: the agent looked and decided no doc applies — not a failure.
+        } else if (p.none) {
+          // NONE: the agent looked and decided no doc applies — not a
+          // failure, and equally consumed: don't re-litigate small talk.
+          consumedRef.current = Math.max(consumedRef.current, id);
           setTrace((t) =>
             t && t.turn === id ? { ...t, lines: debug, outcome: "none" } : t,
+          );
+        } else {
+          // Prose without card fields: a format failure, NOT a NONE.
+          // Don't consume — these lines get another chance next utterance.
+          if (id === queriedRef.current) setAgentError(true);
+          setTrace((t) =>
+            t && t.turn === id ? { ...t, lines: debug, outcome: "failed" } : t,
           );
         }
       } catch (err) {
         if ((err as Error).name !== "AbortError") {
           setCurrent((c) => (c && c.id === id ? null : c));
-          setAgentError(true);
+          if (id === queriedRef.current) setAgentError(true);
           setTrace((t) =>
             t && t.turn === id ? { ...t, outcome: "failed" } : t,
           );
         }
+      } finally {
+        inflightRef.current.delete(ctrl);
       }
     })();
   }, [segments]);
@@ -283,6 +357,12 @@ export default function Home() {
   function togglePlay() {
     // Resuming snaps back to the live edge (handled by the following effect).
     setFollowing((f) => !f);
+  }
+
+  /** Mic failures land in the transcript as timestamped system lines —
+   *  the placeholder text only shows while the transcript is empty. */
+  function logSystem(text: string) {
+    setSegments((s) => [...s, { id: s.length, at: clock(), text, sys: true }]);
   }
 
   function start() {
@@ -313,16 +393,40 @@ export default function Home() {
     rec.onerror = (e) => {
       if (e.error === "not-allowed" || e.error === "service-not-allowed") {
         activeRef.current = false;
+        setMicError(e.error);
         setStatus("denied");
+        logSystem(
+          e.error === "service-not-allowed"
+            ? "mic error: service-not-allowed — speech service blocked; use desktop Chrome"
+            : "mic error: not-allowed — allow the mic for this site, and check Chrome has mic access in System Settings → Privacy & Security",
+        );
       }
     };
-    // Chrome ends recognition after silence — restart while the mic is meant to be on.
+    // Chrome ends recognition after silence — restart while the mic is meant
+    // to be on. But an end within ~1s of start means the recognizer is dying
+    // on arrival (another tab holds the mic, speech service unreachable) —
+    // restarting forever just flickers the recording light. Three rapid ends
+    // in a row: stop and say what still works.
     rec.onend = () => {
       setInterim("");
-      if (activeRef.current) rec.start();
+      if (!activeRef.current) return;
+      const rapid = Date.now() - recStartedAtRef.current < 1000;
+      rapidEndsRef.current = rapid ? rapidEndsRef.current + 1 : 0;
+      if (rapidEndsRef.current >= 3) {
+        activeRef.current = false;
+        setStatus("unavailable");
+        logSystem(
+          "mic error: recognition keeps disconnecting — usually another tab is listening; close it and start again",
+        );
+        return;
+      }
+      recStartedAtRef.current = Date.now();
+      rec.start();
     };
     recRef.current = rec;
     activeRef.current = true;
+    rapidEndsRef.current = 0;
+    recStartedAtRef.current = Date.now();
     setStatus("listening");
     rec.start();
   }
@@ -347,7 +451,9 @@ export default function Home() {
     !listening && cards.length === 0 && !streaming
       ? "Idle"
       : following
-        ? "Live"
+        ? streaming
+          ? "Live · Searching…" // connected AND the agent is working right now
+          : "Live"
         : `Paused${behind > 0 ? ` · ${behind} newer` : ""}`;
 
   return (
@@ -384,10 +490,14 @@ export default function Home() {
             {segments.length === 0 && !interim && (
               <p className="text-sm text-muted">
                 {status === "denied"
-                  ? "Microphone access denied. Allow access in the browser, then start listening again."
+                  ? micError === "service-not-allowed"
+                    ? "Speech service blocked (service-not-allowed). Use desktop Chrome, then start listening again."
+                    : "Microphone access denied (not-allowed). Allow the mic for this site — and check Chrome has mic access in System Settings → Privacy & Security."
                   : status === "unsupported"
                     ? "Speech recognition isn't available in this browser. Use Chrome."
-                    : "Press Start Listening — your side of the call transcribes here."}
+                    : status === "unavailable"
+                      ? "Speech recognition keeps disconnecting — usually another tab is listening. Close it, then start again."
+                      : "Press Start Listening — your side of the call transcribes here."}
               </p>
             )}
             {segments.map((s) => (
@@ -395,7 +505,13 @@ export default function Home() {
                 <div className="mb-1 font-mono text-[11px] font-semibold tabular-nums text-muted">
                   {s.at}
                 </div>
-                <div className="rounded-lg border border-line bg-[#f4f4f5] px-3 py-2.5">
+                <div
+                  className={`rounded-lg border border-line px-3 py-2.5 ${
+                    s.sys
+                      ? "bg-card font-mono text-[12px] text-error"
+                      : "bg-[#f4f4f5]"
+                  }`}
+                >
                   {s.text}
                 </div>
               </div>
@@ -431,9 +547,11 @@ export default function Home() {
         >
           <div className="flex items-center justify-between gap-2.5 border-b border-line px-3.5 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider">
             <span className={following ? "text-live" : "text-muted"}>
+              {/* The dot pulses while something is truthfully live: the mic
+                  listening, or the agent mid-search. Stops when both stop. */}
               <span
                 className={`mr-1.5 inline-block h-[7px] w-[7px] -translate-y-px rounded-full bg-current ${
-                  listening ? "dot-listening" : ""
+                  listening || streaming ? "dot-listening" : ""
                 }`}
               />
               {modeLabel}
@@ -490,19 +608,23 @@ export default function Home() {
               </p>
             )}
 
-            {liveView ? (
-              currentIsCard ? (
-                <SuggestionCard s={current!} />
-              ) : (
-                <div className="card-rise flex flex-col gap-2" aria-hidden="true">
-                  <div className="h-3 w-1/3 animate-pulse rounded bg-line" />
-                  <div className="h-4 w-full animate-pulse rounded bg-line" />
-                  <div className="h-4 w-5/6 animate-pulse rounded bg-line" />
-                  <div className="h-4 w-2/3 animate-pulse rounded bg-line" />
-                </div>
-              )
+            {/* The settled card stays mounted while a query runs — swapping
+                it for a skeleton and back replays the entrance animation on
+                information that isn't new. The streaming card takes over
+                only once it has real card content (same key → no remount
+                when it settles); the skeleton only marks where the FIRST
+                answer will appear. */}
+            {liveView && currentIsCard ? (
+              <SuggestionCard key={current!.id} s={current!} />
             ) : shownCard ? (
               <SuggestionCard key={shownCard.id} s={shownCard} />
+            ) : streaming ? (
+              <div className="card-rise flex flex-col gap-2" aria-hidden="true">
+                <div className="h-3 w-1/3 animate-pulse rounded bg-line" />
+                <div className="h-4 w-full animate-pulse rounded bg-line" />
+                <div className="h-4 w-5/6 animate-pulse rounded bg-line" />
+                <div className="h-4 w-2/3 animate-pulse rounded bg-line" />
+              </div>
             ) : (
               !agentError && (
                 <p className="text-sm text-muted">
@@ -538,7 +660,9 @@ export default function Home() {
                   ? "card"
                   : trace.outcome === "none"
                     ? "none — no doc needed"
-                    : "failed"}
+                    : trace.outcome === "duplicate"
+                      ? "duplicate — already on a card"
+                      : "failed"}
             </span>
           </div>
           <div className="flex max-h-[220px] flex-col gap-0.5 overflow-y-auto p-4 font-mono text-[10px] leading-relaxed text-[#b6b6be]">

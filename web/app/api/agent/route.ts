@@ -70,6 +70,28 @@ const readVercelDoc = tool({
 const MODEL = "openai/gpt-5.4-mini";
 const GATEWAY_OPTIONS = { gateway: { sort: "ttft" as const } };
 
+/** MCP handshake + tool listing once per warm instance, not once per
+ *  utterance — Fluid Compute reuses instances across requests, so every turn
+ *  after the first skips the round trips to mcp.vercel.com. Those RTTs came
+ *  straight out of the <1s first-content budget on every single query.
+ *  On failure the cache resets so the next request retries the handshake. */
+let mcpTools: Promise<ToolSet> | null = null;
+function getMcpTools(token: string) {
+  mcpTools ??= createMCPClient({
+    transport: {
+      type: "http",
+      url: "https://mcp.vercel.com",
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  })
+    .then(async (mcp) => (await mcp.tools()) as ToolSet)
+    .catch((err) => {
+      mcpTools = null;
+      throw err;
+    });
+  return mcpTools;
+}
+
 const SYSTEM = `k0 = live docs copilot. Help Vercel SA mid-call.
 Input: SA side of call. One line per utterance. LAST line newest.
 
@@ -84,6 +106,10 @@ Flow every time: search -> pick best Source path -> read_vercel_doc it ->
 quote verbatim from the page text. QUOTE must be a real sentence in the
 page markdown. Never quote a search snippet. Never answer from memory.
 
+Unfamiliar product name? Vercel ships new products your training may not
+know - Eve (agents), v0, BotID, Fluid. NEVER answer NONE on a product-ish
+name without searching it first.
+
 Newest line = Vercel question? Run the flow.
 Then reply EXACTLY this, nothing before, nothing after:
 
@@ -91,7 +117,7 @@ DOC: <docs path, e.g. vercel.com/docs/functions>
 ANSWER: <one glance sentence, answers question>
 QUOTE: <exact verbatim doc passage, one to two sentences>
 ANCHOR: <short distinct phrase, 3-8 words, copied exact from QUOTE>
-SOURCE: <full docs url>#:~:text=<ANCHOR percent-encoded, spaces as %20>
+SOURCE: <full docs url, NEVER a .md suffix>#:~:text=<ANCHOR percent-encoded, spaces as %20>
 
 Rules:
 - QUOTE from read_vercel_doc page text. Never paraphrase, never quote a
@@ -104,7 +130,15 @@ Rules:
 - Newest line touches Vercel (product, feature, pricing, limit, behavior)?
   Always search first. Never answer from memory.
 - NONE only when: small talk, no Vercel topic. Or tool gave nothing that answers.
-- Never fake certainty. Verbatim quote that answers, or NONE.`;
+- Never fake certainty. Verbatim quote that answers, or NONE.
+- EVERY reply = the exact format above, or the single word NONE.
+  Prose without the DOC/ANSWER/QUOTE/ANCHOR/SOURCE labels = failure.`;
+
+/** Injected when the step budget runs out — the long tool transcript makes
+ *  models forget the output contract and answer in prose. */
+const FINAL_STEP = `${"\n\n"}TOOLS ARE DONE. Answer NOW from what you already read.
+Reply in the EXACT DOC/ANSWER/QUOTE/ANCHOR/SOURCE format, or NONE.
+No prose. No explanation. The format or NONE.`;
 
 /** Debug lines start with NUL and end with \n; the client splits them out of the
  *  card text and renders them as a light-grey trace. NUL never appears in prose. */
@@ -132,15 +166,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const mcp = await createMCPClient({
-    transport: {
-      type: "http",
-      url: "https://mcp.vercel.com",
-      headers: { Authorization: `Bearer ${token}` },
-    },
-  });
-
-  const all = (await mcp.tools()) as ToolSet;
+  const all = await getMcpTools(token);
   // From the MCP, keep only the docs search — the full surface (24 tools —
   // deployments, projects, toolbar…) bloats every request and slows the loop.
   // web_fetch_vercel_url is dropped on purpose — it fetches protected
@@ -165,9 +191,13 @@ export async function POST(req: Request) {
     tools,
     stopWhen: stepCountIs(8),
     // Some models spend every step re-searching and never emit text — after
-    // step 5, cut tool access so the model must write the answer.
+    // step 5, cut tool access AND restate the output contract: by then the
+    // context is thousands of tokens of .md dumps and models drift into
+    // answering in prose, which the client can't parse into a card.
     prepareStep: ({ stepNumber }) =>
-      stepNumber >= 5 ? { toolChoice: "none" as const } : undefined,
+      stepNumber >= 5
+        ? { toolChoice: "none" as const, instructions: SYSTEM + FINAL_STEP }
+        : undefined,
     onError: (event) => console.error("agent stream error:", event.error),
   });
 
@@ -216,6 +246,11 @@ export async function POST(req: Request) {
               );
               break;
             case "tool-error":
+              // A failed MCP call can mean the cached session went stale —
+              // drop the cache so the next request re-handshakes.
+              if (part.toolName === "search_vercel_documentation") {
+                mcpTools = null;
+              }
               dbg(`⚠ ${part.toolName} errored: ${oneline(String(part.error))}`);
               break;
             case "finish-step": {
@@ -246,7 +281,8 @@ export async function POST(req: Request) {
       } catch (err) {
         dbg(`⚠ stream failed: ${oneline(String(err))}`);
       } finally {
-        await mcp.close();
+        // The MCP client is shared across requests now — never close it here;
+        // it lives as long as the warm instance does.
         controller.close();
       }
     },
