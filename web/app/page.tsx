@@ -260,26 +260,12 @@ export default function Home() {
     setFollowing((f) => !f);
   }
 
-  async function start() {
+  function start() {
     const w = window as unknown as Record<string, unknown>;
     const Rec = w.SpeechRecognition ?? w.webkitSpeechRecognition;
     if (!Rec) {
       setStatus("unsupported");
       return;
-    }
-    // iOS Safari won't surface the mic prompt for SpeechRecognition on its own —
-    // it just fails with `not-allowed`. Priming getUserMedia forces the real
-    // permission grant first. Harmless on desktop: the mic permission is
-    // per-origin, so the recognizer reuses this grant without a second prompt.
-    if (navigator.mediaDevices?.getUserMedia) {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        stream.getTracks().forEach((t) => t.stop());
-      } catch {
-        activeRef.current = false;
-        setStatus("denied");
-        return;
-      }
     }
     const rec = new (Rec as new () => SpeechRecognitionLike)();
     rec.continuous = true;
