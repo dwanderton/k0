@@ -161,6 +161,9 @@ function SuggestionCard({ s }: { s: Suggestion }) {
 
 export default function Home() {
   const [status, setStatus] = useState<Status>("idle");
+  // Raw SpeechRecognition error code — "not-allowed" (permission) and
+  // "service-not-allowed" (speech service blocked) need different advice.
+  const [micError, setMicError] = useState("");
   const [segments, setSegments] = useState<Segment[]>([]);
   const [interim, setInterim] = useState("");
   const [current, setCurrent] = useState<Suggestion | null>(null);
@@ -374,6 +377,7 @@ export default function Home() {
     rec.onerror = (e) => {
       if (e.error === "not-allowed" || e.error === "service-not-allowed") {
         activeRef.current = false;
+        setMicError(e.error);
         setStatus("denied");
       }
     };
@@ -460,7 +464,9 @@ export default function Home() {
             {segments.length === 0 && !interim && (
               <p className="text-sm text-muted">
                 {status === "denied"
-                  ? "Microphone access denied. Allow access in the browser, then start listening again."
+                  ? micError === "service-not-allowed"
+                    ? "Speech service blocked (service-not-allowed). Use desktop Chrome, then start listening again."
+                    : "Microphone access denied (not-allowed). Allow the mic for this site — and check Chrome has mic access in System Settings → Privacy & Security."
                   : status === "unsupported"
                     ? "Speech recognition isn't available in this browser. Use Chrome."
                     : status === "unavailable"
