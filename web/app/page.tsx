@@ -227,6 +227,7 @@ export default function Home() {
           const { card, debug } = splitStream(raw);
           setCurrent((c) => (c && c.id === id ? { ...c, text: card, debug } : c));
         }
+        raw += decoder.decode(); // flush any trailing multi-byte remainder
         const { card, debug } = splitStream(raw);
         const p = parseCard(card);
         setCurrent((c) => (c && c.id === id ? null : c));

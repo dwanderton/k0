@@ -35,7 +35,23 @@ const readVercelDoc = tool({
       .replace(/^docs\//, "") // strip docs/
       .replace(/^\/+/, "");
     if (!clean) return "No path given.";
+    // The model supplies this path — reject traversal / anything that isn't a
+    // plain docs slug before it reaches a fetch URL.
+    if (!/^[a-z0-9]([a-z0-9/-]*[a-z0-9])?$/i.test(clean) || clean.includes("..")) {
+      return `Invalid docs path: ${clean}`;
+    }
     const url = `https://vercel.com/docs/${clean}.md`;
+    // Defense in depth: whatever the path resolves to, it must stay on
+    // vercel.com/docs — never fetch an arbitrary host.
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      return `Invalid docs path: ${clean}`;
+    }
+    if (parsed.hostname !== "vercel.com" || !parsed.pathname.startsWith("/docs/")) {
+      return `Refusing to fetch non-Vercel-docs URL: ${url}`;
+    }
     try {
       const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
       if (!res.ok) return `Could not fetch ${url} (HTTP ${res.status}).`;
@@ -97,7 +113,13 @@ const oneline = (s: string, n = 160) =>
   s.replace(/\s+/g, " ").trim().slice(0, n);
 
 export async function POST(req: Request) {
-  const { transcript } = await req.json();
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return Response.json({ error: "invalid JSON body" }, { status: 400 });
+  }
+  const transcript = (body as { transcript?: unknown })?.transcript;
   if (typeof transcript !== "string" || !transcript.trim()) {
     return Response.json({ error: "transcript required" }, { status: 400 });
   }
