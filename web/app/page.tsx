@@ -33,6 +33,8 @@ interface Suggestion {
   heard: string;
   at: string;
   text: string;
+  /** The model's reasoning + tool-call trace, for the per-card debug dropdown. */
+  debug: string[];
 }
 
 function clock() {
@@ -135,6 +137,23 @@ function SuggestionCard({ s }: { s: Suggestion }) {
             )}
           </div>
         )}
+        {s.debug.length > 0 && (
+          <details className="group mt-3 border-t border-line pt-2">
+            <summary className="flex cursor-pointer list-none items-center gap-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-ink">
+              <span className="inline-block transition-transform group-open:rotate-90">
+                ▸
+              </span>
+              how k0 answered · {s.debug.length} steps
+            </summary>
+            <div className="mt-2 flex flex-col gap-0.5 font-mono text-[10px] leading-relaxed text-[#b6b6be]">
+              {s.debug.map((line, k) => (
+                <div key={k} className="whitespace-pre-wrap break-words">
+                  {line}
+                </div>
+              ))}
+            </div>
+          </details>
+        )}
       </div>
     </div>
   );
@@ -145,9 +164,10 @@ export default function Home() {
   const [segments, setSegments] = useState<Segment[]>([]);
   const [interim, setInterim] = useState("");
   const [current, setCurrent] = useState<Suggestion | null>(null);
-  const [cards, setCards] = useState<Suggestion[]>([]);
+  const [cards, setCards] = useState<Suggestion[]>([]); // oldest → newest
   const [agentError, setAgentError] = useState(false);
-  const [debug, setDebug] = useState<string[]>([]);
+  const [view, setView] = useState(0); // index of the card on screen
+  const [following, setFollowing] = useState(true); // carousel keeps up with live
   const recRef = useRef<SpeechRecognitionLike | null>(null);
   const activeRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -157,6 +177,12 @@ export default function Home() {
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [segments, interim]);
+
+  // Following = ride the live edge: whenever a new card lands (or the user
+  // resumes), snap the carousel to the newest card.
+  useEffect(() => {
+    if (following) setView(Math.max(0, cards.length - 1));
+  }, [cards.length, following]);
 
   useEffect(() => {
     return () => {
@@ -180,8 +206,7 @@ export default function Home() {
     const ctrl = new AbortController();
     abortRef.current = ctrl;
     setAgentError(false);
-    setDebug([]);
-    setCurrent({ id, heard, at: clock(), text: "" });
+    setCurrent({ id, heard, at: clock(), text: "", debug: [] });
 
     (async () => {
       try {
@@ -200,18 +225,17 @@ export default function Home() {
           if (done) break;
           raw += decoder.decode(value, { stream: true });
           const { card, debug } = splitStream(raw);
-          setCurrent((c) => (c && c.id === id ? { ...c, text: card } : c));
-          setDebug(debug);
+          setCurrent((c) => (c && c.id === id ? { ...c, text: card, debug } : c));
         }
-        const { card } = splitStream(raw);
+        const { card, debug } = splitStream(raw);
         const p = parseCard(card);
         setCurrent((c) => (c && c.id === id ? null : c));
         if (!card.trim()) {
           // Stream carried only a trace (or nothing) — a model/tool failure,
-          // not a NONE. The debug panel shows what the agent was doing.
+          // not a NONE. The card's trace dropdown shows what the agent did.
           setAgentError(true);
         } else if (!p.none && (p.quote || p.answer)) {
-          setCards((cs) => [{ id, heard, at: clock(), text: card }, ...cs]);
+          setCards((cs) => [...cs, { id, heard, at: clock(), text: card, debug }]);
         }
       } catch (err) {
         if ((err as Error).name !== "AbortError") {
@@ -221,6 +245,19 @@ export default function Home() {
       }
     })();
   }, [segments]);
+
+  function goOlder() {
+    setFollowing(false);
+    setView((v) => Math.max(0, v - 1));
+  }
+  function goNewer() {
+    setFollowing(false);
+    setView((v) => Math.min(cards.length - 1, v + 1));
+  }
+  function togglePlay() {
+    // Resuming snaps back to the live edge (handled by the following effect).
+    setFollowing((f) => !f);
+  }
 
   function start() {
     const w = window as unknown as Record<string, unknown>;
@@ -272,9 +309,20 @@ export default function Home() {
   }
 
   const listening = status === "listening";
+  const streaming = current !== null; // a query is in flight
+  const liveView = following && streaming; // carousel shows the streaming card
   const currentParse = current ? parseCard(current.text) : null;
-  const currentVisible =
-    current && currentParse && !currentParse.none ? current : null;
+  const currentIsCard =
+    !!current && !!current.text.trim() && !!currentParse && !currentParse.none;
+  const viewIndex = Math.min(view, Math.max(0, cards.length - 1));
+  const shownCard = cards.length ? cards[viewIndex] : null;
+  const behind = cards.length - 1 - viewIndex; // newer cards off-screen
+  const modeLabel =
+    !listening && cards.length === 0 && !streaming
+      ? "Idle"
+      : following
+        ? "Live"
+        : `Paused${behind > 0 ? ` · ${behind} newer` : ""}`;
 
   return (
     <div className="mx-auto w-full max-w-[980px] px-5 pt-8 pb-12">
@@ -356,17 +404,58 @@ export default function Home() {
           className="flex min-h-[420px] flex-col rounded-[10px] border border-line bg-card"
         >
           <div className="flex items-center justify-between gap-2.5 border-b border-line px-3.5 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider">
-            <span className={listening ? "text-live" : "text-muted"}>
+            <span className={following ? "text-live" : "text-muted"}>
               <span
                 className={`mr-1.5 inline-block h-[7px] w-[7px] -translate-y-px rounded-full bg-current ${
                   listening ? "dot-listening" : ""
                 }`}
               />
-              {listening ? "Listening" : "Idle"}
+              {modeLabel}
             </span>
-            <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-muted">
-              gpt-5.4-mini · ttft
-            </span>
+            {/* Carousel transport — browse suggestion turns, or follow live */}
+            <div
+              className="flex items-center gap-1"
+              role="group"
+              aria-label="Browse suggestion turns"
+            >
+              <button
+                type="button"
+                onClick={goOlder}
+                disabled={cards.length === 0 || viewIndex <= 0}
+                aria-label="Previous turn"
+                title="Previous turn"
+                className="flex h-6 w-6 items-center justify-center rounded-md border border-line text-[13px] leading-none text-ink hover:border-accent hover:text-accent disabled:border-line disabled:text-line disabled:hover:border-line disabled:hover:text-line"
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                onClick={togglePlay}
+                disabled={cards.length === 0}
+                aria-label={following ? "Pause on this card" : "Follow live"}
+                title={following ? "Pause on this card" : "Follow live"}
+                className={`flex h-6 w-6 items-center justify-center rounded-md border text-[11px] leading-none disabled:border-line disabled:text-line ${
+                  following
+                    ? "border-live text-live"
+                    : "border-line text-ink hover:border-accent hover:text-accent"
+                }`}
+              >
+                {following ? "❚❚" : "▶"}
+              </button>
+              <button
+                type="button"
+                onClick={goNewer}
+                disabled={cards.length === 0 || viewIndex >= cards.length - 1}
+                aria-label="Next turn"
+                title="Next turn"
+                className="flex h-6 w-6 items-center justify-center rounded-md border border-line text-[13px] leading-none text-ink hover:border-accent hover:text-accent disabled:border-line disabled:text-line disabled:hover:border-line disabled:hover:text-line"
+              >
+                ›
+              </button>
+              <span className="ml-1 tabular-nums text-muted">
+                {cards.length ? `${viewIndex + 1}/${cards.length}` : "–/–"}
+              </span>
+            </div>
           </div>
           <div className="flex max-h-[460px] flex-1 flex-col gap-4 overflow-y-auto p-4">
             {agentError && (
@@ -375,40 +464,25 @@ export default function Home() {
               </p>
             )}
 
-            {currentVisible &&
-              (currentVisible.text.trim() ? (
-                <SuggestionCard s={currentVisible} />
+            {liveView ? (
+              currentIsCard ? (
+                <SuggestionCard s={current!} />
               ) : (
-                <div
-                  className="card-rise flex flex-col gap-2"
-                  aria-hidden="true"
-                >
+                <div className="card-rise flex flex-col gap-2" aria-hidden="true">
                   <div className="h-3 w-1/3 animate-pulse rounded bg-line" />
                   <div className="h-4 w-full animate-pulse rounded bg-line" />
                   <div className="h-4 w-5/6 animate-pulse rounded bg-line" />
                   <div className="h-4 w-2/3 animate-pulse rounded bg-line" />
                 </div>
-              ))}
-
-            {cards.map((c) => (
-              <SuggestionCard key={c.id} s={c} />
-            ))}
-
-            {!currentVisible && cards.length === 0 && !agentError && (
-              <p className="text-sm text-muted">
-                Start the conversation — k0 surfaces knowledge as you talk.
-              </p>
-            )}
-
-            {/* Agent trace — dev observability into the model's reasoning + tool calls */}
-            {debug.length > 0 && (
-              <div className="mt-auto flex flex-col gap-0.5 border-t border-line pt-3 font-mono text-[10px] leading-relaxed text-[#b6b6be]">
-                {debug.map((line, k) => (
-                  <div key={k} className="whitespace-pre-wrap break-words">
-                    {line}
-                  </div>
-                ))}
-              </div>
+              )
+            ) : shownCard ? (
+              <SuggestionCard key={shownCard.id} s={shownCard} />
+            ) : (
+              !agentError && (
+                <p className="text-sm text-muted">
+                  Start the conversation — k0 surfaces knowledge as you talk.
+                </p>
+              )
             )}
           </div>
         </section>
