@@ -37,6 +37,26 @@ body {
   }
 }
 
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.card-rise {
+  animation: rise 0.15s ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-rise {
+    animation: none;
+  }
+}
+
 .dot-listening {
   animation: pulse-dot 1.6s ease-in-out infinite;
 }
