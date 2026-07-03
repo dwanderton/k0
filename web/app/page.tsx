@@ -52,13 +52,27 @@ function tidyTranscript(text: string) {
 
 /** Model spectrum: speed ↔ capability. Values match the API route's map. */
 const MODELS = [
-  { key: "fastest", label: "Fastest (zai/glm-4.7)" },
+  { key: "fastest", label: "Fastest (openai/gpt-5.4-mini)" },
   { key: "gptoss", label: "GPT-OSS 120B" },
   { key: "qwen", label: "Qwen 3 32B" },
-  { key: "gemini", label: "Gemini 3 Pro" },
-  { key: "fable", label: "Fable 5" },
 ] as const;
 type ModelKey = (typeof MODELS)[number]["key"];
+
+/** The agent stream interleaves a NUL-prefixed, newline-terminated debug trace
+ *  (reasoning + tool calls) with the card text. Peel the two apart. */
+const NUL = "\u0000";
+function splitStream(raw: string) {
+  const debug: string[] = [];
+  const parts = raw.split(NUL);
+  let card = parts[0];
+  for (let k = 1; k < parts.length; k++) {
+    const nl = parts[k].indexOf("\n");
+    if (nl === -1) continue; // debug line still streaming — hold it
+    debug.push(parts[k].slice(0, nl));
+    card += parts[k].slice(nl + 1);
+  }
+  return { card, debug };
+}
 
 function parseCard(text: string) {
   const field = (k: string) =>
@@ -141,6 +155,7 @@ export default function Home() {
   const [current, setCurrent] = useState<Suggestion | null>(null);
   const [cards, setCards] = useState<Suggestion[]>([]);
   const [agentError, setAgentError] = useState(false);
+  const [debug, setDebug] = useState<string[]>([]);
   const [modelKey, setModelKey] = useState<ModelKey>("fastest");
   const modelRef = useRef<ModelKey>("fastest");
   modelRef.current = modelKey;
@@ -176,6 +191,7 @@ export default function Home() {
     const ctrl = new AbortController();
     abortRef.current = ctrl;
     setAgentError(false);
+    setDebug([]);
     setCurrent({ id, heard, at: clock(), text: "" });
 
     (async () => {
@@ -189,20 +205,24 @@ export default function Home() {
         if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
-        let text = "";
+        let raw = "";
         for (;;) {
           const { done, value } = await reader.read();
           if (done) break;
-          text += decoder.decode(value, { stream: true });
-          setCurrent((c) => (c && c.id === id ? { ...c, text } : c));
+          raw += decoder.decode(value, { stream: true });
+          const { card, debug } = splitStream(raw);
+          setCurrent((c) => (c && c.id === id ? { ...c, text: card } : c));
+          setDebug(debug);
         }
-        const p = parseCard(text);
+        const { card } = splitStream(raw);
+        const p = parseCard(card);
         setCurrent((c) => (c && c.id === id ? null : c));
-        if (!text.trim()) {
-          // Stream ended with no text at all — a model/tool failure, not a NONE.
+        if (!card.trim()) {
+          // Stream carried only a trace (or nothing) — a model/tool failure,
+          // not a NONE. The debug panel shows what the agent was doing.
           setAgentError(true);
         } else if (!p.none && (p.quote || p.answer)) {
-          setCards((cs) => [{ id, heard, at: clock(), text }, ...cs]);
+          setCards((cs) => [{ id, heard, at: clock(), text: card }, ...cs]);
         }
       } catch (err) {
         if ((err as Error).name !== "AbortError") {
@@ -398,6 +418,17 @@ export default function Home() {
               <p className="text-sm text-muted">
                 Start the conversation — k0 surfaces knowledge as you talk.
               </p>
+            )}
+
+            {/* Agent trace — dev observability into the model's reasoning + tool calls */}
+            {debug.length > 0 && (
+              <div className="mt-auto flex flex-col gap-0.5 border-t border-line pt-3 font-mono text-[10px] leading-relaxed text-[#b6b6be]">
+                {debug.map((line, k) => (
+                  <div key={k} className="whitespace-pre-wrap break-words">
+                    {line}
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         </section>
