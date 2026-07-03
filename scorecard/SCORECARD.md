@@ -77,3 +77,32 @@ Falsifiers / caveats to check before trusting a run:
 **overall: 469/500 ok (6.2% fail) · median time-to-card 3.5s · p95 5.6s · median cost/insight $0.0029 · total spend $1.7658**
 **gold-link precision: 282/469 (60%) · controls: 0/20 false positives**
 
+### PR #4 (performance + DRY) — transcript GC + concurrent turns + MCP client reuse · prompt: Eve/unfamiliar-names rule, FINAL_STEP format re-injection, no-.md SOURCE · same model (gpt-5.4-mini, ttft)
+
+# run 2026-07-03 23:02 UTC · https://k0-a00njj7ps-creatorplatform.vercel.app · commit 8e1ffab · 100x per phrase, conc 50
+
+| phrase | ok | fail% | card med | card p95 | cost/insight | ground | gold hit | top link |
+|---|---|---|---|---|---|---|---|---|
+| So you are asking what is the AI gateway | 100/100 | 0% | 5.1s | 11.1s | $0.0026 | 5/5 | 70/100 | ai-gateway ×70 |
+| You want to know how to enable fluid com | 100/100 | 0% | 3.2s | 5.1s | $0.0050 | 2/5 | 100/100 | fluid-compute ×100 |
+| Your question is how long can a Vercel f | 100/100 | 0% | 3.2s | 4.7s | $0.0074 | 1/5 | 100/100 | functions/configuring-functions/duration ×100 |
+| So you are asking how preview deployment | 100/100 | 0% | 3.0s | 4.2s | $0.0029 | 5/5 | 1/100 | deployments/rollback-production-deployment ×95 |
+| You want to know how to add a custom dom | 99/100 (NONE) | 1% | 4.0s | 5.8s | $0.0040 | 5/5 | 2/99 | rest-api/projects/add-a-domain-to-a-project ×96 |
+
+| control phrase (must be NONE) | NONE | false-pos% | med total |
+|---|---|---|---|
+| Thanks for joining, how was your weekend | 10/10 | 0% | 0.8s |
+| Give me one second, someone is at the door | 10/10 | 0% | 0.6s |
+
+**overall: 499/500 ok (0.2% fail) · median time-to-card 3.3s · p95 8.1s · median cost/insight $0.0043 · total spend $2.2907**
+**gold-link precision: 273/499 (55%) · controls: 0/20 false positives**
+
+vs the PR #3 run (same 100x/conc-50 method): fail rate 6.2% → 0.2% (the
+preview-deployments 21%-NONE hole closed to 0%), ground sample 15/25 →
+18/25, cost/insight $0.0029 → $0.0043 (+48% — FINAL_STEP re-injection and
+fuller answers cost tokens). Gold precision dipped 60% → 55%: preview and
+custom-domain phrases now almost always card but still cite the adjacent
+page (rollback ×95, REST-API domain ×96) — misrouting is now THE dominant
+defect, not failures. Note: run hit the PR #4 preview deployment (Vercel
+Auth temporarily disabled for the probe, restored after).
+
