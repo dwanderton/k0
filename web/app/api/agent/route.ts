@@ -1,5 +1,7 @@
-import { streamText, stepCountIs, tool, jsonSchema, type ToolSet } from "ai";
+import { streamText, stepCountIs, tool, type ToolSet } from "ai";
 import { createMCPClient } from "@ai-sdk/mcp";
+import { z } from "zod";
+import { getCachedDoc } from "@/lib/docs-cache";
 
 export const maxDuration = 60;
 
@@ -14,16 +16,10 @@ const readVercelDoc = tool({
     "no .md). Call this AFTER search_vercel_documentation locates the page: " +
     "QUOTE and ANCHOR must be copied word-for-word from what this returns, " +
     "because only this is the real page text the browser highlight matches.",
-  inputSchema: jsonSchema<{ path: string }>({
-    type: "object",
-    properties: {
-      path: {
-        type: "string",
-        description: "Docs path, e.g. 'fluid-compute' or 'functions/streaming'.",
-      },
-    },
-    required: ["path"],
-    additionalProperties: false,
+  inputSchema: z.object({
+    path: z
+      .string()
+      .describe("Docs path, e.g. 'fluid-compute' or 'functions/streaming'."),
   }),
   execute: async ({ path }) => {
     const clean = String(path ?? "")
@@ -52,12 +48,29 @@ const readVercelDoc = tool({
     if (parsed.hostname !== "vercel.com" || !parsed.pathname.startsWith("/docs/")) {
       return `Refusing to fetch non-Vercel-docs URL: ${url}`;
     }
+    // Cache first: the docs-cache stores pages as `<source>:<pathname>`
+    // (e.g. "vercel-docs:/docs/functions"). A hit skips the network round
+    // trip entirely; a miss falls through to the live fetch. The verdict is
+    // the first line of the tool result, so it lands in the UI trace's
+    // `← read_vercel_doc:` line and in server logs.
+    const cacheKey = `vercel-docs:/docs/${clean}`;
+    const cached = await getCachedDoc(cacheKey);
+    console.log(`docs-cache ${cached ? "HIT" : "MISS"}: ${cacheKey}`);
+    if (cached) {
+      const body =
+        cached.length > 16000
+          ? cached.slice(0, 16000) + "\n…[truncated]"
+          : cached;
+      return `[docs-cache HIT ${cacheKey}]\n\n${body}`;
+    }
     try {
       const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
       if (!res.ok) return `Could not fetch ${url} (HTTP ${res.status}).`;
       const md = await res.text();
       // Cap to keep the tool result inside a sane context budget.
-      return md.length > 16000 ? md.slice(0, 16000) + "\n…[truncated]" : md;
+      const body =
+        md.length > 16000 ? md.slice(0, 16000) + "\n…[truncated]" : md;
+      return `[docs-cache MISS ${cacheKey} — fetched live]\n\n${body}`;
     } catch (err) {
       return `Could not fetch ${url}: ${String(err)}`;
     }
@@ -92,53 +105,89 @@ function getMcpTools(token: string) {
   return mcpTools;
 }
 
-const SYSTEM = `k0 = live docs copilot. Help Vercel SA mid-call.
-Input: SA side of call. One line per utterance. LAST line newest.
+const SYSTEM = `IDENTITY:
+You are a live documentation assistant for Vercel Sales Engineers.
+Surface exact relevant docs mid-call so SAs can quote with confidence.
 
-Two tools, use in order:
-1. search_vercel_documentation - find the right docs PATH. Returns snippets
-   + Source URLs. WARNING: snippets are captions, NOT page text. Do not
-   quote them. Use only to pick the page.
-2. read_vercel_doc - fetch real page markdown. Pass the path from the best
-   Source (e.g. "fluid-compute"). QUOTE + ANCHOR come ONLY from this.
+CORE PRINCIPLES:
+- All knowledge comes from search tools. Never answer from memory.
+- Do not assume topics are out of scope without searching first.
+- Verbatim quotes from docs or NONE. Never paraphrase or fake certainty.
 
-Flow every time: search -> pick best Source path -> read_vercel_doc it ->
-quote verbatim from the page text. QUOTE must be a real sentence in the
-page markdown. Never quote a search snippet. Never answer from memory.
+TOOLS (in order):
+1. search_vercel_documentation(query) → returns relevanceScore + Source paths
+2. read_vercel_doc(path) → returns page markdown for quoting
 
-Unfamiliar product name? Vercel ships new products your training may not
-know - Eve (agents), v0, BotID, Fluid. NEVER answer NONE on a product-ish
-name without searching it first.
+FLOW:
+1. Newest line mentions Vercel product/feature? → Continue. Else → NONE.
+2. If vague (e.g., "it's slow"), use 2-3 prior lines for context.
+3. search_vercel_documentation with exact SA line + context.
+4. relevanceScore < 0.75? → NONE.
+5. Call read_vercel_doc on best Source path.
+6. Find exact sentence in markdown matching the answer.
+7. Render QUOTE: exact words, no markdown syntax, no backticks.
+8. ANCHOR: word-for-word from QUOTE, plain prose only.
 
-Newest line = Vercel question? Run the flow.
-Then reply EXACTLY this, nothing before, nothing after:
+CRITICAL RULES:
+- Pass SA's EXACT line to search (don't rephrase).
+- Never quote search snippets (they're captions, not real text).
+- Only quote from read_vercel_doc output.
+- 0.75 relevanceScore threshold is hard stop.
+- ANCHOR must appear on page as plain prose (no code punctuation).
+- Unfamiliar products (Eve, v0, BotID, Fluid, Workflows)? Always search.
 
-DOC: <docs path, e.g. vercel.com/docs/functions>
-ANSWER: <one glance sentence, answers question>
-QUOTE: <exact verbatim doc passage, one to two sentences>
-ANCHOR: <short distinct phrase, 3-8 words, copied exact from QUOTE>
-SOURCE: <full docs url, NEVER a .md suffix>#:~:text=<ANCHOR percent-encoded, spaces as %20>
+OUTPUT FORMAT (always):
+DOC: [path from Source]
+ANSWER: [1-2 sentence plain English answer]
+QUOTE: [exact sentence from page]
+ANCHOR: [substring inside QUOTE for browser highlight]
+SOURCE: [full URL with #:~:text=ANCHOR]
 
-Rules:
-- QUOTE from read_vercel_doc page text. Never paraphrase, never quote a
-  search snippet. Keep the words exact, but render as the page READS: drop
-  markdown link syntax [label](url) -> label, drop backticks. So QUOTE
-  matches the visible page, not the raw markdown.
-- ANCHOR word-for-word inside QUOTE AND on the page as plain prose - no
-  backticks, brackets, code punctuation - so the browser highlight lands.
-- Earlier lines = context only. Answer newest line.
-- Newest line touches Vercel (product, feature, pricing, limit, behavior)?
-  Always search first. Never answer from memory.
-- NONE only when: small talk, no Vercel topic. Or tool gave nothing that answers.
-- Never fake certainty. Verbatim quote that answers, or NONE.
-- EVERY reply = the exact format above, or the single word NONE.
-  Prose without the DOC/ANSWER/QUOTE/ANCHOR/SOURCE labels = failure.`;
+Or reply: NONE`;
 
 /** Injected when the step budget runs out — the long tool transcript makes
  *  models forget the output contract and answer in prose. */
 const FINAL_STEP = `${"\n\n"}TOOLS ARE DONE. Answer NOW from what you already read.
 Reply in the EXACT DOC/ANSWER/QUOTE/ANCHOR/SOURCE format, or NONE.
 No prose. No explanation. The format or NONE.`;
+
+/** The card contract. The stream is line-oriented text (the client parses it
+ *  as it streams), so zod validates the assembled card at finish — the
+ *  verdict lands in the trace, and cross-field rules (ANCHOR inside QUOTE,
+ *  SOURCE carries the highlight fragment) live here, not in prose checks. */
+const OutputSchema = z
+  .object({
+    DOC: z.string().min(1),
+    ANSWER: z.string().min(1),
+    QUOTE: z.string().min(1),
+    ANCHOR: z.string().min(1),
+    SOURCE: z.url(), // zod 4: z.string().url() is deprecated
+  })
+  .refine((c) => c.QUOTE.toLowerCase().includes(c.ANCHOR.toLowerCase()), {
+    message: "ANCHOR must appear inside QUOTE",
+  })
+  .refine((c) => c.SOURCE.includes("#:~:text="), {
+    message: "SOURCE must carry a #:~:text= highlight fragment",
+  })
+  // The browser matches the fragment against RENDERED page text — code
+  // punctuation in the anchor (backticks, brackets, pipes) never renders,
+  // so the highlight silently fails to land.
+  .refine((c) => !/[`\[\]{}|<>]/.test(c.ANCHOR), {
+    message: "ANCHOR must be plain prose — no backticks/brackets/pipes",
+  });
+
+/** Pull the card fields out of the streamed text for validation. */
+function extractCard(text: string) {
+  const field = (k: string) =>
+    text.match(new RegExp(`^${k}:\\s*(.*)$`, "mi"))?.[1]?.trim() ?? "";
+  return {
+    DOC: field("DOC"),
+    ANSWER: field("ANSWER"),
+    QUOTE: field("QUOTE"),
+    ANCHOR: field("ANCHOR"),
+    SOURCE: field("SOURCE"),
+  };
+}
 
 /** Debug lines start with NUL and end with \n; the client splits them out of the
  *  card text and renders them as a light-grey trace. NUL never appears in prose. */
@@ -218,6 +267,7 @@ export async function POST(req: Request) {
         }
       };
       let step = 0;
+      let answer = ""; // accumulated card text, validated at finish
       try {
         dbg(`model: ${MODEL} · ttft`);
         for await (const part of result.stream) {
@@ -261,18 +311,34 @@ export async function POST(req: Request) {
                 | undefined;
               dbg(
                 `✓ step ${step}: ${part.finishReason}` +
-                  (gw?.cost != null ? ` · $${gw.cost}` : ""),
+                (gw?.cost != null ? ` · $${gw.cost}` : ""),
               );
               break;
             }
             case "text-delta":
+              answer += part.text;
               controller.enqueue(encoder.encode(part.text));
               break;
-            case "finish":
+            case "finish": {
               dbg(
                 `■ done: ${part.finishReason} · tokens ${part.totalUsage.inputTokens ?? "?"}/${part.totalUsage.outputTokens ?? "?"}`,
               );
+              // Validate the assembled card against the output contract —
+              // the verdict rides the trace so bad cards are visible in the
+              // UI dropdown and countable by the scorecard.
+              if (answer.trim() && !answer.trim().toUpperCase().startsWith("NONE")) {
+                const check = OutputSchema.safeParse(extractCard(answer));
+                dbg(
+                  check.success
+                    ? "✓ card valid (zod)"
+                    : `⚠ card invalid (zod): ${check.error.issues
+                      .map((i) => `${i.path.join(".") || "card"}: ${i.message}`)
+                      .join("; ")
+                      .slice(0, 200)}`,
+                );
+              }
               break;
+            }
             case "error":
               dbg(`⚠ error: ${oneline(String(part.error))}`);
               break;

@@ -106,3 +106,35 @@ page (rollback ×95, REST-API domain ×96) — misrouting is now THE dominant
 defect, not failures. Note: run hit the PR #4 preview deployment (Vercel
 Auth temporarily disabled for the probe, restored after).
 
+### PR #6 (docs cache) — APPROACH CHANGE: committed 2,139-page local docs cache, read_vercel_doc is cache-first (network only on miss) · structured prompt (IDENTITY/FLOW, relevanceScore ≥ 0.75 gate) · zod card contract · same model (gpt-5.4-mini, ttft)
+
+# run 2026-07-04 01:14 UTC · https://k0-qsvy93xn9-creatorplatform.vercel.app · commit cca028d · 100x per phrase, conc 50
+
+| phrase | ok | fail% | card med | card p95 | cost/insight | ground | gold hit | top link |
+|---|---|---|---|---|---|---|---|---|
+| So you are asking what is the AI gateway | 97/100 (NONE) | 3% | 4.7s | 10.7s | $0.0031 | 5/5 | 72/97 | ai-gateway ×72 |
+| You want to know how to enable fluid com | 100/100 | 0% | 3.0s | 3.7s | $0.0022 | 5/5 | 100/100 | fluid-compute ×100 |
+| Your question is how long can a Vercel f | 100/100 | 0% | 3.1s | 4.3s | $0.0029 | 3/5 | 100/100 | functions/configuring-functions/duration ×100 |
+| So you are asking how preview deployment | 98/100 (NONE) | 2% | 3.6s | 6.0s | $0.0037 | 5/5 | 8/98 | deployments/promote-preview-to-production ×65 |
+| You want to know how to add a custom dom | 100/100 | 0% | 2.4s | 5.0s | $0.0019 | 1/5 | 0/100 | rest-api/projects/add-a-domain-to-a-project ×97 |
+
+| control phrase (must be NONE) | NONE | false-pos% | med total |
+|---|---|---|---|
+| Thanks for joining, how was your weekend | 5/10 | 0% | 0.7s |
+| Give me one second, someone is at the door | 10/10 | 0% | 0.7s |
+
+**overall: 495/500 ok (1.0% fail) · median time-to-card 3.2s · p95 6.9s · median cost/insight $0.0028 · total spend $1.6517**
+**gold-link precision: 280/495 (57%) · controls: 0/20 false positives**
+
+vs PR #4: cost/insight $0.0043 → $0.0028 (−35% — cache-first reads +
+structured prompt), p95 8.1s → 6.9s, median flat (3.3s → 3.2s: the .md
+fetch was never the latency king — model turns are). Gold 55% → 57%;
+preview-deployments now splits toward promote-preview (×65) instead of
+rollback — closer, still not the environments page. Custom-domain still
+misroutes to REST-API (×97). The relevanceScore gate introduced small
+NONE leakage (3%/2% on two phrases). Weekend-control anomaly: 5/10 NONE
+with 0 false positives — the other 5 returned neither NONE nor a card
+(likely empty/format responses); watch next run. Misrouting remains the
+dominant defect → next approach change: local embedding retrieval
+(pre-call top-k injection), which this cache enables.
+
