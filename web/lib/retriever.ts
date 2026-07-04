@@ -54,27 +54,18 @@ interface Index {
  *  scripts/eval-retriever.ts control/gold separation. Boost weights are
  *  shared. rootBonus: concept queries belong to product ROOT pages; bge
  *  over-scores deep sub-pages, so roots get a nudge. */
-const TUNING: Record<
-  Backend,
-  { floor: number; blogPenalty: number; rootBonus: number }
-> = {
-  gateway: { floor: 0.45, blogPenalty: 0.03, rootBonus: 0 },
-  "in-process": {
-    floor: 0.68,
-    blogPenalty: 0.08,
-    // Env override exists for offline A/B evals (RETRIEVER_ROOT_BONUS=0).
-    rootBonus:
-      process.env.RETRIEVER_ROOT_BONUS != null
-        ? Number(process.env.RETRIEVER_ROOT_BONUS)
-        : 0.03,
-  },
+const TUNING: Record<Backend, { floor: number; blogPenalty: number }> = {
+  gateway: { floor: 0.45, blogPenalty: 0.03 },
+  "in-process": { floor: 0.68, blogPenalty: 0.08 },
 };
 const PATH_BOOST = 0.1;
 const HEADING_BOOST = 0.05;
-/** Framework guides restate concepts owned by concept pages (every framework
- *  page has a "Preview Deployments" section) — deprioritize them so the
- *  canonical page wins unless the query names them. */
-const FRAMEWORK_PENALTY = 0.06;
+/** Scoped sections restate concepts owned by canonical pages (every
+ *  framework guide has a "Preview Deployments" section; the Platforms
+ *  product has its own "Add Custom Domain" element) — deprioritize them
+ *  unless the query names the section. One rule, one list. */
+const SCOPED_SECTIONS = ["/docs/frameworks/", "/docs/platforms/"];
+const SCOPED_PENALTY = 0.06;
 
 const STOPWORDS = new Set([
   "the", "and", "for", "you", "your", "are", "how", "what", "which", "does",
@@ -177,7 +168,7 @@ function scan(
   q: Float32Array,
   utterance: string,
   k: number,
-  tuning: { floor: number; blogPenalty: number; rootBonus: number },
+  tuning: { floor: number; blogPenalty: number },
 ) {
   const { meta, matrix, texts } = index;
   const { dims } = meta;
@@ -206,14 +197,23 @@ function scan(
       headingHit = hh / qTokens.length;
     }
     let rel = dot + PATH_BOOST * pathHit + HEADING_BOOST * headingHit;
-    // Penalty lifts only when the query names the framework itself.
-    const fw = pathname.split("/frameworks/")[1];
-    if (fw !== undefined && !qTokens.some((t) => fw.includes(t))) {
-      rel -= FRAMEWORK_PENALTY;
+    // Penalty lifts only when the query names the scoped section itself
+    // (the framework, or "platforms").
+    for (const section of SCOPED_SECTIONS) {
+      const rest = pathname.split(section)[1];
+      if (rest === undefined) continue;
+      const sectionName = section.split("/")[2]; // "frameworks" | "platforms"
+      // Exemption tests the section IDENTITY (its name + the product/
+      // framework segments), never the leaf slug — otherwise any page whose
+      // slug echoes the query self-exempts (add-custom-domain did).
+      const identity = rest.split("/").slice(0, 2);
+      const named = qTokens.some(
+        (t) => sectionName.includes(t) || identity.some((seg) => seg.includes(t)),
+      );
+      if (!named) rel -= SCOPED_PENALTY;
+      break;
     }
     if (c.key.startsWith("vercel-blog:")) rel -= tuning.blogPenalty;
-    // Product-root pages (/docs/<product>) carry the concept answers.
-    if (/^\/docs\/[^/]+$/.test(pathname)) rel += tuning.rootBonus;
     scored.push({ i, rel, cos: dot });
   }
   scored.sort((a, b) => b.rel - a.rel);

@@ -52,6 +52,8 @@ whole point. Add new phrases as NEW rows alongside the old, never replace.
 | date | event | tokens | cost |
 |---|---|---|---|
 | 2026-07-04 | initial build — 18,363 chunks from 2,732 cached pages (openai/text-embedding-3-small @ $0.02/M via gateway) | 5,544,997 | $0.1109 |
+| 2026-07-04 | additive: description-led first chunks (1,395 changed) + root-only refinement (165 changed) | +99,511 | $0.1129 cumulative |
+| 2026-07-04 | in-process index (bge-small, local model) — full builds ×2 | 0 (local) | $0 |
 
 Additive rebuilds append rows here; the meta file carries the same running
 total. Query-time embedding costs ride the per-run cost/insight column.
