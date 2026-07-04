@@ -50,19 +50,27 @@ const readVercelDoc = tool({
     }
     // Cache first: the docs-cache stores pages as `<source>:<pathname>`
     // (e.g. "vercel-docs:/docs/functions"). A hit skips the network round
-    // trip entirely; a miss falls through to the live fetch.
-    const cached = await getCachedDoc(`vercel-docs:/docs/${clean}`);
+    // trip entirely; a miss falls through to the live fetch. The verdict is
+    // the first line of the tool result, so it lands in the UI trace's
+    // `← read_vercel_doc:` line and in server logs.
+    const cacheKey = `vercel-docs:/docs/${clean}`;
+    const cached = await getCachedDoc(cacheKey);
+    console.log(`docs-cache ${cached ? "HIT" : "MISS"}: ${cacheKey}`);
     if (cached) {
-      return cached.length > 16000
-        ? cached.slice(0, 16000) + "\n…[truncated]"
-        : cached;
+      const body =
+        cached.length > 16000
+          ? cached.slice(0, 16000) + "\n…[truncated]"
+          : cached;
+      return `[docs-cache HIT ${cacheKey}]\n\n${body}`;
     }
     try {
       const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
       if (!res.ok) return `Could not fetch ${url} (HTTP ${res.status}).`;
       const md = await res.text();
       // Cap to keep the tool result inside a sane context budget.
-      return md.length > 16000 ? md.slice(0, 16000) + "\n…[truncated]" : md;
+      const body =
+        md.length > 16000 ? md.slice(0, 16000) + "\n…[truncated]" : md;
+      return `[docs-cache MISS ${cacheKey} — fetched live]\n\n${body}`;
     } catch (err) {
       return `Could not fetch ${url}: ${String(err)}`;
     }
