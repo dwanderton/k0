@@ -243,6 +243,9 @@ function scan(
 export interface RetrievalResult {
   candidates: Candidate[];
   backend: Backend;
+  /** Set when THIS request paid one-time init (index/model load) — lets the
+   *  trace tag cold starts so metrics can split them from warm-path timing. */
+  coldInitMs?: number;
 }
 
 /** Force a backend (evals); default order is in-process → gateway. */
@@ -259,15 +262,22 @@ export async function retrieveWithInfo(
   let lastErr: unknown;
   for (const backend of order) {
     try {
+      // Cold when this request is the one creating the index promise. The
+      // in-process model loads inside the first embed, so timing the pair
+      // captures the full init cost.
+      const cold = indexes[backend] === undefined;
+      const t0 = cold ? performance.now() : 0;
       // Index load is NOT under the timeout: the first request per instance
       // pays the one-time decompress; racing it misfires the fallback on
       // every cold start. Only the gateway network hop gets the deadline.
       const index = await loadIndex(backend);
       const q = await embedQuery(backend, utterance, index.meta.model, embedTimeoutMs);
-      return {
+      const result: RetrievalResult = {
         candidates: scan(index, q, utterance, k, TUNING[backend]),
         backend,
       };
+      if (cold) result.coldInitMs = Math.round(performance.now() - t0);
+      return result;
     } catch (err) {
       lastErr = err;
       console.error(`retriever backend ${backend} failed:`, err);

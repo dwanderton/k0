@@ -232,6 +232,7 @@ export async function POST(req: Request) {
   let retrievalFailed = false;
   let retrievalMs = 0;
   let retrieverBackend: Backend | null = null;
+  let coldInitMs: number | null = null;
   {
     const t0 = performance.now();
     try {
@@ -242,6 +243,7 @@ export async function POST(req: Request) {
       const r = await retrieveWithInfo(transcript, 2);
       candidates = r.candidates;
       retrieverBackend = r.backend;
+      coldInitMs = r.coldInitMs ?? null;
       // Dominant top candidate → send it alone. The 100%-gold run cited
       // candidate #1 almost exclusively; above 0.95 the second excerpt is
       // dead prefill weight (~900 tokens on the gateway phrase).
@@ -329,6 +331,7 @@ export async function POST(req: Request) {
       const dbg = (m: string) =>
         controller.enqueue(encoder.encode(`${DBG}${m}\n`));
       dbg(`model: ${MODEL} · throughput · retriever: ${retrieverBackend ?? "unavailable"}`);
+      if (coldInitMs != null) dbg(`❄ cold init ${coldInitMs}ms`);
       dbg(
         retrievalFailed
           ? fallbackNote

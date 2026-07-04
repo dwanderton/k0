@@ -148,7 +148,12 @@ async function probe(phrase) {
       .map((l) => l.match(/\$([0-9.eE-]+)/)?.[1])
       .filter(Boolean)
       .reduce((s, c) => s + Number(c), 0);
+    const cold = debug
+      .map((l) => l.match(/❄ cold init (\d+)ms/)?.[1])
+      .filter(Boolean)
+      .map(Number)[0] ?? null;
     return {
+      cold,
       ok,
       none,
       ttfb,
@@ -245,6 +250,7 @@ console.log(`|---|---|---|---|---|---|---|---|---|`);
 
 const allCard = [];
 const allCost = [];
+const allCold = [];
 let allOk = 0, allN = 0, allGold = 0;
 
 const pagePath = (source) =>
@@ -253,8 +259,13 @@ const pagePath = (source) =>
 for (const { text: phrase, gold } of PHRASES) {
   const rs = await probeMany(phrase, RUNS);
   const oks = rs.filter((r) => r.ok);
-  const cards = oks.map((r) => r.card).filter((x) => x != null);
+  // Warm-path timing only — cold starts are a separate metric, not tail
+  // noise inside card med/p95 (see SCORECARD method).
+  const warmOks = oks.filter((r) => r.cold == null);
+  const cards = warmOks.map((r) => r.card).filter((x) => x != null);
   const costs = oks.map((r) => r.cost).filter((x) => x != null);
+  const colds = rs.filter((r) => r.cold != null);
+  allCold.push(...colds.map((r) => ({ init: r.cold, card: r.ok ? r.card : null })));
   allCard.push(...cards);
   allCost.push(...costs);
   allOk += oks.length;
@@ -281,7 +292,7 @@ for (const { text: phrase, gold } of PHRASES) {
   const errs = [...new Set(rs.filter((r) => !r.ok).map((r) => (r.none ? "NONE" : r.error)))];
   const failPct = (((rs.length - oks.length) / rs.length) * 100).toFixed(0);
   console.log(
-    `| ${phrase.slice(0, 40)} | ${oks.length}/${rs.length}${errs.length ? ` (${errs.join("; ").slice(0, 30)})` : ""} | ${failPct}% | ${fmt(med(cards))} | ${fmt(p95(cards))} | ${fmt$(med(costs))} | ${g}/${sample.length} | ${oks.length ? `${goldHits}/${oks.length}` : "—"} | ${top ? `${top[0].replace("https://vercel.com/docs/", "")} ×${top[1]}` : "—"} |`,
+    `| ${phrase.slice(0, 40)} | ${oks.length}/${rs.length}${errs.length ? ` (${errs.join("; ").slice(0, 30)})` : ""}${colds.length ? ` ❄${colds.length}` : ""} | ${failPct}% | ${fmt(med(cards))} | ${fmt(p95(cards))} | ${fmt$(med(costs))} | ${g}/${sample.length} | ${oks.length ? `${goldHits}/${oks.length}` : "—"} | ${top ? `${top[0].replace("https://vercel.com/docs/", "")} ×${top[1]}` : "—"} |`,
   );
 }
 
@@ -300,5 +311,12 @@ for (const phrase of CONTROLS) {
   );
 }
 
-console.log(`\n**overall: ${allOk}/${allN} ok (${(((allN - allOk) / allN) * 100).toFixed(1)}% fail) · median time-to-card ${fmt(med(allCard))} · p95 ${fmt(p95(allCard))} · median cost/insight ${fmt$(med(allCost))} · total spend ${fmt$(allCost.reduce((a, b) => a + b, 0))}**`);
+if (allCold.length) {
+  const inits = allCold.map((c) => c.init);
+  const coldCards = allCold.map((c) => c.card).filter((x) => x != null);
+  console.log(
+    `\n**cold starts: ${allCold.length}/${allN} · init med ${fmt(med(inits))} · cold card med ${fmt(med(coldCards))} (excluded from table med/p95)**`,
+  );
+}
+console.log(`\n**overall: ${allOk}/${allN} ok (${(((allN - allOk) / allN) * 100).toFixed(1)}% fail) · median time-to-card ${fmt(med(allCard))} · p95 ${fmt(p95(allCard))} (warm) · median cost/insight ${fmt$(med(allCost))} · total spend ${fmt$(allCost.reduce((a, b) => a + b, 0))}**`);
 console.log(`**gold-link precision: ${allOk ? `${allGold}/${allOk} (${((allGold / allOk) * 100).toFixed(0)}%)` : "—"} · controls: ${falsePos}/${negN} false positives**`);
