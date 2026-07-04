@@ -430,6 +430,14 @@ export default function Home() {
     recStartedAtRef.current = Date.now();
     setStatus("listening");
     rec.start();
+    // Fire-and-forget warm-up: the serverless instance pays its one-time
+    // init now, during the seconds before the first utterance finalizes —
+    // so the first card is warm-path (~0.9s) instead of cold (~6s).
+    fetch("/api/agent", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ warmup: true }),
+    }).catch(() => {});
   }
 
   function stop() {
