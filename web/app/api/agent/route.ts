@@ -1,6 +1,7 @@
 import { streamText, stepCountIs, tool, type ToolSet } from "ai";
 import { createMCPClient } from "@ai-sdk/mcp";
 import { z } from "zod";
+import { getCachedDoc } from "@/lib/docs-cache";
 
 export const maxDuration = 60;
 
@@ -46,6 +47,15 @@ const readVercelDoc = tool({
     }
     if (parsed.hostname !== "vercel.com" || !parsed.pathname.startsWith("/docs/")) {
       return `Refusing to fetch non-Vercel-docs URL: ${url}`;
+    }
+    // Cache first: the docs-cache stores pages as `<source>:<pathname>`
+    // (e.g. "vercel-docs:/docs/functions"). A hit skips the network round
+    // trip entirely; a miss falls through to the live fetch.
+    const cached = await getCachedDoc(`vercel-docs:/docs/${clean}`);
+    if (cached) {
+      return cached.length > 16000
+        ? cached.slice(0, 16000) + "\n…[truncated]"
+        : cached;
     }
     try {
       const res = await fetch(url, { signal: AbortSignal.timeout(15000) });

@@ -6,6 +6,12 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: import.meta.dirname,
   },
+  // The committed docs cache must ship inside the serverless bundles —
+  // file tracing only follows imports, not runtime readFile paths.
+  outputFileTracingIncludes: {
+    "/api/agent": ["./docs-cache.br"],
+    "/api/cron/rebuild-docs-cache": ["./docs-cache.br"],
+  },
 };
 
 export default nextConfig;
