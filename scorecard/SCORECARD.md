@@ -218,3 +218,33 @@ deletion). ai-gateway NONE leak 5% → 2%. Experiments recorded: the
 model-as-selector prompt line was tried and REJECTED (misses worsened
 1/20 → 3/20 — it primes the pages it names); the chunk-text fix was
 kept. Rule count net −1.
+
+### PR #10 (NONE-retry + dynamic k) — retry once when the model NONEs a >0.9 candidate · single candidate in prefill when top relevanceScore > 0.95 (gateway-phrase prefill 2,487 → 636 tokens) · same model (gpt-5.4-mini, throughput sort)
+
+# run 2026-07-04 06:37 UTC · https://k0-m93vmq2my-creatorplatform.vercel.app · commit bf3c92b · 100x per phrase, conc 50
+
+| phrase | ok | fail% | card med | card p95 | cost/insight | ground | gold hit | top link |
+|---|---|---|---|---|---|---|---|---|
+| So you are asking what is the AI gateway | 97/100 (NONE) | 3% | 6.8s | 8.2s | $0.0008 | 5/5 | 97/97 | ai-gateway ×97 |
+| You want to know how to enable fluid com | 100/100 | 0% | 1.3s | 2.1s | $0.0021 | 4/5 | 100/100 | fluid-compute ×100 |
+| Your question is how long can a Vercel f | 100/100 | 0% | 1.2s | 2.0s | $0.0013 | 3/5 | 100/100 | functions/limitations ×100 |
+| So you are asking how preview deployment | 100/100 | 0% | 0.8s | 1.1s | $0.0015 | 5/5 | 100/100 | deployments/environments ×100 |
+| You want to know how to add a custom dom | 100/100 | 0% | 0.7s | 1.4s | $0.0010 | 2/5 | 100/100 | domains/working-with-domains/add-a-domain ×100 |
+
+| control phrase (must be NONE) | NONE | false-pos% | med total |
+|---|---|---|---|
+| Thanks for joining, how was your weekend | 10/10 | 0% | 0.7s |
+| Give me one second, someone is at the door | 10/10 | 0% | 0.8s |
+
+**overall: 497/500 ok (0.6% fail) · median time-to-card 0.8s · p95 7.3s · median cost/insight $0.0014 · total spend $0.7160**
+**gold-link precision: 497/497 (100%) · controls: 0/20 false positives**
+
+vs PR #9 (clean-chunks run): gold 100% HELD with a single candidate on
+dominant retrievals — the second excerpt really was dead weight. Cost:
+gateway phrase $0.0016 → $0.0008 (halved, the −74% prefill), blended
+$0.0016 → $0.0014. preview-deployments 99/99 → 100/100. Fail flat at
+0.6%; all 3 NONEs sit on the gateway phrase (3%, was 2%) — that is the
+POST-retry rate (both attempts refused): either n=100 noise or the
+leaner single-candidate prompt raises per-attempt refusal and the retry
+nets it out; the probe can't decompose (⟲ lines live in traces it
+doesn't keep). Net: cost win, zero regressions.
