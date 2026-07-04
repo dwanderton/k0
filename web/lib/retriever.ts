@@ -59,7 +59,15 @@ const TUNING: Record<
   { floor: number; blogPenalty: number; rootBonus: number }
 > = {
   gateway: { floor: 0.45, blogPenalty: 0.03, rootBonus: 0 },
-  "in-process": { floor: 0.68, blogPenalty: 0.08, rootBonus: 0.03 },
+  "in-process": {
+    floor: 0.68,
+    blogPenalty: 0.08,
+    // Env override exists for offline A/B evals (RETRIEVER_ROOT_BONUS=0).
+    rootBonus:
+      process.env.RETRIEVER_ROOT_BONUS != null
+        ? Number(process.env.RETRIEVER_ROOT_BONUS)
+        : 0.03,
+  },
 };
 const PATH_BOOST = 0.1;
 const HEADING_BOOST = 0.05;
