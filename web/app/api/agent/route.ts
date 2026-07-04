@@ -1,7 +1,7 @@
 import { streamText, stepCountIs, tool, type ToolSet } from "ai";
 import { createMCPClient } from "@ai-sdk/mcp";
 import { z } from "zod";
-import { getCachedDoc } from "@/lib/docs-cache";
+import { getCachedDoc, searchCache, keyToUrl } from "@/lib/docs-cache";
 
 export const maxDuration = 60;
 
@@ -69,6 +69,45 @@ const readVercelDoc = tool({
   },
 });
 
+/** The deep SDK docs (workflow-sdk.dev, eve.dev) live in the local docs
+ *  cache — MCP search cannot see them at all. This pair is the only path
+ *  to that content: search the cache for keys, then read a key. */
+const searchSdkDocs = tool({
+  description:
+    "Search the cached SDK documentation for Vercel Workflows " +
+    "(workflow-sdk.dev) and Eve agents (eve.dev) — deep SDK docs that " +
+    "search_vercel_documentation does NOT index. Returns cache keys + " +
+    "matching snippet. Use for Workflow/Eve SDK questions, then pass the " +
+    "best key to read_sdk_doc.",
+  inputSchema: z.object({
+    query: z.string().describe("Topic to find, e.g. 'workflow retries'."),
+  }),
+  execute: async ({ query }) => {
+    const hits = await searchCache(query, 5);
+    if (hits.length === 0) return "No cached SDK docs match.";
+    return hits
+      .map((h) => `${h.key}\n  url: ${h.url}\n  match: ${h.snippet}`)
+      .join("\n");
+  },
+});
+
+const readSdkDoc = tool({
+  description:
+    "Read a cached SDK docs page by the exact key returned from " +
+    "search_sdk_docs (e.g. 'eve-docs:/docs/agent-config'). Returns the " +
+    "page content for QUOTE/ANCHOR. SOURCE must use the page's url.",
+  inputSchema: z.object({
+    key: z.string().describe("Cache key from search_sdk_docs."),
+  }),
+  execute: async ({ key }) => {
+    const doc = await getCachedDoc(key.trim());
+    if (!doc) return `No cached page for key: ${key}`;
+    const url = keyToUrl(key.trim());
+    const body = doc.length > 16000 ? doc.slice(0, 16000) + "\n…[truncated]" : doc;
+    return `URL: ${url}\n\n${body}`;
+  },
+});
+
 // Routed through the gateway's lowest time-to-first-token provider. gpt-5.4-mini
 // is the one model that reliably runs the search -> read_vercel_doc -> quote
 // flow; others either loop re-searching or fabricate quotes (see git history).
@@ -109,6 +148,13 @@ CORE PRINCIPLES:
 TOOLS (in order):
 1. search_vercel_documentation(query) → returns relevanceScore + Source paths
 2. read_vercel_doc(path) → returns page markdown for quoting
+3. search_sdk_docs(query) → cached DEEP SDK docs for Workflows (workflow-sdk.dev)
+   and Eve (eve.dev). MCP search does NOT index these. Returns cache keys.
+4. read_sdk_doc(key) → page content for a search_sdk_docs key. Its URL line
+   is the SOURCE to cite.
+
+Workflow SDK / Eve SDK question (APIs, config, code)? Use search_sdk_docs +
+read_sdk_doc. Vercel platform question? Use tools 1+2.
 
 FLOW:
 1. Newest line mentions Vercel product/feature? → Continue. Else → NONE.
@@ -216,6 +262,10 @@ export async function POST(req: Request) {
       ),
     ),
     read_vercel_doc: readVercelDoc,
+    // Deep SDK docs (workflow-sdk.dev, eve.dev) — cached locally, invisible
+    // to MCP search. Search keys, then read a key.
+    search_sdk_docs: searchSdkDocs,
+    read_sdk_doc: readSdkDoc,
   };
 
   const result = streamText({
