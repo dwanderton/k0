@@ -37,6 +37,11 @@ whole point. Add new phrases as NEW rows alongside the old, never replace.
   This is the headline metric.
 - **total** = stream close.
 - Medians, not means — one cold start shouldn't own the number.
+- **Cold starts are split out** (2026-07-04 on): requests whose trace
+  carries `❄ cold init Xms` (one-time model/index load on a fresh
+  instance) are EXCLUDED from card med/p95 and reported on their own
+  line (count · init median · cold-card median). Runs before this date
+  blend cold into p95 — compare tails accordingly.
 - Failures counted in `ok`, never dropped. `NONE` = agent judged no doc
   applies; that's a cue-phrase miss, not an API failure.
 - **ground** = ANCHOR inside QUOTE *and* QUOTE on the real `.md` page —
