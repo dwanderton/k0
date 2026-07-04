@@ -9,7 +9,11 @@ const nextConfig: NextConfig = {
   // The committed docs cache must ship inside the serverless bundles —
   // file tracing only follows imports, not runtime readFile paths.
   outputFileTracingIncludes: {
-    "/api/agent": ["./docs-cache.br"],
+    "/api/agent": [
+      "./docs-cache.br",
+      "./embeddings.bin.br",
+      "./embeddings-meta.json.br",
+    ],
   },
 };
 

@@ -47,6 +47,15 @@ whole point. Add new phrases as NEW rows alongside the old, never replace.
   an anchor picked from a table cell, which the browser highlight can't
   match.
 
+### Embedding index cost (cumulative, also stored in embeddings-meta.json.br)
+
+| date | event | tokens | cost |
+|---|---|---|---|
+| 2026-07-04 | initial build — 18,363 chunks from 2,732 cached pages (openai/text-embedding-3-small @ $0.02/M via gateway) | 5,544,997 | $0.1109 |
+
+Additive rebuilds append rows here; the meta file carries the same running
+total. Query-time embedding costs ride the per-run cost/insight column.
+
 Falsifiers / caveats to check before trusting a run:
 - Expired `VERCEL_MCP_TOKEN` → every request 500s (shows as `HTTP 500`).
 - Wifi/network of the machine running the probe skews ttfb, not card-minus-ttfb.

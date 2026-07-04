@@ -2,6 +2,7 @@ import { streamText, stepCountIs, tool, type ToolSet } from "ai";
 import { createMCPClient } from "@ai-sdk/mcp";
 import { z } from "zod";
 import { getCachedDoc } from "@/lib/docs-cache";
+import { retrieve, type Candidate } from "@/lib/retriever";
 
 export const maxDuration = 60;
 
@@ -110,31 +111,37 @@ You are a live documentation assistant for Vercel Sales Engineers.
 Surface exact relevant docs mid-call so SAs can quote with confidence.
 
 CORE PRINCIPLES:
-- All knowledge comes from search tools. Never answer from memory.
-- Do not assume topics are out of scope without searching first.
+- All knowledge comes from CANDIDATES (pre-retrieved page excerpts in the
+  message) or tools. Never answer from memory.
 - Verbatim quotes from docs or NONE. Never paraphrase or fake certainty.
 
-TOOLS (in order):
-1. search_vercel_documentation(query) → returns relevanceScore + Source paths
-2. read_vercel_doc(path) → returns page markdown for quoting
+RETRIEVAL:
+Each message carries CANDIDATES — excerpts retrieved for the newest line,
+best first, with relevanceScore. Candidate content IS real page text (the
+same .md the tools return). They are context, NOT evidence a question
+exists.
+
+TOOLS:
+1. read_vercel_doc(path) → full page markdown. Use when the winning
+   candidate's excerpt doesn't contain the exact sentence to quote.
 
 FLOW:
-1. Newest line mentions Vercel product/feature? → Continue. Else → NONE.
-2. If vague (e.g., "it's slow"), use 2-3 prior lines for context.
-3. search_vercel_documentation with exact SA line + context.
-4. relevanceScore < 0.75? → NONE.
-5. Call read_vercel_doc on best Source path.
-6. Find exact sentence in markdown matching the answer.
-7. Render QUOTE: exact words, no markdown syntax, no backticks.
-8. ANCHOR: word-for-word from QUOTE, plain prose only.
+1. Newest line asks about Vercel product/feature? → Continue. Else → NONE,
+   no matter what the candidates say.
+2. Pick the candidate that answers the newest line (usually the first;
+   judge by content, not just score).
+3. Exact quotable sentence in its excerpt? → answer directly, ZERO tool
+   calls. DOC/SOURCE come from the candidate's documentUri.
+4. Otherwise read_vercel_doc on that candidate's path, quote from the page.
+5. No candidate answers it? → read_vercel_doc on the most plausible path,
+   or NONE. Never invent.
+6. Render QUOTE: exact words, no markdown syntax, no backticks.
+7. ANCHOR: word-for-word from QUOTE, plain prose only.
 
 CRITICAL RULES:
-- Pass SA's EXACT line to search (don't rephrase).
-- Never quote search snippets (they're captions, not real text).
-- Only quote from read_vercel_doc output.
-- 0.75 relevanceScore threshold is hard stop.
+- Candidate excerpts and read_vercel_doc output are the ONLY quote sources.
 - ANCHOR must appear on page as plain prose (no code punctuation).
-- Unfamiliar products (Eve, v0, BotID, Fluid, Workflows)? Always search.
+- Small talk stays NONE even when candidates are attached.
 
 OUTPUT FORMAT (always):
 DOC: [path from Source]
@@ -207,44 +214,79 @@ export async function POST(req: Request) {
     return Response.json({ error: "transcript required" }, { status: 400 });
   }
 
-  const token = process.env.VERCEL_MCP_TOKEN;
-  if (!token) {
-    return Response.json(
-      { error: "VERCEL_MCP_TOKEN is not configured" },
-      { status: 503 },
-    );
+  // Pre-call retrieval — infrastructure, not a model decision. Embeds the
+  // unconsumed tail (the client's transcript GC keeps it short/on-topic)
+  // and hands top-k page excerpts to the model's FIRST turn, so the fast
+  // path cards in one generation.
+  let candidates: Candidate[] = [];
+  let retrievalFailed = false;
+  let retrievalMs = 0;
+  {
+    const t0 = performance.now();
+    try {
+      // retrieve() deadlines only its embed call — the one-time index load
+      // on a cold instance may take seconds and must not misfire the fallback.
+      candidates = await retrieve(transcript, 3);
+    } catch (err) {
+      retrievalFailed = true;
+      console.error("retrieval failed:", err);
+    }
+    retrievalMs = Math.round(performance.now() - t0);
   }
 
-  const all = await getMcpTools(token);
-  // From the MCP, keep only the docs search — the full surface (24 tools —
-  // deployments, projects, toolbar…) bloats every request and slows the loop.
-  // web_fetch_vercel_url is dropped on purpose — it fetches protected
-  // deployment URLs, not docs pages (every /docs/ URL errors).
-  // The verbatim page text comes from our own read_vercel_doc (.md fetch),
-  // because MCP search only returns synthesized snippet captions.
-  // TODO: we are manually filtering the toolset here, but the API key can take destructive actions
   const tools: ToolSet = {
-    ...Object.fromEntries(
-      Object.entries(all).filter(([name]) =>
-        ["search_vercel_documentation"].includes(name),
-      ),
-    ),
+    // search_vercel_documentation (Vercel MCP) — retired from the fast path
+    // in favor of pre-call local retrieval. Kept as the explicit recovery
+    // path: a FAILED retriever (not an empty result) re-enables it below.
+    // Re-enable permanently by uncommenting:
+    // ...Object.fromEntries(
+    //   Object.entries(await getMcpTools(process.env.VERCEL_MCP_TOKEN!)).filter(
+    //     ([name]) => ["search_vercel_documentation"].includes(name),
+    //   ),
+    // ),
     read_vercel_doc: readVercelDoc,
   };
+  let fallbackNote = "";
+  if (retrievalFailed) {
+    const token = process.env.VERCEL_MCP_TOKEN;
+    if (token) {
+      try {
+        const all = await getMcpTools(token);
+        for (const [name, t] of Object.entries(all)) {
+          if (name === "search_vercel_documentation") tools[name] = t;
+        }
+        fallbackNote = "⚠ retrieval failed → MCP search fallback";
+      } catch {
+        fallbackNote = "⚠ retrieval failed, MCP fallback unavailable";
+      }
+    } else {
+      fallbackNote = "⚠ retrieval failed, no fallback (VERCEL_MCP_TOKEN unset)";
+    }
+  }
+
+  const candidatesBlock = retrievalFailed
+    ? "CANDIDATES: retrieval unavailable — fall back to search_vercel_documentation if present, then read_vercel_doc."
+    : candidates.length === 0
+      ? "CANDIDATES: none above relevance floor — likely small talk (NONE) or use read_vercel_doc if it is a real Vercel question."
+      : `CANDIDATES (best first):\n${candidates
+          .map(
+            (c, i) =>
+              `[${i + 1}] ${c.documentUri} · ${c.documentTitle} · relevanceScore ${c.relevanceScore}\n${c.content}`,
+          )
+          .join("\n\n")}`;
 
   const result = streamText({
     model: MODEL,
     providerOptions: GATEWAY_OPTIONS,
     system: SYSTEM,
-    prompt: transcript,
+    prompt: `${transcript}\n\n${candidatesBlock}`,
     tools,
-    stopWhen: stepCountIs(8),
-    // Some models spend every step re-searching and never emit text — after
-    // step 5, cut tool access AND restate the output contract: by then the
-    // context is thousands of tokens of .md dumps and models drift into
-    // answering in prose, which the client can't parse into a card.
+    // Fast path is one turn; the read_vercel_doc escape hatch two-three.
+    // The old cap of 8 was sized for search-loop pathology that pre-call
+    // retrieval removes.
+    stopWhen: stepCountIs(4),
     prepareStep: ({ stepNumber }) =>
-      stepNumber >= 5
+      stepNumber >= 2
         ? { toolChoice: "none" as const, instructions: SYSTEM + FINAL_STEP }
         : undefined,
     onError: (event) => console.error("agent stream error:", event.error),
@@ -269,7 +311,16 @@ export async function POST(req: Request) {
       let step = 0;
       let answer = ""; // accumulated card text, validated at finish
       try {
-        dbg(`model: ${MODEL} · ttft`);
+        dbg(`model: ${MODEL} · ttft · retriever: local`);
+        dbg(
+          retrievalFailed
+            ? fallbackNote
+            : `⚡ retrieved ${candidates.length} candidate${candidates.length === 1 ? "" : "s"} in ${retrievalMs}ms${
+                candidates.length
+                  ? ` · top: ${candidates[0].documentUri.replace("https://", "")} (${candidates[0].relevanceScore})`
+                  : ""
+              }`,
+        );
         for await (const part of result.stream) {
           switch (part.type) {
             case "start-step":
