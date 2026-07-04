@@ -112,10 +112,7 @@ function SuggestionCard({ s }: { s: Suggestion }) {
   return (
     <div className="card-rise flex flex-col gap-2">
       <div className="font-mono text-[10px] font-semibold uppercase tracking-widest text-muted">
-        Turn {s.id} · heard from your mic
-      </div>
-      <div className="border-l-2 border-line pl-2.5 text-[13px] text-muted">
-        &ldquo;{s.heard}&rdquo;
+        Turn {s.id}
       </div>
       <div className="rounded-lg border border-accent bg-card px-3.5 py-3">
         <div className="mb-2 flex items-center justify-between gap-2 font-mono text-[11px] font-semibold text-muted">
@@ -150,6 +147,9 @@ function SuggestionCard({ s }: { s: Suggestion }) {
               </span>
               how k0 answered · {s.debug.length} steps
             </summary>
+            <div className="mt-2 border-l-2 border-line pl-2.5 text-[12px] text-muted">
+              heard: &ldquo;{s.heard}&rdquo;
+            </div>
             <div className="mt-2 flex flex-col gap-0.5 font-mono text-[10px] leading-relaxed text-[#b6b6be]">
               {s.debug.map((line, k) => (
                 <div key={k} className="whitespace-pre-wrap break-words">

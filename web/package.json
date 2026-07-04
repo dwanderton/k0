@@ -11,10 +11,12 @@
     "build": "next build",
     "start": "next start",
     "build:docs-cache": "node scripts/build-docs-cache.ts",
-    "build:embeddings": "node scripts/build-embeddings.ts"
+    "build:embeddings": "node scripts/build-embeddings.ts",
+    "build:embeddings-local": "node scripts/build-embeddings-local.ts"
   },
   "dependencies": {
     "@ai-sdk/mcp": "^2.0.5",
+    "@huggingface/transformers": "^4.2.0",
     "@vercel/analytics": "^2.0.1",
     "ai": "^7.0.12",
     "geist": "^1.7.2",
@@ -35,6 +37,11 @@
   "pnpm": {
     "overrides": {
       "postcss": ">=8.5.10"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "onnxruntime-node",
+      "protobufjs",
+      "sharp"
+    ]
   }
 }

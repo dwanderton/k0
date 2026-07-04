@@ -19,8 +19,14 @@ const MERGE_MIN = 300;
 function frontmatter(md: string): { title: string; body: string; fm: string } {
   const m = md.match(/^---\n([\s\S]*?)\n---\n?/);
   if (!m) return { title: "", body: md, fm: "" };
-  const title = m[1].match(/^title:\s*(.+)$/m)?.[1]?.trim().replace(/^["']|["']$/g, "") ?? "";
-  return { title, body: md.slice(m[0].length), fm: m[1] };
+  const pick = (k: string) =>
+    m[1].match(new RegExp(`^${k}:\\s*(.+)$`, "m"))?.[1]?.trim().replace(/^["']|["']$/g, "") ?? "";
+  const title = pick("title");
+  const description = pick("description");
+  // Raw YAML embeds as noise; a clean "Title — description" line is the
+  // strongest page-aboutness signal a first chunk can carry.
+  const fm = [title, description].filter(Boolean).join(" — ");
+  return { title, body: md.slice(m[0].length), fm };
 }
 
 /** >80% of content lines being markdown links = nav/footer noise, not prose. */
@@ -58,7 +64,15 @@ function splitLong(body: string): string[] {
 }
 
 export function chunkPage(key: string, markdown: string): Chunk[] {
-  const { title, body, fm } = frontmatter(markdown);
+  let { title, body, fm } = frontmatter(markdown);
+  // Description-led first chunks for ROOT pages only (/docs/<product>) —
+  // that's where concept queries belong. Applied everywhere, descriptions
+  // lift wrong boats too (a Platforms action page once outranked the real
+  // add-a-domain guide on its description alone).
+  const pathname = key.slice(key.indexOf(":") + 1);
+  if (!/^\/docs\/[^/]+$/.test(pathname)) {
+    fm = title; // deep pages: title prefix only, as before the experiment
+  }
   // Frontmatter carries title/description — high retrieval signal, so it
   // rides in the page's first chunk.
   const sections: { heading: string; body: string }[] = [];
