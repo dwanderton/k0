@@ -30,11 +30,13 @@ const DOCUMENTATION_SOURCES = [
     baseUrl: 'https://vercel.com/docs',
     sitemapUrl: 'https://vercel.com/sitemap.xml',
   },
-  // {
-  //   name: 'vercel-blog',
-  //   baseUrl: 'https://vercel.com/blog',
-  //   sitemapUrl: 'https://vercel.com/blog/sitemap.xml',
-  // },
+  {
+    name: 'vercel-blog',
+    baseUrl: 'https://vercel.com/blog',
+    // /blog/sitemap.xml 404s — use the root sitemap; fetchSource keeps
+    // only locs under baseUrl (same pattern as vercel-docs).
+    sitemapUrl: 'https://vercel.com/sitemap.xml',
+  },
   // {
   //   name: 'vercel-kb',
   //   baseUrl: 'https://vercel.com/kb',
