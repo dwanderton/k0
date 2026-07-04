@@ -49,6 +49,7 @@ const TIDY_RULES: [RegExp, string][] = [
   [/\bthe cell\b/gi, "Vercel"],
   [/\bfor sale\b/gi, "Vercel"],
   [/\bwill sell\b/gi, "Vercel"],
+  [/\bwork clothes\b/gi, "workflows"],
   [/\bgerbil\b/gi, "durable"],
 ];
 

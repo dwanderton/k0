@@ -63,7 +63,13 @@ const PHRASES = [
   },
   {
     text: "You want to know how to add a custom domain to your project",
-    gold: ["domains/working-with-domains/add-a-domain"],
+    // 2026-07-04: set-up-custom-domain added as co-gold — it is the
+    // canonical "add a custom domain" walkthrough (page-verified); the
+    // original single gold was too narrow.
+    gold: [
+      "domains/working-with-domains/add-a-domain",
+      "domains/set-up-custom-domain",
+    ],
   },
 ];
 

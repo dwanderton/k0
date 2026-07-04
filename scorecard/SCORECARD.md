@@ -16,7 +16,7 @@ Cue phrases (must produce a card), with hand-verified gold sources
 | You want to know how to enable fluid compute for a single deployment | `fluid-compute` |
 | Your question is how long can a Vercel function run before it times out | `functions/limitations` or `functions/configuring-functions/duration` |
 | So you are asking how preview deployments work on Vercel | `deployments/environments` (`deployments/preview-deployments` is a 404) |
-| You want to know how to add a custom domain to your project | `domains/working-with-domains/add-a-domain` |
+| You want to know how to add a custom domain to your project | `domains/working-with-domains/add-a-domain` or `domains/set-up-custom-domain` (co-gold added 2026-07-04 — canonical walkthrough, page-verified; runs before this date scored the single gold) |
 
 Fixed negative controls (must produce NONE — a card is a false positive):
 
@@ -147,3 +147,40 @@ with 0 false positives — the other 5 returned neither NONE nor a card
 dominant defect → next approach change: local embedding retrieval
 (pre-call top-k injection), which this cache enables.
 
+### PR #8 (local embeddings) — APPROACH CHANGE: pre-call local retrieval replaces MCP search · brute-force cosine over committed chunk index (16,152 chunks, fp32@1536, LFS) + hybrid path/heading boosts · candidates injected before the first model turn · step cap 4 · same model (gpt-5.4-mini, ttft)
+
+# run 2026-07-04 02:49 UTC · https://k0-prjsys4o3-creatorplatform.vercel.app · commit 5857233 · 100x per phrase, conc 50
+
+| phrase | ok | fail% | card med | card p95 | cost/insight | ground | gold hit | top link |
+|---|---|---|---|---|---|---|---|---|
+| So you are asking what is the AI gateway | 95/100 (NONE) | 5% | 2.6s | 8.0s | $0.0015 | 2/5 | 77/95 | ai-gateway ×77 |
+| You want to know how to enable fluid com | 100/100 | 0% | 1.8s | 3.8s | $0.0019 | 5/5 | 100/100 | fluid-compute ×100 |
+| Your question is how long can a Vercel f | 100/100 | 0% | 1.0s | 1.7s | $0.0012 | 5/5 | 100/100 | functions/configuring-functions/duration ×97 |
+| So you are asking how preview deployment | 99/100 (NONE) | 1% | 1.0s | 1.8s | $0.0010 | 5/5 | 98/99 | deployments/environments ×98 |
+| You want to know how to add a custom dom | 100/100 | 0% | 1.0s | 1.4s | $0.0010 | 5/5 | 3/100 | domains/set-up-custom-domain ×95 |
+
+| control phrase (must be NONE) | NONE | false-pos% | med total |
+|---|---|---|---|
+| Thanks for joining, how was your weekend | 10/10 | 0% | 1.1s |
+| Give me one second, someone is at the door | 10/10 | 0% | 1.1s |
+
+**overall: 494/500 ok (1.2% fail) · median time-to-card 1.1s · p95 6.8s · median cost/insight $0.0012 · total spend $0.6914**
+**gold-link precision: 378/494 (77%) · controls: 0/20 false positives**
+
+vs PR #6, all acceptance gates passed:
+- **median time-to-card 3.2s → 1.1s (−66%)** — pre-call retrieval + one-turn
+  fast path deleted the search turn; p95 6.9s → 6.8s (conc-50).
+- **gold precision 57% → 77%** as measured — and the domain row scored
+  under the OLD single gold: its top link (set-up-custom-domain ×95) was
+  adjudicated co-gold the same day (see method table); rescoring that row
+  puts the run at ~96%. **preview-deployments 8% → 98/99 gold to
+  deployments/environments** — the page no lexical search ever found.
+- **cost/insight $0.0028 → $0.0012 (−57%)**; run spend $1.77 → $0.69.
+- **controls 10/10 + 10/10 NONE, 0 false positives** — the PR#6 weekend
+  anomaly (5/10 neither-NONE-nor-card) did not recur: retrieval floor
+  returns zero candidates on small talk and the model NONEs cleanly.
+- Residuals: ai-gateway phrase leaks 5% NONE (top candidate present at
+  0.805 — model-side judgment wobble) and its ground sample dipped (2/5,
+  anchor wobble); fail% 1.2% ≤ 2% gate.
+- One-off index cost: $0.1109 (see Embedding index cost table). Query-time
+  embedding rides cost/insight (~$0.00001/query).
