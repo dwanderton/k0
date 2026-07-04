@@ -184,3 +184,34 @@ vs PR #6, all acceptance gates passed:
   anchor wobble); fail% 1.2% ≤ 2% gate.
 - One-off index cost: $0.1109 (see Embedding index cost table). Query-time
   embedding rides cost/insight (~$0.00001/query).
+
+### PR #9 (in-process embeddings) — bge-small query embedding in the function (gateway embed = fallback) · retrieval 337ms → 66ms · per-model TUNING · same model (gpt-5.4-mini, throughput sort)
+
+# run 2026-07-04 05:03 UTC · https://k0-190ymqhwe-creatorplatform.vercel.app · commit d124671 · 100x per phrase, conc 50
+
+| phrase | ok | fail% | card med | card p95 | cost/insight | ground | gold hit | top link |
+|---|---|---|---|---|---|---|---|---|
+| So you are asking what is the AI gateway | 99/100 (NONE) | 1% | 6.7s | 8.1s | $0.0013 | 5/5 | 99/99 | ai-gateway ×99 |
+| You want to know how to enable fluid com | 100/100 | 0% | 1.4s | 2.2s | $0.0023 | 4/5 | 100/100 | fluid-compute ×100 |
+| Your question is how long can a Vercel f | 99/100 (TimeoutError) | 1% | 0.7s | 2.1s | $0.0018 | 4/5 | 62/99 | functions/limitations ×62 |
+| So you are asking how preview deployment | 99/100 (NONE) | 1% | 0.8s | 1.3s | $0.0015 | 5/5 | 99/99 | deployments/environments ×99 |
+| You want to know how to add a custom dom | 100/100 | 0% | 0.6s | 1.2s | $0.0011 | 5/5 | 100/100 | domains/set-up-custom-domain ×100 |
+
+| control phrase (must be NONE) | NONE | false-pos% | med total |
+|---|---|---|---|
+| Thanks for joining, how was your weekend | 10/10 | 0% | 0.7s |
+| Give me one second, someone is at the door | 10/10 | 0% | 0.7s |
+
+**overall: 497/500 ok (0.6% fail) · median time-to-card 0.8s · p95 7.1s · median cost/insight $0.0016 · total spend $0.8523**
+**gold-link precision: 460/497 (93%) · controls: 0/20 false positives**
+
+vs PR #8: median 1.1s → **0.8s** (sub-second cards), fail 1.2% → 0.6%,
+gold 77% (old gold) / ≈96% (corrected) → **93% measured** under the
+corrected harness. ai-gateway NONE leak 5% → 1% and its gold went
+77/95 → 99/99 (bge + root bonus put the overview top). preview →
+environments 99/99. Notes: the gateway phrase's 6.7s median is conc-50
+cold-start amplification — the first phrase absorbs ~50 concurrent cold
+instances each paying the one-time ~3s model+index load; steady-state
+serial runs measure ~1.2s totals. Duration phrase's gold dipped to
+62/99 (37 runs cited a non-gold page — likely /docs/functions or
+/docs/limits pulled up by the root bonus); watch next run.
