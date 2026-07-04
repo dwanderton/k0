@@ -79,7 +79,7 @@ const CACHE_FILE = process.env.VERCEL
   ? "/tmp/docs-cache.br"
   : join(process.cwd(), "docs-cache.br");
 
-/** The cache file is COMMITTED for the demo (588K br) so deploys never start
+/** The cache file is COMMITTED for the demo so deploys never start
  *  cold: reads fall back to the repo-bundled copy when /tmp has no fresher
  *  rebuild. Traced into the function bundle via outputFileTracingIncludes. */
 const BUNDLED_CACHE_FILE = join(process.cwd(), "docs-cache.br");
