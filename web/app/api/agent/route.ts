@@ -234,6 +234,12 @@ export async function POST(req: Request) {
       const r = await retrieveWithInfo(transcript, 2);
       candidates = r.candidates;
       retrieverBackend = r.backend;
+      // Dominant top candidate → send it alone. The 100%-gold run cited
+      // candidate #1 almost exclusively; above 0.95 the second excerpt is
+      // dead prefill weight (~900 tokens on the gateway phrase).
+      if (candidates.length > 1 && candidates[0].relevanceScore > 0.95) {
+        candidates = [candidates[0]];
+      }
     } catch (err) {
       retrievalFailed = true;
       console.error("retrieval failed (all backends):", err);
