@@ -30,11 +30,13 @@ const DOCUMENTATION_SOURCES = [
     baseUrl: 'https://vercel.com/docs',
     sitemapUrl: 'https://vercel.com/sitemap.xml',
   },
-  // {
-  //   name: 'vercel-blog',
-  //   baseUrl: 'https://vercel.com/blog',
-  //   sitemapUrl: 'https://vercel.com/blog/sitemap.xml',
-  // },
+  {
+    name: 'vercel-blog',
+    baseUrl: 'https://vercel.com/blog',
+    // /blog/sitemap.xml 404s — use the root sitemap; fetchSource keeps
+    // only locs under baseUrl (same pattern as vercel-docs).
+    sitemapUrl: 'https://vercel.com/sitemap.xml',
+  },
   // {
   //   name: 'vercel-kb',
   //   baseUrl: 'https://vercel.com/kb',
@@ -77,7 +79,7 @@ const CACHE_FILE = process.env.VERCEL
   ? "/tmp/docs-cache.br"
   : join(process.cwd(), "docs-cache.br");
 
-/** The cache file is COMMITTED for the demo (588K br) so deploys never start
+/** The cache file is COMMITTED for the demo so deploys never start
  *  cold: reads fall back to the repo-bundled copy when /tmp has no fresher
  *  rebuild. Traced into the function bundle via outputFileTracingIncludes. */
 const BUNDLED_CACHE_FILE = join(process.cwd(), "docs-cache.br");
