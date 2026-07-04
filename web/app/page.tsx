@@ -51,6 +51,9 @@ const TIDY_RULES: [RegExp, string][] = [
   [/\bfor cell\b/gi, "Vercel"],
   [/\bwill sell\b/gi, "Vercel"],
   [/\bwork clothes\b/gi, "workflows"],
+  [/\bchrome task\b/gi, "cron task"],
+  [/\bchromecast\b/gi, "cron task"],
+  [/\bcrown\b/gi, "cron"],
   [/\bgerbil\b/gi, "durable"],
 ];
 
