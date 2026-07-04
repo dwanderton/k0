@@ -206,6 +206,12 @@ const OutputSchema = z
   })
   .refine((c) => c.SOURCE.includes("#:~:text="), {
     message: "SOURCE must carry a #:~:text= highlight fragment",
+  })
+  // The browser matches the fragment against RENDERED page text — code
+  // punctuation in the anchor (backticks, brackets, pipes) never renders,
+  // so the highlight silently fails to land.
+  .refine((c) => !/[`\[\]{}|<>]/.test(c.ANCHOR), {
+    message: "ANCHOR must be plain prose — no backticks/brackets/pipes",
   });
 
 /** Pull the card fields out of the streamed text for validation. */
