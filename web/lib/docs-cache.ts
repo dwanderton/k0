@@ -24,41 +24,41 @@ const compress = promisify(brotliCompress);
 const decompress = promisify(brotliDecompress);
 
 const DOCUMENTATION_SOURCES = [
-  // {
-  //   name: 'vercel-docs',
-  //   baseUrl: 'https://vercel.com/docs',
-  //   sitemapUrl: 'https://vercel.com/docs/sitemap.xml',
-  // },
-  // {
-  //   name: 'vercel-blog',
-  //   baseUrl: 'https://vercel.com/blog',
-  //   sitemapUrl: 'https://vercel.com/blog/sitemap.xml',
-  // },
-  // {
-  //   name: 'vercel-kb',
-  //   baseUrl: 'https://vercel.com/kb/guide',
-  //   sitemapUrl: 'https://vercel.com/kb/sitemap.xml',
-  // },
-  // {
-  //   name: 'vercel-changelog',
-  //   baseUrl: 'https://vercel.com/changelog',
-  //   sitemapUrl: 'https://vercel.com/changelog/sitemap.xml',
-  // },
-  // {
-  //   name: 'ai-sdk-docs',
-  //   baseUrl: 'https://ai-sdk.dev/docs',
-  //   sitemapUrl: 'https://ai-sdk.dev/sitemap.xml',
-  // },
-  // {
-  //   name: 'sdk-vercel-ai',
-  //   baseUrl: 'https://sdk.vercel.ai/docs',
-  //   sitemapUrl: 'https://sdk.vercel.ai/sitemap.xml',
-  // },
-  // {
-  //   name: 'chat-sdk-docs',
-  //   baseUrl: 'https://chat-sdk.dev/docs',
-  //   sitemapUrl: 'https://chat-sdk.dev/sitemap.xml',
-  // },
+  {
+    name: 'vercel-docs',
+    baseUrl: 'https://vercel.com/docs',
+    sitemapUrl: 'https://vercel.com/docs/sitemap.xml',
+  },
+  {
+    name: 'vercel-blog',
+    baseUrl: 'https://vercel.com/blog',
+    sitemapUrl: 'https://vercel.com/blog/sitemap.xml',
+  },
+  {
+    name: 'vercel-kb',
+    baseUrl: 'https://vercel.com/kb/guide',
+    sitemapUrl: 'https://vercel.com/kb/sitemap.xml',
+  },
+  {
+    name: 'vercel-changelog',
+    baseUrl: 'https://vercel.com/changelog',
+    sitemapUrl: 'https://vercel.com/changelog/sitemap.xml',
+  },
+  {
+    name: 'ai-sdk-docs',
+    baseUrl: 'https://ai-sdk.dev/docs',
+    sitemapUrl: 'https://ai-sdk.dev/sitemap.xml',
+  },
+  {
+    name: 'sdk-vercel-ai',
+    baseUrl: 'https://sdk.vercel.ai/docs',
+    sitemapUrl: 'https://sdk.vercel.ai/sitemap.xml',
+  },
+  {
+    name: 'chat-sdk-docs',
+    baseUrl: 'https://chat-sdk.dev/docs',
+    sitemapUrl: 'https://chat-sdk.dev/sitemap.xml',
+  },
   {
     name: "workflows-docs",
     baseUrl: "https://workflow-sdk.dev/docs",
@@ -69,11 +69,11 @@ const DOCUMENTATION_SOURCES = [
     baseUrl: "https://eve.dev/docs",
     sitemapUrl: "https://eve.dev/sitemap.xml",
   },
-  // {
-  //   name: 'nextjs-docs',
-  //   baseUrl: 'https://nextjs.org/docs',
-  //   sitemapUrl: 'https://nextjs.org/sitemap.xml',
-  // },
+  {
+    name: 'nextjs-docs',
+    baseUrl: 'https://nextjs.org/docs',
+    sitemapUrl: 'https://nextjs.org/sitemap.xml',
+  },
 ];
 
 /** /tmp is the only writable path on Vercel; CWD is fine locally. */
@@ -255,47 +255,4 @@ export function getDocumentation(key: string): string | null {
 export async function getCachedDoc(key: string): Promise<string | null> {
   if (!docsCache) await initializeCache();
   return getDocumentation(key);
-}
-
-/** Map a cache key back to the live page URL, for SOURCE links. */
-export function keyToUrl(key: string): string | null {
-  const [source, pathname] = key.split(/:(.+)/);
-  const origin = DOCUMENTATION_SOURCES.find((s) => s.name === source)?.baseUrl;
-  if (!origin || !pathname) return null;
-  return new URL(pathname, origin).toString();
-}
-
-/** Search the cached SDK docs (the sources MCP search can't see —
- *  workflow-sdk.dev, eve.dev). Scores pages by query-token hits, path
- *  matches weighted over body matches. Returns keys + a matching line. */
-export async function searchCache(
-  query: string,
-  limit = 5,
-): Promise<{ key: string; url: string | null; snippet: string }[]> {
-  if (!docsCache) await initializeCache();
-  const tokens = query.toLowerCase().split(/\W+/).filter((t) => t.length > 2);
-  if (tokens.length === 0) return [];
-  const scored: { key: string; score: number; snippet: string }[] = [];
-  for (const [key, content] of docsCache!) {
-    const keyLc = key.toLowerCase();
-    const bodyLc = content.toLowerCase();
-    let score = 0;
-    for (const t of tokens) {
-      if (keyLc.includes(t)) score += 5; // path hit ≫ body hit
-      else if (bodyLc.includes(t)) score += 1;
-    }
-    if (score === 0) continue;
-    // First line containing any token, as the snippet.
-    const line =
-      content
-        .split("\n")
-        .find((l) => tokens.some((t) => l.toLowerCase().includes(t)))
-        ?.trim()
-        .slice(0, 160) ?? "";
-    scored.push({ key, score, snippet: line });
-  }
-  return scored
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit)
-    .map(({ key, snippet }) => ({ key, url: keyToUrl(key), snippet }));
 }
