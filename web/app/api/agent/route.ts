@@ -234,6 +234,12 @@ export async function POST(req: Request) {
       const r = await retrieveWithInfo(transcript, 2);
       candidates = r.candidates;
       retrieverBackend = r.backend;
+      // Dominant top candidate → send it alone. The 100%-gold run cited
+      // candidate #1 almost exclusively; above 0.95 the second excerpt is
+      // dead prefill weight (~900 tokens on the gateway phrase).
+      if (candidates.length > 1 && candidates[0].relevanceScore > 0.95) {
+        candidates = [candidates[0]];
+      }
     } catch (err) {
       retrievalFailed = true;
       console.error("retrieval failed (all backends):", err);
@@ -282,7 +288,7 @@ export async function POST(req: Request) {
           )
           .join("\n\n")}`;
 
-  const result = streamText({
+  const makeAttempt = () => streamText({
     model: MODEL,
     providerOptions: GATEWAY_OPTIONS,
     system: SYSTEM,
@@ -301,106 +307,148 @@ export async function POST(req: Request) {
 
   // Interleave the model's reasoning/tool trace (as NUL-prefixed debug lines)
   // with the answer text, so the client can show what the agent is thinking.
+  //
+  // NONE-retry: the residual failure mode is the model refusing (NONE)
+  // despite a high-confidence candidate. Text is held back while it still
+  // looks like a bare NONE (cards start "DOC:", refusals start "NONE" — the
+  // hold costs one chunk at most); a finished NONE with a top candidate
+  // above RETRY_FLOOR gets exactly one regeneration.
+  const RETRY_FLOOR = 0.9;
+  const topScore = candidates[0]?.relevanceScore ?? 0;
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const dbg = (m: string) =>
         controller.enqueue(encoder.encode(`${DBG}${m}\n`));
-      let reasoning = "";
-      const flushReasoning = () => {
-        let nl: number;
-        while ((nl = reasoning.indexOf("\n")) >= 0) {
-          const line = reasoning.slice(0, nl).trim();
-          reasoning = reasoning.slice(nl + 1);
-          if (line) dbg(`· ${line}`);
-        }
-      };
-      let step = 0;
-      let answer = ""; // accumulated card text, validated at finish
+      dbg(`model: ${MODEL} · throughput · retriever: ${retrieverBackend ?? "unavailable"}`);
+      dbg(
+        retrievalFailed
+          ? fallbackNote
+          : `⚡ retrieved ${candidates.length} candidate${candidates.length === 1 ? "" : "s"} in ${retrievalMs}ms${
+              candidates.length
+                ? ` · top: ${candidates[0].documentUri.replace("https://", "")} (${candidates[0].relevanceScore})`
+                : ""
+            }`,
+      );
+
+      let finalAnswer = "";
       try {
-        dbg(`model: ${MODEL} · throughput · retriever: ${retrieverBackend ?? "unavailable"}`);
-        dbg(
-          retrievalFailed
-            ? fallbackNote
-            : `⚡ retrieved ${candidates.length} candidate${candidates.length === 1 ? "" : "s"} in ${retrievalMs}ms${
-                candidates.length
-                  ? ` · top: ${candidates[0].documentUri.replace("https://", "")} (${candidates[0].relevanceScore})`
-                  : ""
-              }`,
-        );
-        for await (const part of result.stream) {
-          switch (part.type) {
-            case "start-step":
-              dbg(`▸ step ${++step}`);
-              break;
-            case "reasoning-delta":
-              reasoning += part.text;
-              flushReasoning();
-              break;
-            case "reasoning-end":
-              if (reasoning.trim()) dbg(`· ${oneline(reasoning)}`);
-              reasoning = "";
-              break;
-            case "tool-call":
-              dbg(`→ ${part.toolName}(${oneline(JSON.stringify(part.input), 120)})`);
-              break;
-            case "tool-result":
-              dbg(
-                `← ${part.toolName}: ${oneline(
-                  typeof part.output === "string"
-                    ? part.output
-                    : JSON.stringify(part.output),
-                )}`,
-              );
-              break;
-            case "tool-error":
-              // A failed MCP call can mean the cached session went stale —
-              // drop the cache so the next request re-handshakes.
-              if (part.toolName === "search_vercel_documentation") {
-                mcpTools = null;
-              }
-              dbg(`⚠ ${part.toolName} errored: ${oneline(String(part.error))}`);
-              break;
-            case "finish-step": {
-              // Gateway reports per-step cost in providerMetadata; surface it
-              // so the scorecard can compute cost-per-insight from the trace.
-              const gw = part.providerMetadata?.gateway as
-                | { cost?: string | number }
-                | undefined;
-              dbg(
-                `✓ step ${step}: ${part.finishReason}` +
-                (gw?.cost != null ? ` · $${gw.cost}` : ""),
-              );
-              break;
+        for (let attempt = 1; attempt <= 2; attempt++) {
+          const result = makeAttempt();
+          let step = 0;
+          let reasoning = "";
+          let held = "";
+          let holding = true;
+          let emitted = "";
+          const flushReasoning = () => {
+            let nl: number;
+            while ((nl = reasoning.indexOf("\n")) >= 0) {
+              const line = reasoning.slice(0, nl).trim();
+              reasoning = reasoning.slice(nl + 1);
+              if (line) dbg(`· ${line}`);
             }
-            case "text-delta":
-              answer += part.text;
-              controller.enqueue(encoder.encode(part.text));
-              break;
-            case "finish": {
-              dbg(
-                `■ done: ${part.finishReason} · tokens ${part.totalUsage.inputTokens ?? "?"}/${part.totalUsage.outputTokens ?? "?"}`,
-              );
-              // Validate the assembled card against the output contract —
-              // the verdict rides the trace so bad cards are visible in the
-              // UI dropdown and countable by the scorecard.
-              if (answer.trim() && !answer.trim().toUpperCase().startsWith("NONE")) {
-                const check = OutputSchema.safeParse(extractCard(answer));
+          };
+          const flushHeld = () => {
+            if (held) {
+              controller.enqueue(encoder.encode(held));
+              emitted += held;
+              held = "";
+            }
+            holding = false;
+          };
+
+          for await (const part of result.stream) {
+            switch (part.type) {
+              case "start-step":
+                dbg(`▸ step ${++step}`);
+                break;
+              case "reasoning-delta":
+                reasoning += part.text;
+                flushReasoning();
+                break;
+              case "reasoning-end":
+                if (reasoning.trim()) dbg(`· ${oneline(reasoning)}`);
+                reasoning = "";
+                break;
+              case "tool-call":
+                dbg(`→ ${part.toolName}(${oneline(JSON.stringify(part.input), 120)})`);
+                break;
+              case "tool-result":
                 dbg(
-                  check.success
-                    ? "✓ card valid (zod)"
-                    : `⚠ card invalid (zod): ${check.error.issues
-                      .map((i) => `${i.path.join(".") || "card"}: ${i.message}`)
-                      .join("; ")
-                      .slice(0, 200)}`,
+                  `← ${part.toolName}: ${oneline(
+                    typeof part.output === "string"
+                      ? part.output
+                      : JSON.stringify(part.output),
+                  )}`,
                 );
+                break;
+              case "tool-error":
+                // A failed MCP call can mean the cached session went stale —
+                // drop the cache so the next request re-handshakes.
+                if (part.toolName === "search_vercel_documentation") {
+                  mcpTools = null;
+                }
+                dbg(`⚠ ${part.toolName} errored: ${oneline(String(part.error))}`);
+                break;
+              case "finish-step": {
+                // Gateway reports per-step cost in providerMetadata; surface it
+                // so the scorecard can compute cost-per-insight from the trace.
+                const gw = part.providerMetadata?.gateway as
+                  | { cost?: string | number }
+                  | undefined;
+                dbg(
+                  `✓ step ${step}: ${part.finishReason}` +
+                    (gw?.cost != null ? ` · $${gw.cost}` : ""),
+                );
+                break;
               }
-              break;
+              case "text-delta": {
+                if (!holding) {
+                  controller.enqueue(encoder.encode(part.text));
+                  emitted += part.text;
+                  break;
+                }
+                held += part.text;
+                const t = held.trimStart().toUpperCase();
+                const maybeNone =
+                  t === "" || "NONE".startsWith(t) || (t.startsWith("NONE") && t.length <= 8);
+                if (!maybeNone) flushHeld();
+                break;
+              }
+              case "finish":
+                dbg(
+                  `■ done: ${part.finishReason} · tokens ${part.totalUsage.inputTokens ?? "?"}/${part.totalUsage.outputTokens ?? "?"}`,
+                );
+                break;
+              case "error":
+                dbg(`⚠ error: ${oneline(String(part.error))}`);
+                break;
             }
-            case "error":
-              dbg(`⚠ error: ${oneline(String(part.error))}`);
-              break;
           }
+
+          const heldNone = holding && held.trim().toUpperCase().startsWith("NONE");
+          if (heldNone && attempt === 1 && !retrievalFailed && topScore > RETRY_FLOOR) {
+            dbg(`⟲ NONE despite top candidate ${topScore} — retrying once`);
+            continue; // discard the held NONE; second attempt streams fresh
+          }
+          if (holding) flushHeld(); // NONE (kept) or a short real answer
+          finalAnswer = emitted;
+          break;
+        }
+
+        // Validate the assembled card against the output contract — the
+        // verdict rides the trace so bad cards are visible in the UI
+        // dropdown and countable by the scorecard.
+        if (finalAnswer.trim() && !finalAnswer.trim().toUpperCase().startsWith("NONE")) {
+          const check = OutputSchema.safeParse(extractCard(finalAnswer));
+          dbg(
+            check.success
+              ? "✓ card valid (zod)"
+              : `⚠ card invalid (zod): ${check.error.issues
+                  .map((i) => `${i.path.join(".") || "card"}: ${i.message}`)
+                  .join("; ")
+                  .slice(0, 200)}`,
+          );
         }
       } catch (err) {
         dbg(`⚠ stream failed: ${oneline(String(err))}`);
