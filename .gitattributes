@@ -1,3 +1,6 @@
 web/docs-cache.br filter=lfs diff=lfs merge=lfs -text
 web/embeddings.bin.br filter=lfs diff=lfs merge=lfs -text
 web/embeddings-meta.json.br filter=lfs diff=lfs merge=lfs -text
+web/models/**/*.onnx filter=lfs diff=lfs merge=lfs -text
+web/embeddings-local.bin.br filter=lfs diff=lfs merge=lfs -text
+web/embeddings-local-meta.json.br filter=lfs diff=lfs merge=lfs -text

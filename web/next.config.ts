@@ -13,6 +13,9 @@ const nextConfig: NextConfig = {
       "./docs-cache.br",
       "./embeddings.bin.br",
       "./embeddings-meta.json.br",
+      "./embeddings-local.bin.br",
+      "./embeddings-local-meta.json.br",
+      "./models/**",
     ],
   },
 };

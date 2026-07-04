@@ -2,7 +2,7 @@ import { streamText, stepCountIs, tool, type ToolSet } from "ai";
 import { createMCPClient } from "@ai-sdk/mcp";
 import { z } from "zod";
 import { getCachedDoc } from "@/lib/docs-cache";
-import { retrieve, type Candidate } from "@/lib/retriever";
+import { retrieveWithInfo, type Candidate, type Backend } from "@/lib/retriever";
 
 export const maxDuration = 60;
 
@@ -223,15 +223,20 @@ export async function POST(req: Request) {
   let candidates: Candidate[] = [];
   let retrievalFailed = false;
   let retrievalMs = 0;
+  let retrieverBackend: Backend | null = null;
   {
     const t0 = performance.now();
     try {
-      // retrieve() deadlines only its embed call — the one-time index load
-      // on a cold instance may take seconds and must not misfire the fallback.
-      candidates = await retrieve(transcript, 2);
+      // Deadline applies only to the gateway embed hop — the one-time index
+      // load on a cold instance may take seconds and must not misfire the
+      // fallback. in-process is tried first; gateway embeddings are the
+      // fallback backend.
+      const r = await retrieveWithInfo(transcript, 2);
+      candidates = r.candidates;
+      retrieverBackend = r.backend;
     } catch (err) {
       retrievalFailed = true;
-      console.error("retrieval failed:", err);
+      console.error("retrieval failed (all backends):", err);
     }
     retrievalMs = Math.round(performance.now() - t0);
   }
@@ -313,7 +318,7 @@ export async function POST(req: Request) {
       let step = 0;
       let answer = ""; // accumulated card text, validated at finish
       try {
-        dbg(`model: ${MODEL} · throughput · retriever: local`);
+        dbg(`model: ${MODEL} · throughput · retriever: ${retrieverBackend ?? "unavailable"}`);
         dbg(
           retrievalFailed
             ? fallbackNote
