@@ -211,6 +211,14 @@ export async function POST(req: Request) {
   } catch {
     return Response.json({ error: "invalid JSON body" }, { status: 400 });
   }
+  // Warm-up contract: the client fires this when the SA clicks Start
+  // Listening, so the ~3s one-time init (indexes + ONNX model) runs while
+  // the human is still talking. Loads retrieval, skips the model, ~$0.
+  if ((body as { warmup?: unknown })?.warmup === true) {
+    await retrieveWithInfo("warm up", 1).catch(() => {});
+    return new Response(null, { status: 204 });
+  }
+
   const transcript = (body as { transcript?: unknown })?.transcript;
   if (typeof transcript !== "string" || !transcript.trim()) {
     return Response.json({ error: "transcript required" }, { status: 400 });
