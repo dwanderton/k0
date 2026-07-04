@@ -253,3 +253,34 @@ POST-retry rate (both attempts refused): either n=100 noise or the
 leaner single-candidate prompt raises per-attempt refusal and the retry
 nets it out; the probe can't decompose (⟲ lines live in traces it
 doesn't keep). Net: cost win, zero regressions.
+
+### PR #11 (cold-split observability) — ❄ trace tag on one-time init; card med/p95 are warm-path only, cold starts reported separately · no agent-behavior change (same code as PR #10 otherwise)
+
+# run 2026-07-04 07:03 UTC · https://k0-pio85isr8-creatorplatform.vercel.app · commit bd38235 · 100x per phrase, conc 50
+
+| phrase | ok | fail% | card med | card p95 | cost/insight | ground | gold hit | top link |
+|---|---|---|---|---|---|---|---|---|
+| So you are asking what is the AI gateway | 100/100 ❄50 | 0% | 0.7s | 1.7s | $0.0008 | 5/5 | 99/100 | ai-gateway ×99 |
+| You want to know how to enable fluid com | 100/100 | 0% | 1.5s | 2.3s | $0.0021 | 4/5 | 100/100 | fluid-compute ×100 |
+| Your question is how long can a Vercel f | 100/100 | 0% | 1.4s | 2.2s | $0.0015 | 5/5 | 100/100 | functions/limitations ×100 |
+| So you are asking how preview deployment | 98/100 (NONE) | 2% | 0.8s | 1.2s | $0.0015 | 5/5 | 98/98 | deployments/environments ×98 |
+| You want to know how to add a custom dom | 100/100 | 0% | 0.8s | 1.8s | $0.0011 | 4/5 | 100/100 | domains/working-with-domains/add-a-domain ×100 |
+
+| control phrase (must be NONE) | NONE | false-pos% | med total |
+|---|---|---|---|
+| Thanks for joining, how was your weekend | 10/10 | 0% | 0.8s |
+| Give me one second, someone is at the door | 10/10 | 0% | 0.7s |
+
+**cold starts: 50/500 · init med 3.1s · cold card med 6.2s (excluded from table med/p95)**
+
+**overall: 498/500 ok (0.4% fail) · median time-to-card 0.9s · p95 2.0s (warm) · median cost/insight $0.0015 · total spend $0.7090**
+**gold-link precision: 497/498 (100%) · controls: 0/20 false positives**
+
+The split's proof-of-work: exactly 50 cold starts, ALL absorbed by the
+first phrase (the conc-50 burst spawns one fleet of fresh instances) —
+its warm profile is 0.7s med / 1.7s p95, previously reported as
+6.8s/8.2s blended. True warm p95 = 2.0s; the "long p95" of every prior
+run was cold contamination, now priced separately (init med 3.1s, cold
+cards ~6.2s). Best fail rate yet (0.4%); gateway phrase 0 NONEs this
+run (retry earning its keep); preview phrase 2 NONEs — the residual
+refusal wanders between phrases at ~2/500 scale.
