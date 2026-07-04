@@ -10,7 +10,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "build:docs-cache": "node scripts/build-docs-cache.ts"
+    "build:docs-cache": "node scripts/build-docs-cache.ts",
+    "build:embeddings": "node scripts/build-embeddings.ts"
   },
   "dependencies": {
     "@ai-sdk/mcp": "^2.0.5",
