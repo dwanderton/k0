@@ -10,7 +10,6 @@ const nextConfig: NextConfig = {
   // file tracing only follows imports, not runtime readFile paths.
   outputFileTracingIncludes: {
     "/api/agent": ["./docs-cache.br"],
-    "/api/cron/rebuild-docs-cache": ["./docs-cache.br"],
   },
 };
 

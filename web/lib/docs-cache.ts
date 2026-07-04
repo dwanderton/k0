@@ -1,15 +1,16 @@
 /**
  * Documentation cache — sitemap-crawled markdown, brotli-compressed on disk.
  *
- * Build: crawl each active source's sitemap, fetch every page as markdown
- * (`<url>.md` twin when the site serves one, raw body otherwise), compress
- * the whole map to one .br file. Load: decompress once per warm instance.
- * The agent's read_vercel_doc checks this cache before hitting the network.
+ * Build (ADDITIVE — `pnpm build:docs-cache` locally, no cron): crawl each
+ * active source's sitemap, fetch every page as markdown (`<url>.md` twin
+ * when the site serves one, HTML→md otherwise), merge into whatever the
+ * cache already holds. A source with pages already cached is skipped
+ * entirely; the cache checkpoints to disk after every source, and a source
+ * that fails consistently is abandoned WITHOUT losing the pages fetched so
+ * far. The .br file is committed to the repo — deploys never build it.
  *
- * Serverless reality: the filesystem is read-only except /tmp, and /tmp is
- * per-instance — a cron rebuild warms ITS instance's disk, not the fleet's.
- * Good enough for local dev and single-instance previews; the durable move
- * (Vercel Blob / KV) is a follow-up.
+ * Load: decompress once per warm instance. The agent's read_vercel_doc
+ * checks this cache before hitting the network.
  */
 import { writeFile, readFile } from "fs/promises";
 import { join } from "path";
@@ -27,32 +28,27 @@ const DOCUMENTATION_SOURCES = [
   {
     name: 'vercel-docs',
     baseUrl: 'https://vercel.com/docs',
-    sitemapUrl: 'https://vercel.com/docs/sitemap.xml',
+    sitemapUrl: 'https://vercel.com/sitemap.xml',
   },
-  {
-    name: 'vercel-blog',
-    baseUrl: 'https://vercel.com/blog',
-    sitemapUrl: 'https://vercel.com/blog/sitemap.xml',
-  },
-  {
-    name: 'vercel-kb',
-    baseUrl: 'https://vercel.com/kb/guide',
-    sitemapUrl: 'https://vercel.com/kb/sitemap.xml',
-  },
-  {
-    name: 'vercel-changelog',
-    baseUrl: 'https://vercel.com/changelog',
-    sitemapUrl: 'https://vercel.com/changelog/sitemap.xml',
-  },
+  // {
+  //   name: 'vercel-blog',
+  //   baseUrl: 'https://vercel.com/blog',
+  //   sitemapUrl: 'https://vercel.com/blog/sitemap.xml',
+  // },
+  // {
+  //   name: 'vercel-kb',
+  //   baseUrl: 'https://vercel.com/kb',
+  //   sitemapUrl: 'https://vercel.com/kb/sitemap.xml',
+  // },
+  // {
+  //   name: 'vercel-changelog',
+  //   baseUrl: 'https://vercel.com/changelog',
+  //   sitemapUrl: 'https://vercel.com/changelog/sitemap.xml',
+  // },
   {
     name: 'ai-sdk-docs',
     baseUrl: 'https://ai-sdk.dev/docs',
     sitemapUrl: 'https://ai-sdk.dev/sitemap.xml',
-  },
-  {
-    name: 'sdk-vercel-ai',
-    baseUrl: 'https://sdk.vercel.ai/docs',
-    sitemapUrl: 'https://sdk.vercel.ai/sitemap.xml',
   },
   {
     name: 'chat-sdk-docs',
@@ -69,11 +65,11 @@ const DOCUMENTATION_SOURCES = [
     baseUrl: "https://eve.dev/docs",
     sitemapUrl: "https://eve.dev/sitemap.xml",
   },
-  {
-    name: 'nextjs-docs',
-    baseUrl: 'https://nextjs.org/docs',
-    sitemapUrl: 'https://nextjs.org/sitemap.xml',
-  },
+  // {
+  //   name: 'nextjs-docs',
+  //   baseUrl: 'https://nextjs.org/docs',
+  //   sitemapUrl: 'https://nextjs.org/sitemap.xml',
+  // },
 ];
 
 /** /tmp is the only writable path on Vercel; CWD is fine locally. */
@@ -123,85 +119,106 @@ async function fetchPageAsMarkdown(url: string): Promise<string> {
   }
 }
 
-async function fetchAllDocs(): Promise<Map<string, string>> {
-  const allPages = new Map<string, string>();
-  let totalFetched = 0;
-  let totalFailed = 0;
-
+/** Crawl one source's pages into `allPages`. Aborts after
+ *  MAX_CONSECUTIVE_FAILURES page failures in a row (site down, rate-limited)
+ *  — everything fetched up to that point stays in the map. */
+async function fetchSource(
+  source: (typeof DOCUMENTATION_SOURCES)[number],
+  allPages: Map<string, string>,
+): Promise<{ fetched: number; failed: number; aborted: boolean }> {
   const MAX_CONCURRENT = 5; // Max 5 parallel fetches
-  const DELAY_BETWEEN_SOURCES = 1000; // 1 second between source starts
+  const MAX_CONSECUTIVE_FAILURES = 20;
 
-  for (const source of DOCUMENTATION_SOURCES) {
-    console.log(`\nFetching ${source.name}...`);
+  // Root sitemaps carry the whole site — keep only this source's pages.
+  const urls = (await fetchSitemap(source.sitemapUrl)).filter((u) =>
+    u.startsWith(source.baseUrl),
+  );
+  console.log(`  Found ${urls.length} pages`);
 
-    const urls = await fetchSitemap(source.sitemapUrl);
-    console.log(`  Found ${urls.length} pages`);
+  let fetched = 0;
+  let failed = 0;
+  let consecutive = 0;
 
-    // Fetch with concurrency limit
-    for (let i = 0; i < urls.length; i += MAX_CONCURRENT) {
-      const batch = urls.slice(i, i + MAX_CONCURRENT);
+  for (let i = 0; i < urls.length; i += MAX_CONCURRENT) {
+    const batch = urls.slice(i, i + MAX_CONCURRENT);
 
-      try {
-        const results = await Promise.allSettled(
-          batch.map((url) => fetchPageAsMarkdown(url)),
-        );
+    const results = await Promise.allSettled(
+      batch.map((url) => fetchPageAsMarkdown(url)),
+    );
 
-        for (let j = 0; j < results.length; j++) {
-          const result = results[j];
-          if (result.status === "fulfilled" && result.value.length > 0) {
-            const url = batch[j];
-            const key = `${source.name}:${new URL(url).pathname}`;
-            allPages.set(key, result.value);
-            totalFetched++;
-          } else {
-            totalFailed++;
-          }
-        }
-      } catch (error) {
-        console.error(`  Batch failed:`, error);
-        totalFailed += batch.length;
-      }
-
-      // Wait between batches
-      if (i + MAX_CONCURRENT < urls.length) {
-        await new Promise((resolve) => setTimeout(resolve, 500));
+    for (let j = 0; j < results.length; j++) {
+      const result = results[j];
+      if (result.status === "fulfilled" && result.value.length > 0) {
+        const key = `${source.name}:${new URL(batch[j]).pathname}`;
+        allPages.set(key, result.value);
+        fetched++;
+        consecutive = 0;
+      } else {
+        failed++;
+        consecutive++;
       }
     }
+
+    if (consecutive >= MAX_CONSECUTIVE_FAILURES) {
+      console.error(
+        `  ✗ ${source.name}: ${consecutive} consecutive failures — aborting source, keeping ${fetched} pages`,
+      );
+      return { fetched, failed, aborted: true };
+    }
+
+    // Wait between batches
+    if (i + MAX_CONCURRENT < urls.length) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+  }
+
+  return { fetched, failed, aborted: false };
+}
+
+async function saveCache(allPages: Map<string, string>): Promise<void> {
+  const json = JSON.stringify(Object.fromEntries(allPages));
+  const compressed = await compress(Buffer.from(json));
+  await writeFile(CACHE_FILE, compressed);
+  console.log(
+    `  ✓ checkpoint: ${allPages.size} pages, ${(compressed.length / 1024).toFixed(0)}K on disk`,
+  );
+}
+
+/** ADDITIVE build: start from whatever the cache already holds, skip any
+ *  source that's already present, checkpoint to disk after every source.
+ *  A consistently-failing source is abandoned without losing prior work. */
+export async function buildAndSaveCache(): Promise<void> {
+  console.log("Building documentation cache (additive)...");
+  const startTime = Date.now();
+  const DELAY_BETWEEN_SOURCES = 1000; // 1 second between source starts
+
+  const allPages = await loadCache();
+  console.log(`Starting from ${allPages.size} cached pages`);
+
+  for (const source of DOCUMENTATION_SOURCES) {
+    const already = [...allPages.keys()].some((k) =>
+      k.startsWith(`${source.name}:`),
+    );
+    if (already) {
+      console.log(`\n${source.name}: already cached — skipping`);
+      continue;
+    }
+
+    console.log(`\nFetching ${source.name}...`);
+    const { fetched, failed, aborted } = await fetchSource(source, allPages);
+    console.log(
+      `  ${source.name}: +${fetched} pages, ${failed} failed${aborted ? " (aborted early)" : ""}`,
+    );
+
+    // Checkpoint after every source — a later source dying costs nothing.
+    await saveCache(allPages);
 
     // Wait between sources
     await new Promise((resolve) => setTimeout(resolve, DELAY_BETWEEN_SOURCES));
   }
 
-  console.log(`\n✓ Total fetched: ${totalFetched}, Failed: ${totalFailed}`);
-  return allPages;
-}
-
-export async function buildAndSaveCache(): Promise<void> {
-  console.log("Building documentation cache...");
-  const startTime = Date.now();
-
-  const allPages = await fetchAllDocs();
-
-  // Serialize to JSON
-  const json = JSON.stringify(Object.fromEntries(allPages));
-  console.log(`\nJSON size: ${json.length / 1024 / 1024}MB`);
-
-  // Compress
-  const compressed = await compress(Buffer.from(json));
-  const compressedSize = compressed.length / 1024 / 1024;
-  const compressionRatio = (
-    (1 - compressedSize / (json.length / 1024 / 1024)) *
-    100
-  ).toFixed(1);
-
-  // Save to disk
-  await writeFile(CACHE_FILE, compressed);
-
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-  console.log(
-    `✓ Cache saved: ${compressedSize.toFixed(1)}MB (${compressionRatio}% compression)`,
-  );
-  console.log(`✓ Build time: ${elapsed}s`);
+  console.log(`\n✓ Cache complete: ${allPages.size} pages in ${elapsed}s`);
 }
 
 async function loadCache(): Promise<Map<string, string>> {

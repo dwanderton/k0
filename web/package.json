@@ -9,7 +9,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "build:docs-cache": "node scripts/build-docs-cache.ts"
   },
   "dependencies": {
     "@ai-sdk/mcp": "^2.0.5",
