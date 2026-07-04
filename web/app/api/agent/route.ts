@@ -78,11 +78,13 @@ const readVercelDoc = tool({
   },
 });
 
-// Routed through the gateway's lowest time-to-first-token provider. gpt-5.4-mini
-// is the one model that reliably runs the search -> read_vercel_doc -> quote
+// Gateway sorted for output THROUGHPUT: the pipeline is generation-bound —
+// stage timing showed ~1s of a ~2s card is the model writing tokens, so ttft
+// optimized the wrong stage once pre-call retrieval deleted the search turn.
+// gpt-5.4-mini is the one model that reliably runs the retrieval -> quote
 // flow; others either loop re-searching or fabricate quotes (see git history).
 const MODEL = "openai/gpt-5.4-mini";
-const GATEWAY_OPTIONS = { gateway: { sort: "ttft" as const } };
+const GATEWAY_OPTIONS = { gateway: { sort: "throughput" as const } };
 
 /** MCP handshake + tool listing once per warm instance, not once per
  *  utterance — Fluid Compute reuses instances across requests, so every turn
@@ -226,7 +228,7 @@ export async function POST(req: Request) {
     try {
       // retrieve() deadlines only its embed call — the one-time index load
       // on a cold instance may take seconds and must not misfire the fallback.
-      candidates = await retrieve(transcript, 3);
+      candidates = await retrieve(transcript, 2);
     } catch (err) {
       retrievalFailed = true;
       console.error("retrieval failed:", err);
@@ -311,7 +313,7 @@ export async function POST(req: Request) {
       let step = 0;
       let answer = ""; // accumulated card text, validated at finish
       try {
-        dbg(`model: ${MODEL} · ttft · retriever: local`);
+        dbg(`model: ${MODEL} · throughput · retriever: local`);
         dbg(
           retrievalFailed
             ? fallbackNote
