@@ -17,6 +17,8 @@ import { join } from "path";
 // `brotli` npm package, no extra dependency.
 import { brotliCompress, brotliDecompress } from "zlib";
 import { promisify } from "util";
+// html-to-md exports the converter as its default (no named `convert`).
+import convert from "html-to-md";
 
 const compress = promisify(brotliCompress);
 const decompress = promisify(brotliDecompress);
@@ -99,8 +101,9 @@ async function fetchSitemap(sitemapUrl: string): Promise<string[]> {
 }
 
 /** Prefer the page's markdown twin (`<url>.md` — vercel.com and
- *  workflow-sdk.dev serve one); fall back to the raw body (eve.dev has no
- *  twin, so its pages cache as HTML — imperfect for quoting, still useful). */
+ *  workflow-sdk.dev serve one); fall back to converting the raw HTML to
+ *  markdown (eve.dev serves no twin). The converted page is sliced to its
+ *  <main> element first so nav/footer chrome doesn't pollute the quotes. */
 async function fetchPageAsMarkdown(url: string): Promise<string> {
   try {
     const md = await fetch(`${url}.md`, { signal: AbortSignal.timeout(15000) });
@@ -110,7 +113,9 @@ async function fetchPageAsMarkdown(url: string): Promise<string> {
     }
     const response = await fetch(url, { signal: AbortSignal.timeout(15000) });
     if (!response.ok) return "";
-    const markdown = await response.text();
+    const html = await response.text();
+    const main = html.match(/<main[\s>][\s\S]*?<\/main>/i)?.[0] ?? html;
+    const markdown = convert(main);
     return markdown;
   } catch (error) {
     console.error(`Failed to fetch ${url}:`, error);
