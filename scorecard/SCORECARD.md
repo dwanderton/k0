@@ -187,33 +187,34 @@ vs PR #6, all acceptance gates passed:
 - One-off index cost: $0.1109 (see Embedding index cost table). Query-time
   embedding rides cost/insight (~$0.00001/query).
 
-### PR #9 (in-process embeddings) — bge-small query embedding in the function (gateway embed = fallback) · retrieval 337ms → 66ms · per-model TUNING · same model (gpt-5.4-mini, throughput sort)
+### PR #9 (in-process embeddings + clean chunk text) — bge-small query embedding in the function (gateway embed = fallback) · chunk #0 embeds a clean title lead instead of raw frontmatter YAML (the real relevance lever — noise removal), with "Title — description" on product-root pages only · rootBonus rule DELETED (overview pages now win on merit) · framework penalty generalized to SCOPED_SECTIONS (frameworks, platforms; exemption tests identity segments, not leaf slugs) · same model (gpt-5.4-mini, throughput sort)
 
-# run 2026-07-04 05:03 UTC · https://k0-190ymqhwe-creatorplatform.vercel.app · commit d124671 · 100x per phrase, conc 50
+# run 2026-07-04 05:57 UTC · https://k0-brhp6553n-creatorplatform.vercel.app · commit 8445e9f · 100x per phrase, conc 50
+# (replaces the earlier PR #9 preview run at commit d124671 per review —
+#  same branch, pre-merge; that run measured 93% gold / 0.8s median)
 
 | phrase | ok | fail% | card med | card p95 | cost/insight | ground | gold hit | top link |
 |---|---|---|---|---|---|---|---|---|
-| So you are asking what is the AI gateway | 99/100 (NONE) | 1% | 6.7s | 8.1s | $0.0013 | 5/5 | 99/99 | ai-gateway ×99 |
-| You want to know how to enable fluid com | 100/100 | 0% | 1.4s | 2.2s | $0.0023 | 4/5 | 100/100 | fluid-compute ×100 |
-| Your question is how long can a Vercel f | 99/100 (TimeoutError) | 1% | 0.7s | 2.1s | $0.0018 | 4/5 | 62/99 | functions/limitations ×62 |
-| So you are asking how preview deployment | 99/100 (NONE) | 1% | 0.8s | 1.3s | $0.0015 | 5/5 | 99/99 | deployments/environments ×99 |
-| You want to know how to add a custom dom | 100/100 | 0% | 0.6s | 1.2s | $0.0011 | 5/5 | 100/100 | domains/set-up-custom-domain ×100 |
+| So you are asking what is the AI gateway | 98/100 (NONE) | 2% | 2.2s | 8.8s | $0.0016 | 4/5 | 98/98 | ai-gateway ×98 |
+| You want to know how to enable fluid com | 100/100 | 0% | 1.2s | 2.6s | $0.0023 | 3/5 | 100/100 | fluid-compute ×100 |
+| Your question is how long can a Vercel f | 100/100 | 0% | 1.2s | 2.0s | $0.0015 | 5/5 | 100/100 | functions/limitations ×100 |
+| So you are asking how preview deployment | 99/100 (NONE) | 1% | 0.7s | 1.3s | $0.0016 | 5/5 | 99/99 | deployments/environments ×99 |
+| You want to know how to add a custom dom | 100/100 | 0% | 0.7s | 1.7s | $0.0010 | 4/5 | 100/100 | domains/working-with-domains/add-a-domain ×100 |
 
 | control phrase (must be NONE) | NONE | false-pos% | med total |
 |---|---|---|---|
-| Thanks for joining, how was your weekend | 10/10 | 0% | 0.7s |
+| Thanks for joining, how was your weekend | 10/10 | 0% | 1.0s |
 | Give me one second, someone is at the door | 10/10 | 0% | 0.7s |
 
-**overall: 497/500 ok (0.6% fail) · median time-to-card 0.8s · p95 7.1s · median cost/insight $0.0016 · total spend $0.8523**
-**gold-link precision: 460/497 (93%) · controls: 0/20 false positives**
+**overall: 497/500 ok (0.6% fail) · median time-to-card 1.1s · p95 7.5s · median cost/insight $0.0016 · total spend $0.8585**
+**gold-link precision: 497/497 (100%) · controls: 0/20 false positives**
 
-vs PR #8: median 1.1s → **0.8s** (sub-second cards), fail 1.2% → 0.6%,
-gold 77% (old gold) / ≈96% (corrected) → **93% measured** under the
-corrected harness. ai-gateway NONE leak 5% → 1% and its gold went
-77/95 → 99/99 (bge + root bonus put the overview top). preview →
-environments 99/99. Notes: the gateway phrase's 6.7s median is conc-50
-cold-start amplification — the first phrase absorbs ~50 concurrent cold
-instances each paying the one-time ~3s model+index load; steady-state
-serial runs measure ~1.2s totals. Duration phrase's gold dipped to
-62/99 (37 runs cited a non-gold page — likely /docs/functions or
-/docs/limits pulled up by the root bonus); watch next run.
+vs PR #8: median 1.1s → 1.1s (retrieval 337→66ms; conc-50 cold starts
+mask it here — serial steady-state ~1.2s total vs ~2.0s), fail 1.2% →
+0.6%, gold 77%/≈96% → **100% — every card across all five phrases cited
+a gold page**. The duration watch-item is RESOLVED: 100/100 (the
+/docs/limits leak died with the YAML-noise removal + rootBonus
+deletion). ai-gateway NONE leak 5% → 2%. Experiments recorded: the
+model-as-selector prompt line was tried and REJECTED (misses worsened
+1/20 → 3/20 — it primes the pages it names); the chunk-text fix was
+kept. Rule count net −1.
