@@ -29,3 +29,4 @@ concept.md
 
 # root stays lockfile-free (web/ owns the lockfile; a root one breaks Turbopack root inference)
 /pnpm-lock.yaml
+.temp/
