@@ -32,6 +32,7 @@ interface Meta {
   model: string;
   dims: number;
   rows: number;
+  quant?: "int8"; // absent = float32 bin
   chunks: { key: string; idx: number; heading: string; title: string; hash: string }[];
 }
 
@@ -69,6 +70,7 @@ const ORIGINS: Record<string, string> = {
   "chat-sdk-docs": "https://chat-sdk.dev",
   "workflows-docs": "https://workflow-sdk.dev",
   "eve-docs": "https://eve.dev",
+  "nextjs-docs": "https://nextjs.org",
 };
 
 function keyToUri(key: string): string {
@@ -108,7 +110,22 @@ function loadIndex(backend: Backend) {
       loadCorpusTexts(),
     ]);
     const meta: Meta = JSON.parse((await decompress(metaRaw)).toString());
-    const matrix = new Float32Array((await decompress(binRaw)).buffer as ArrayBuffer);
+    const bin = (await decompress(binRaw)).buffer as ArrayBuffer;
+    let matrix: Float32Array;
+    if (meta.quant === "int8") {
+      // int8 bin (P002 size gate) — dequantize, renormalize per row so the
+      // calibrated floors keep their meaning
+      matrix = Float32Array.from(new Int8Array(bin), (x) => x / 127);
+      for (let r = 0; r < meta.rows; r++) {
+        const off = r * meta.dims;
+        let ss = 0;
+        for (let d = 0; d < meta.dims; d++) ss += matrix[off + d] ** 2;
+        const inv = ss > 0 ? 1 / Math.sqrt(ss) : 0;
+        for (let d = 0; d < meta.dims; d++) matrix[off + d] *= inv;
+      }
+    } else {
+      matrix = new Float32Array(bin);
+    }
     if (matrix.length !== meta.rows * meta.dims) {
       throw new Error(`${backend} index mismatch: bin ${matrix.length} != rows×dims`);
     }

@@ -10,9 +10,10 @@ export const maxDuration = 60;
  *  in it never land the #:~:text= highlight. `<path>.md` IS the page. */
 const readVercelDoc = tool({
   description:
-    "Fetch the full verbatim markdown of a Vercel docs page. Pass the docs " +
-    "path only (e.g. 'fluid-compute' or 'ai-gateway' — no domain, no /docs/, " +
-    "no .md). Call this AFTER search_vercel_documentation locates the page: " +
+    "Fetch the full verbatim markdown of a Vercel or Next.js docs page. For " +
+    "Vercel docs pass the path only (e.g. 'fluid-compute' or 'ai-gateway' — " +
+    "no domain, no /docs/, no .md). For Next.js docs pass the candidate's " +
+    "full documentUri (e.g. 'https://nextjs.org/docs/app/getting-started'). " +
     "QUOTE and ANCHOR must be copied word-for-word from what this returns, " +
     "because only this is the real page text the browser highlight matches.",
   inputSchema: z.object({
@@ -21,8 +22,10 @@ const readVercelDoc = tool({
       .describe("Docs path, e.g. 'fluid-compute' or 'functions/streaming'."),
   }),
   execute: async ({ path }) => {
-    const clean = String(path ?? "")
-      .trim()
+    const raw = String(path ?? "").trim();
+    // nextjs docs arrive as full documentUri; bare paths default to vercel
+    const isNext = /(^|\/\/)nextjs\.org\//i.test(raw);
+    const clean = raw
       .replace(/^https?:\/\/[^/]+/, "")
       .replace(/[#?].*$/, "")
       .replace(/\.md$/, "")
@@ -34,20 +37,23 @@ const readVercelDoc = tool({
     if (!/^[a-z0-9]([a-z0-9/-]*[a-z0-9])?$/i.test(clean) || clean.includes("..")) {
       return `Invalid docs path: ${clean}`;
     }
-    const url = `https://vercel.com/docs/${clean}.md`;
-    // defense in depth — resolved URL must stay on vercel.com/docs
+    const site = isNext
+      ? { origin: "https://nextjs.org", host: "nextjs.org", source: "nextjs-docs" }
+      : { origin: "https://vercel.com", host: "vercel.com", source: "vercel-docs" };
+    const url = `${site.origin}/docs/${clean}.md`;
+    // defense in depth — resolved URL must stay on an allow-listed docs host
     let parsed: URL;
     try {
       parsed = new URL(url);
     } catch {
       return `Invalid docs path: ${clean}`;
     }
-    if (parsed.hostname !== "vercel.com" || !parsed.pathname.startsWith("/docs/")) {
-      return `Refusing to fetch non-Vercel-docs URL: ${url}`;
+    if (parsed.hostname !== site.host || !parsed.pathname.startsWith("/docs/")) {
+      return `Refusing to fetch non-docs URL: ${url}`;
     }
     // cache key shape `<source>:<pathname>`. Verdict rides the first line of
     // the tool result → UI trace `← read_vercel_doc:` line + server logs.
-    const cacheKey = `vercel-docs:/docs/${clean}`;
+    const cacheKey = `${site.source}:/docs/${clean}`;
     const cached = await getCachedDoc(cacheKey);
     console.log(`docs-cache ${cached ? "HIT" : "MISS"}: ${cacheKey}`);
     if (cached) {
