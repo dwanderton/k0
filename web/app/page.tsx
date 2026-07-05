@@ -51,8 +51,8 @@ function clock() {
 /** common speech-recognition mishears, fixed before the transcript */
 const TIDY_RULES: [RegExp, string][] = [
   [/\bthe cell\b/gi, "Vercel"],
-  [/\bfor sale\b/gi, "Vercel"],
-  [/\bfor cell\b/gi, "Vercel"],
+  [/\bfor sales?\b/gi, "Vercel"],
+  [/\bfor cells?\b/gi, "Vercel"],
   [/\bwill sell\b/gi, "Vercel"],
   [/\bwork clothes\b/gi, "workflows"],
   [/\bchrome task\b/gi, "cron task"],
