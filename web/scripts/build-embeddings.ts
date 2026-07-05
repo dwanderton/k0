@@ -48,7 +48,6 @@ const cache = new Map<string, string>(
 const chunks: Chunk[] = chunkAll(cache);
 console.log(`chunks: ${chunks.length}`);
 
-// Old index → hash-keyed vector lookup for reuse.
 let oldVectors = new Map<string, Float32Array>();
 let priorTokens = 0;
 let priorCost = 0;

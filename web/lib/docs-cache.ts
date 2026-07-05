@@ -1,24 +1,16 @@
 /**
- * Documentation cache — sitemap-crawled markdown, brotli-compressed on disk.
- *
- * Build (ADDITIVE — `pnpm build:docs-cache` locally, no cron): crawl each
- * active source's sitemap, fetch every page as markdown (`<url>.md` twin
- * when the site serves one, HTML→md otherwise), merge into whatever the
- * cache already holds. A source with pages already cached is skipped
- * entirely; the cache checkpoints to disk after every source, and a source
- * that fails consistently is abandoned WITHOUT losing the pages fetched so
- * far. The .br file is committed to the repo — deploys never build it.
- *
- * Load: decompress once per warm instance. The agent's read_vercel_doc
- * checks this cache before hitting the network.
+ * Sitemap-crawled markdown docs cache, brotli on disk. Build is ADDITIVE
+ * (`pnpm build:docs-cache`, local, no cron): cached sources skipped,
+ * checkpoint after every source, a consistently-failing source abandoned
+ * WITHOUT losing fetched pages. The .br is committed — deploys never build
+ * it. Load: decompress once per warm instance.
  */
 import { writeFile, readFile } from "fs/promises";
 import { join } from "path";
-// Native brotli via node:zlib — same compress/decompress shape as the
-// `brotli` npm package, no extra dependency.
+// node:zlib brotli — same shape as the `brotli` npm package, no extra dep
 import { brotliCompress, brotliDecompress } from "zlib";
 import { promisify } from "util";
-// html-to-md exports the converter as its default (no named `convert`).
+// html-to-md exports the converter as default — no named `convert`
 import convert from "html-to-md";
 
 const compress = promisify(brotliCompress);
@@ -33,20 +25,10 @@ const DOCUMENTATION_SOURCES = [
   {
     name: 'vercel-blog',
     baseUrl: 'https://vercel.com/blog',
-    // /blog/sitemap.xml 404s — use the root sitemap; fetchSource keeps
-    // only locs under baseUrl (same pattern as vercel-docs).
+    // /blog/sitemap.xml 404s — root sitemap; fetchSource keeps only locs
+    // under baseUrl
     sitemapUrl: 'https://vercel.com/sitemap.xml',
   },
-  // {
-  //   name: 'vercel-kb',
-  //   baseUrl: 'https://vercel.com/kb',
-  //   sitemapUrl: 'https://vercel.com/kb/sitemap.xml',
-  // },
-  // {
-  //   name: 'vercel-changelog',
-  //   baseUrl: 'https://vercel.com/changelog',
-  //   sitemapUrl: 'https://vercel.com/changelog/sitemap.xml',
-  // },
   {
     name: 'ai-sdk-docs',
     baseUrl: 'https://ai-sdk.dev/docs',
@@ -67,11 +49,6 @@ const DOCUMENTATION_SOURCES = [
     baseUrl: "https://eve.dev/docs",
     sitemapUrl: "https://eve.dev/sitemap.xml",
   },
-  // {
-  //   name: 'nextjs-docs',
-  //   baseUrl: 'https://nextjs.org/docs',
-  //   sitemapUrl: 'https://nextjs.org/sitemap.xml',
-  // },
 ];
 
 /** /tmp is the only writable path on Vercel; CWD is fine locally. */
@@ -79,9 +56,8 @@ const CACHE_FILE = process.env.VERCEL
   ? "/tmp/docs-cache.br"
   : join(process.cwd(), "docs-cache.br");
 
-/** The cache file is COMMITTED for the demo so deploys never start
- *  cold: reads fall back to the repo-bundled copy when /tmp has no fresher
- *  rebuild. Traced into the function bundle via outputFileTracingIncludes. */
+/** committed copy — fallback when /tmp has no fresher rebuild; traced into
+ *  the function bundle via outputFileTracingIncludes */
 const BUNDLED_CACHE_FILE = join(process.cwd(), "docs-cache.br");
 
 async function fetchSitemap(sitemapUrl: string): Promise<string[]> {
@@ -98,10 +74,9 @@ async function fetchSitemap(sitemapUrl: string): Promise<string[]> {
   }
 }
 
-/** Prefer the page's markdown twin (`<url>.md` — vercel.com and
- *  workflow-sdk.dev serve one); fall back to converting the raw HTML to
- *  markdown (eve.dev serves no twin). The converted page is sliced to its
- *  <main> element first so nav/footer chrome doesn't pollute the quotes. */
+/** Prefer the `<url>.md` twin (vercel.com, workflow-sdk.dev); else HTML→md
+ *  (eve.dev has no twin), sliced to <main> so nav/footer chrome doesn't
+ *  pollute quotes. */
 async function fetchPageAsMarkdown(url: string): Promise<string> {
   try {
     const md = await fetch(`${url}.md`, { signal: AbortSignal.timeout(15000) });
@@ -121,17 +96,16 @@ async function fetchPageAsMarkdown(url: string): Promise<string> {
   }
 }
 
-/** Crawl one source's pages into `allPages`. Aborts after
- *  MAX_CONSECUTIVE_FAILURES page failures in a row (site down, rate-limited)
+/** Aborts after MAX_CONSECUTIVE_FAILURES in a row (site down, rate-limited)
  *  — everything fetched up to that point stays in the map. */
 async function fetchSource(
   source: (typeof DOCUMENTATION_SOURCES)[number],
   allPages: Map<string, string>,
 ): Promise<{ fetched: number; failed: number; aborted: boolean }> {
-  const MAX_CONCURRENT = 5; // Max 5 parallel fetches
+  const MAX_CONCURRENT = 5;
   const MAX_CONSECUTIVE_FAILURES = 20;
 
-  // Root sitemaps carry the whole site — keep only this source's pages.
+  // root sitemaps carry the whole site — keep only this source's pages
   const urls = (await fetchSitemap(source.sitemapUrl)).filter((u) =>
     u.startsWith(source.baseUrl),
   );
@@ -168,7 +142,6 @@ async function fetchSource(
       return { fetched, failed, aborted: true };
     }
 
-    // Wait between batches
     if (i + MAX_CONCURRENT < urls.length) {
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
@@ -186,13 +159,10 @@ async function saveCache(allPages: Map<string, string>): Promise<void> {
   );
 }
 
-/** ADDITIVE build: start from whatever the cache already holds, skip any
- *  source that's already present, checkpoint to disk after every source.
- *  A consistently-failing source is abandoned without losing prior work. */
 export async function buildAndSaveCache(): Promise<void> {
   console.log("Building documentation cache (additive)...");
   const startTime = Date.now();
-  const DELAY_BETWEEN_SOURCES = 1000; // 1 second between source starts
+  const DELAY_BETWEEN_SOURCES = 1000;
 
   const allPages = await loadCache();
   console.log(`Starting from ${allPages.size} cached pages`);
@@ -212,10 +182,9 @@ export async function buildAndSaveCache(): Promise<void> {
       `  ${source.name}: +${fetched} pages, ${failed} failed${aborted ? " (aborted early)" : ""}`,
     );
 
-    // Checkpoint after every source — a later source dying costs nothing.
+    // checkpoint after every source — a later source dying costs nothing
     await saveCache(allPages);
 
-    // Wait between sources
     await new Promise((resolve) => setTimeout(resolve, DELAY_BETWEEN_SOURCES));
   }
 
@@ -227,8 +196,7 @@ async function loadCache(): Promise<Map<string, string>> {
   console.log("Loading documentation cache...");
   const startTime = Date.now();
 
-  // Freshest first: a cron rebuild lands in CACHE_FILE (/tmp on Vercel);
-  // otherwise the repo-committed copy shipped with the deploy.
+  // freshest first: /tmp rebuild, else the repo-committed copy
   for (const file of [CACHE_FILE, BUNDLED_CACHE_FILE]) {
     try {
       const compressed = await readFile(file);
@@ -248,15 +216,13 @@ async function loadCache(): Promise<Map<string, string>> {
     }
   }
 
-  // No cache anywhere. NEVER auto-crawl inside a serverless request path —
-  // that's minutes of fetching on someone's live call. The cron endpoint
-  // owns rebuilds; until one runs, lookups just miss and the agent falls
-  // back to fetching pages directly.
+  // NEVER auto-crawl in a request path — minutes of fetching on someone's
+  // live call. Until a rebuild runs, lookups miss and the agent fetches
+  // pages directly.
   console.warn("No docs cache on disk — lookups miss until a rebuild runs.");
   return new Map();
 }
 
-// On startup
 let docsCache: Map<string, string> | null = null;
 let loading: Promise<Map<string, string>> | null = null;
 
@@ -265,12 +231,10 @@ export async function initializeCache(): Promise<void> {
   docsCache = await loading;
 }
 
-// Lookup function
 export function getDocumentation(key: string): string | null {
   return docsCache?.get(key) ?? null;
 }
 
-/** Lazy one-liner for request paths: ensure loaded, then look up. */
 export async function getCachedDoc(key: string): Promise<string | null> {
   if (!docsCache) await initializeCache();
   return getDocumentation(key);

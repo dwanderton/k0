@@ -1,17 +1,10 @@
 /**
- * Local hybrid retriever — brute-force cosine over a committed embedding
- * index, plus a path/heading keyword boost. No vector DB: at ~16k rows an
- * exact scan is ~10–25ms with perfect recall; a DB would add a network RTT
- * larger than the whole search.
- *
- * Two backends, tried in order:
- *   in-process — bge-small query embedding (~5ms, zero network) against
- *                embeddings-local.bin.br
- *   gateway    — text-embedding-3-small via the AI Gateway (~320ms hop)
- *                against embeddings.bin.br. The FALLBACK when the local
- *                model or its index can't load/execute.
- *
- * Indexes and corpus load once per warm instance (docs-cache pattern).
+ * Local hybrid retriever — brute-force cosine over a committed index +
+ * path/heading keyword boost. No vector DB: ~16k rows scan in ~10–25ms with
+ * perfect recall; a DB adds a network RTT larger than the whole search.
+ * Backends in order: in-process bge-small (~5ms, zero network) → gateway
+ * text-embedding-3-small (~320ms hop) as fallback. Indexes and corpus load
+ * once per warm instance.
  */
 import { readFile } from "fs/promises";
 import { join } from "path";
@@ -48,12 +41,9 @@ interface Index {
   texts: string[];
 }
 
-/** Per-model calibration — score DISTRIBUTIONS differ between embedding
- *  models (bge runs hot: controls peak ~0.56 where te3 controls peak ~0.38),
- *  so floors and penalties are empirical per backend, set by
- *  scripts/eval-retriever.ts control/gold separation. Boost weights are
- *  shared. rootBonus: concept queries belong to product ROOT pages; bge
- *  over-scores deep sub-pages, so roots get a nudge. */
+/** Per-model calibration — score distributions differ (bge runs hot:
+ *  controls peak ~0.56 vs te3 ~0.38); floors/penalties set empirically by
+ *  scripts/eval-retriever.ts control/gold separation. Boost weights shared. */
 const TUNING: Record<Backend, { floor: number; blogPenalty: number }> = {
   gateway: { floor: 0.45, blogPenalty: 0.03 },
   "in-process": { floor: 0.68, blogPenalty: 0.08 },
@@ -61,9 +51,8 @@ const TUNING: Record<Backend, { floor: number; blogPenalty: number }> = {
 const PATH_BOOST = 0.1;
 const HEADING_BOOST = 0.05;
 /** Scoped sections restate concepts owned by canonical pages (every
- *  framework guide has a "Preview Deployments" section; the Platforms
- *  product has its own "Add Custom Domain" element) — deprioritize them
- *  unless the query names the section. One rule, one list. */
+ *  framework guide has a "Preview Deployments" section) — deprioritize
+ *  unless the query names the section. */
 const SCOPED_SECTIONS = ["/docs/frameworks/", "/docs/platforms/"];
 const SCOPED_PENALTY = 0.06;
 
@@ -101,7 +90,7 @@ function loadCorpusTexts() {
     const cache = new Map<string, string>(
       Object.entries(JSON.parse((await decompress(cacheRaw)).toString())),
     );
-    // Chunker is deterministic — row i of every index IS chunk i of chunkAll.
+    // chunker is deterministic — row i of every index IS chunk i of chunkAll
     return chunkAll(cache).map((c: Chunk) => c.text);
   })().catch((err) => {
     corpus = null;
@@ -179,9 +168,8 @@ function scan(
     const off = i * dims;
     for (let d = 0; d < dims; d++) dot += q[d] * matrix[off + d];
     const c = meta.chunks[i];
-    // Boosts match the PATHNAME, never the full key — every key carries the
-    // source prefix ("vercel-docs:…"), so matching the key makes the token
-    // "vercel" hit everything.
+    // boosts match the PATHNAME, never the key — the key's source prefix
+    // ("vercel-docs:…") makes the token "vercel" hit everything
     const pathname = c.key.slice(c.key.indexOf(":") + 1).toLowerCase();
     let pathHit = 0;
     let headingHit = 0;
@@ -197,15 +185,14 @@ function scan(
       headingHit = hh / qTokens.length;
     }
     let rel = dot + PATH_BOOST * pathHit + HEADING_BOOST * headingHit;
-    // Penalty lifts only when the query names the scoped section itself
-    // (the framework, or "platforms").
+    // penalty lifts only when the query names the scoped section itself
     for (const section of SCOPED_SECTIONS) {
       const rest = pathname.split(section)[1];
       if (rest === undefined) continue;
       const sectionName = section.split("/")[2]; // "frameworks" | "platforms"
-      // Exemption tests the section IDENTITY (its name + the product/
-      // framework segments), never the leaf slug — otherwise any page whose
-      // slug echoes the query self-exempts (add-custom-domain did).
+      // exemption tests section IDENTITY (name + product/framework segments),
+      // never the leaf slug — a slug echoing the query self-exempts
+      // (add-custom-domain did)
       const identity = rest.split("/").slice(0, 2);
       const named = qTokens.some(
         (t) => sectionName.includes(t) || identity.some((seg) => seg.includes(t)),
@@ -218,7 +205,7 @@ function scan(
   }
   scored.sort((a, b) => b.rel - a.rel);
 
-  // Top-k PAGES (best chunk per page), not top-k chunks of one page.
+  // top-k PAGES (best chunk per page), not top-k chunks of one page
   const seen = new Set<string>();
   const out: Candidate[] = [];
   for (const s of scored) {
@@ -243,8 +230,8 @@ function scan(
 export interface RetrievalResult {
   candidates: Candidate[];
   backend: Backend;
-  /** Set when THIS request paid one-time init (index/model load) — lets the
-   *  trace tag cold starts so metrics can split them from warm-path timing. */
+  /** set when THIS request paid one-time init — trace tags cold starts so
+   *  metrics split them from warm-path timing */
   coldInitMs?: number;
 }
 
@@ -262,14 +249,13 @@ export async function retrieveWithInfo(
   let lastErr: unknown;
   for (const backend of order) {
     try {
-      // Cold when this request is the one creating the index promise. The
-      // in-process model loads inside the first embed, so timing the pair
-      // captures the full init cost.
+      // cold = this request creates the index promise; the in-process model
+      // loads inside the first embed, so timing the pair captures full init
       const cold = indexes[backend] === undefined;
       const t0 = cold ? performance.now() : 0;
-      // Index load is NOT under the timeout: the first request per instance
-      // pays the one-time decompress; racing it misfires the fallback on
-      // every cold start. Only the gateway network hop gets the deadline.
+      // index load NOT under the timeout — first request pays the one-time
+      // decompress; racing it misfires the fallback on every cold start.
+      // Only the gateway network hop gets the deadline.
       const index = await loadIndex(backend);
       const q = await embedQuery(backend, utterance, index.meta.model, embedTimeoutMs);
       const result: RetrievalResult = {

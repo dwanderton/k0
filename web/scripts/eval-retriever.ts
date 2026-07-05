@@ -23,9 +23,8 @@ const CASES: { phrase: string; gold: string[] }[] = [
   },
   {
     phrase: "You want to know how to add a custom domain to your project",
-    // set-up-custom-domain added 2026-07-04: it is the canonical
-    // "add a custom domain" walkthrough an SA would send — the original
-    // single-gold was too narrow (verified against the live page).
+    // set-up-custom-domain co-gold (page-verified 2026-07-04) — canonical
+    // walkthrough; single gold was too narrow
     gold: [
       "/docs/domains/working-with-domains/add-a-domain",
       "/docs/domains/set-up-custom-domain",

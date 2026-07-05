@@ -2,28 +2,22 @@
 /**
  * k0 agent scorecard — latency, cost, groundedness, discrimination.
  *
- * Per cue phrase (N serial runs each):
- *   ttfb   — ms to first stream byte (MCP connect + gateway routing)
+ * Per cue phrase:
+ *   ttfb   — ms to first stream byte
  *   card   — ms to first card byte (DOC:) — the headline metric
- *   p95    — tail matters on a live call, not just the median
- *   cost   — $ per insight, parsed from the gateway's per-step trace lines
+ *   cost   — $ per insight, from the gateway per-step trace lines
  *   fail%  — anything that isn't a parsed card (failures never dropped)
- *   link   — most frequently recommended SOURCE (drift detector)
- *   ground — QUOTE verbatim on the real .md page AND ANCHOR inside QUOTE
- *            (checked on a sample per phrase; hallucination regression)
- *
- * Negative controls: small-talk phrases that MUST return NONE — measures
- * over-triggering, the false-positive rate.
+ *   link   — most frequent SOURCE (drift detector)
+ *   ground — QUOTE verbatim on the real page AND ANCHOR inside QUOTE
+ * Negative controls MUST return NONE — the false-positive rate.
  *
  * Usage:
  *   node scorecard/run.mjs                       # prod, RUNS per phrase
  *   RUNS=100 CONC=50 node scorecard/run.mjs      # full run, 50 in flight
  *   node scorecard/run.mjs http://localhost:3000 # local
  *
- * CONC>1 runs requests through a worker pool. Server-side latency is
- * unaffected (each request is its own serverless invocation) but client
- * contention can pad the tail — compare p95 only against runs with the
- * same CONC.
+ * CONC>1: server latency unaffected (each request its own invocation) but
+ * client contention pads the tail — compare p95 only at equal CONC.
  */
 
 import { execSync } from "node:child_process";
@@ -32,15 +26,14 @@ const BASE = process.argv[2] ?? "https://k0-omega.vercel.app";
 const RUNS = Number(process.env.RUNS ?? 10);
 const CONC = Math.max(1, Number(process.env.CONC ?? 1));
 const NEG_RUNS = Math.max(3, Math.min(RUNS, 10));
-const GROUND_SAMPLE = Math.min(5, RUNS); // groundedness checks per phrase
+const GROUND_SAMPLE = Math.min(5, RUNS);
 const TIMEOUT_MS = 30_000;
 const NUL = "\u0000";
 
-/** SA restating a customer question — each must cue a card.
- *  `gold` = the docs page(s) a Vercel SA would actually send, verified by
- *  hand against live vercel.com/docs (.md fetch, 2026-07-03). The agent's
- *  SOURCE matching gold = link precision; the mode drifting from gold
- *  between runs = the model or search index moved. */
+/** SA restating a customer question — each must cue a card. `gold` = the
+ *  page(s) an SA would actually send, hand-verified against live docs
+ *  (.md fetch, 2026-07-03). SOURCE matching gold = link precision; mode
+ *  drifting from gold between runs = the model or index moved. */
 const PHRASES = [
   {
     text: "So you are asking what is the AI gateway",
@@ -63,9 +56,8 @@ const PHRASES = [
   },
   {
     text: "You want to know how to add a custom domain to your project",
-    // 2026-07-04: set-up-custom-domain added as co-gold — it is the
-    // canonical "add a custom domain" walkthrough (page-verified); the
-    // original single gold was too narrow.
+    // set-up-custom-domain co-gold (page-verified 2026-07-04) — canonical
+    // walkthrough; single gold was too narrow
     gold: [
       "domains/working-with-domains/add-a-domain",
       "domains/set-up-custom-domain",
@@ -73,9 +65,8 @@ const PHRASES = [
   },
 ];
 
-/** FIXED negative controls — never change these between runs, or the
- *  false-positive rate stops being comparable over time. Small talk with
- *  zero Vercel content: the agent must answer NONE. A card = false positive. */
+/** FIXED — change these and the false-positive rate stops comparing across
+ *  runs. Zero Vercel content: must answer NONE; a card = false positive. */
 const CONTROLS = [
   "Thanks for joining, how was your weekend",
   "Give me one second, someone is at the door",
@@ -97,7 +88,6 @@ function split(raw) {
 const field = (card, k) =>
   card.match(new RegExp(`^${k}:\\s*(.*)$`, "mi"))?.[1]?.trim() ?? "";
 
-/** Run `n` probes of `phrase` through a CONC-wide worker pool. */
 async function probeMany(phrase, n) {
   const rs = new Array(n);
   let next = 0;
@@ -143,7 +133,7 @@ async function probe(phrase) {
     const { card, debug } = split(raw);
     const none = card.trim().toUpperCase().startsWith("NONE");
     const ok = card.includes("DOC:") && card.includes("QUOTE:");
-    // $ per step from the gateway trace lines: "✓ step N: stop · $0.00123"
+    // gateway trace line shape: "✓ step N: stop · $0.00123"
     const cost = debug
       .map((l) => l.match(/\$([0-9.eE-]+)/)?.[1])
       .filter(Boolean)
@@ -170,15 +160,11 @@ async function probe(phrase) {
   }
 }
 
-/** QUOTE verbatim on the real page + ANCHOR inside QUOTE.
- *
- * "Verbatim" is judged on rendered words, not raw markdown: the model is
- * told to render the page as it READS (drop link syntax, backticks), and
- * quotes from tables arrive flattened (pipes and header rows gone). So:
- * strip ALL markdown furniture from both sides, then accept either a
- * direct substring hit or ≥80% coverage of the quote's word 8-grams —
- * the fallback that lets table-shaped quotes (row order kept, header row
- * skipped) pass while fabricated sentences still fail. */
+/** QUOTE verbatim on the real page + ANCHOR inside QUOTE. "Verbatim" =
+ *  rendered words, not raw markdown (model renders as it READS; table quotes
+ *  arrive flattened). Strip markdown furniture both sides, then substring
+ *  hit OR ≥80% coverage of word 8-grams — lets table-shaped quotes pass
+ *  while fabricated sentences still fail. */
 const groundCache = new Map();
 const strip = (s) =>
   s
@@ -259,8 +245,7 @@ const pagePath = (source) =>
 for (const { text: phrase, gold } of PHRASES) {
   const rs = await probeMany(phrase, RUNS);
   const oks = rs.filter((r) => r.ok);
-  // Warm-path timing only — cold starts are a separate metric, not tail
-  // noise inside card med/p95 (see SCORECARD method).
+  // cold starts are a separate metric, not tail noise in card med/p95
   const warmOks = oks.filter((r) => r.cold == null);
   const cards = warmOks.map((r) => r.card).filter((x) => x != null);
   const costs = oks.map((r) => r.cost).filter((x) => x != null);
@@ -271,11 +256,10 @@ for (const { text: phrase, gold } of PHRASES) {
   allOk += oks.length;
   allN += rs.length;
 
-  // link precision vs hand-verified gold source
   const goldHits = oks.filter((r) => gold.includes(pagePath(r.source))).length;
   allGold += goldHits;
 
-  // link mode (strip fragment — same page, different anchor = same link)
+  // strip fragment — same page, different anchor = same link
   const links = new Map();
   for (const r of oks) {
     const l = r.source.replace(/#.*$/, "");
@@ -284,7 +268,6 @@ for (const { text: phrase, gold } of PHRASES) {
   }
   const top = [...links.entries()].sort((a, b) => b[1] - a[1])[0];
 
-  // groundedness on a sample of ok cards
   const sample = oks.slice(0, GROUND_SAMPLE);
   let g = 0;
   for (const r of sample) if (await grounded(r)) g++;
@@ -296,7 +279,6 @@ for (const { text: phrase, gold } of PHRASES) {
   );
 }
 
-// Fixed negative controls — reported per phrase, like the cue table.
 console.log(`\n| control phrase (must be NONE) | NONE | false-pos% | med total |`);
 console.log(`|---|---|---|---|`);
 let falsePos = 0, negN = 0;

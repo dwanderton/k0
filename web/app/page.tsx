@@ -20,9 +20,8 @@ interface SpeechRecognitionEventLike {
 
 type Status = "idle" | "listening" | "denied" | "unsupported" | "unavailable";
 
-/** One finalized utterance. This is what streams to the agent — except
- *  system lines (mic errors), which render in the transcript but never
- *  reach the agent. */
+/** finalized utterance — streams to the agent, except sys lines (mic
+ *  errors), which render in the transcript only */
 interface Segment {
   id: number;
   at: string;
@@ -30,13 +29,13 @@ interface Segment {
   sys?: boolean;
 }
 
-/** One agent response, streamed in the strict DOC/ANSWER/QUOTE/ANCHOR/SOURCE format. */
+/** agent response in the DOC/ANSWER/QUOTE/ANCHOR/SOURCE format */
 interface Suggestion {
   id: number;
   heard: string;
   at: string;
   text: string;
-  /** The model's reasoning + tool-call trace, for the per-card debug dropdown. */
+  /** reasoning + tool trace for the per-card dropdown */
   debug: string[];
 }
 
@@ -44,7 +43,7 @@ function clock() {
   return new Date().toLocaleTimeString("en-US", { hour12: false });
 }
 
-/** Fix common speech-recognition mishears before they reach the transcript. */
+/** common speech-recognition mishears, fixed before the transcript */
 const TIDY_RULES: [RegExp, string][] = [
   [/\bthe cell\b/gi, "Vercel"],
   [/\bfor sale\b/gi, "Vercel"],
@@ -61,8 +60,8 @@ function tidyTranscript(text: string) {
   return TIDY_RULES.reduce((t, [re, sub]) => t.replace(re, sub), text);
 }
 
-/** The agent stream interleaves a NUL-prefixed, newline-terminated debug trace
- *  (reasoning + tool calls) with the card text. Peel the two apart. */
+/** stream interleaves NUL-prefixed \n-terminated debug lines with card
+ *  text — peel apart */
 const NUL = "\u0000";
 function splitStream(raw: string) {
   const debug: string[] = [];
@@ -90,8 +89,8 @@ function parseCard(text: string) {
   };
 }
 
-/** Named target: every click is a top-level navigation of one reused window,
- *  so the #:~:text= fragment fires and the highlight lands in the real docs. */
+/** named target — every click top-level-navigates one reused window, so the
+ *  #:~:text= fragment fires and the highlight lands */
 function openDocs(url: string) {
   window.open(url, "k0Docs", "width=1100,height=800");
 }
@@ -170,16 +169,16 @@ function SuggestionCard({ s }: { s: Suggestion }) {
 
 export default function Home() {
   const [status, setStatus] = useState<Status>("idle");
-  // Raw SpeechRecognition error code — "not-allowed" (permission) and
-  // "service-not-allowed" (speech service blocked) need different advice.
+  // "not-allowed" (permission) vs "service-not-allowed" (service blocked)
+  // need different advice
   const [micError, setMicError] = useState("");
   const [segments, setSegments] = useState<Segment[]>([]);
   const [interim, setInterim] = useState("");
   const [current, setCurrent] = useState<Suggestion | null>(null);
   const [cards, setCards] = useState<Suggestion[]>([]); // oldest → newest
   const [agentError, setAgentError] = useState(false);
-  // Latest query's full trace — survives NONE and failures, where no card
-  // (and no per-card dropdown) ever lands.
+  // latest query's trace — survives NONE and failures, where no card (and
+  // no per-card dropdown) ever lands
   const [trace, setTrace] = useState<{
     turn: number;
     lines: string[];
@@ -189,18 +188,18 @@ export default function Home() {
   const [following, setFollowing] = useState(true); // carousel keeps up with live
   const recRef = useRef<SpeechRecognitionLike | null>(null);
   const activeRef = useRef(false);
-  // Rapid-restart guard: a healthy recognizer runs for seconds before Chrome
-  // ends it; ending right after start means it's failing on arrival.
+  // healthy recognizer runs seconds before Chrome ends it; ending right
+  // after start = failing on arrival
   const recStartedAtRef = useRef(0);
   const rapidEndsRef = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
-  // In-flight queries — several can run at once; only unmount aborts them.
+  // several queries can run at once; only unmount aborts
   const inflightRef = useRef(new Set<AbortController>());
   const queriedRef = useRef(0);
-  // Segments answered (card or NONE) — never resent to the agent.
+  // segments answered (card or NONE) — never resent to the agent
   const consumedRef = useRef(0);
-  // Last card pushed, with the transcript span it answered — dedupes
-  // overlapping concurrent turns that surface the same doc twice.
+  // last card + the transcript span it answered — dedupes overlapping
+  // concurrent turns that surface the same doc twice
   const lastCardRef = useRef<{ id: number; start: number; doc: string } | null>(
     null,
   );
@@ -209,8 +208,8 @@ export default function Home() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [segments, interim]);
 
-  // Following = ride the live edge: whenever a new card lands (or the user
-  // resumes), snap the carousel to the newest card.
+  // following = ride the live edge: new card (or resume) snaps the carousel
+  // to newest
   useEffect(() => {
     if (following) setView(Math.max(0, cards.length - 1));
   }, [cards.length, following]);
@@ -223,35 +222,26 @@ export default function Home() {
     };
   }, []);
 
-  // Continuous querying: every finalized utterance re-queries the agent.
-  // Queries run concurrently — a newer line never aborts an in-flight one;
-  // a finished answer is work already paid for, so it lands if appropriate.
-  // Turns can settle out of order; cards insert sorted by turn.
-  //
-  // Garbage-collect answered transcript: once a query settles with a card
-  // OR a NONE, everything up to that point is consumed — later queries send
-  // only the unconsumed tail. Otherwise the agent keeps seeing (and
-  // re-answering) old topics: mention fluid compute, get the card, talk
-  // about cats → without trimming, the same fluid-compute card comes back.
-  // Overlapping turns that surface the same doc dedupe on landing.
-  // Failures do NOT consume — those lines get another chance on the next
-  // utterance.
+  // Every finalized utterance re-queries. Queries run concurrently — a newer
+  // line never aborts an in-flight one (a finished answer is work already
+  // paid for); turns settle out of order, cards insert sorted.
+  // Consumed-GC: a card or NONE consumes everything sent — later queries
+  // send only the unconsumed tail, else old topics get re-answered forever.
+  // Failures do NOT consume; those lines retry on the next utterance.
   useEffect(() => {
     if (segments.length === 0 || segments.length === queriedRef.current) return;
     queriedRef.current = segments.length;
 
     const unconsumed = segments.slice(consumedRef.current);
     if (unconsumed.length === 0) return;
-    // System lines (mic errors) render in the transcript but never reach
-    // the agent — and a system line is not a question, so it triggers no
-    // query of its own.
+    // sys lines never reach the agent — and never trigger a query
     if (unconsumed[unconsumed.length - 1].sys) return;
     const spoken = unconsumed.filter((s) => !s.sys);
     if (spoken.length === 0) return;
     const heard = spoken[spoken.length - 1].text;
     const transcript = spoken.map((s) => s.text).join("\n");
     const id = segments.length;
-    // Transcript span this turn answers: segments [start, id).
+    // transcript span this turn answers: segments [start, id)
     const start = consumedRef.current;
 
     const ctrl = new AbortController();
@@ -287,21 +277,17 @@ export default function Home() {
         const p = parseCard(card);
         setCurrent((c) => (c && c.id === id ? null : c));
         if (!card.trim()) {
-          // Stream carried only a trace (or nothing) — a model/tool failure,
-          // not a NONE. The trace panel below shows what the agent did.
-          // Only the newest turn drives the error banner: an old turn
-          // failing after a newer one answered is noise, not a problem.
+          // trace only (or nothing) = model/tool failure, not NONE. Only the
+          // newest turn drives the banner — an old turn failing after a
+          // newer one answered is noise.
           if (id === queriedRef.current) setAgentError(true);
           setTrace((t) =>
             t && t.turn === id ? { ...t, lines: debug, outcome: "failed" } : t,
           );
         } else if (!p.none && (p.quote || p.answer)) {
-          // Card delivered — everything sent in this query is consumed.
           consumedRef.current = Math.max(consumedRef.current, id);
-          // Concurrent turns share transcript lines, so two in-flight
-          // queries can answer the same topic. A card is a duplicate when
-          // it cites the last card's doc AND their spans overlap — the same
-          // doc from a fresh, later span is a genuine re-ask and lands.
+          // concurrent turns share lines — dup = same doc AND overlapping
+          // spans; same doc from a fresh later span is a genuine re-ask
           const lc = lastCardRef.current;
           const dup =
             lc !== null &&
@@ -323,15 +309,14 @@ export default function Home() {
               : t,
           );
         } else if (p.none) {
-          // NONE: the agent looked and decided no doc applies — not a
-          // failure, and equally consumed: don't re-litigate small talk.
+          // NONE consumed too — don't re-litigate small talk
           consumedRef.current = Math.max(consumedRef.current, id);
           setTrace((t) =>
             t && t.turn === id ? { ...t, lines: debug, outcome: "none" } : t,
           );
         } else {
-          // Prose without card fields: a format failure, NOT a NONE.
-          // Don't consume — these lines get another chance next utterance.
+          // prose without card fields = format failure, NOT a NONE — don't
+          // consume, retry next utterance
           if (id === queriedRef.current) setAgentError(true);
           setTrace((t) =>
             t && t.turn === id ? { ...t, lines: debug, outcome: "failed" } : t,
@@ -360,12 +345,11 @@ export default function Home() {
     setView((v) => Math.min(cards.length - 1, v + 1));
   }
   function togglePlay() {
-    // Resuming snaps back to the live edge (handled by the following effect).
+    // resume snaps to the live edge (following effect)
     setFollowing((f) => !f);
   }
 
-  /** Mic failures land in the transcript as timestamped system lines —
-   *  the placeholder text only shows while the transcript is empty. */
+  /** mic failures land as timestamped sys lines in the transcript */
   function logSystem(text: string) {
     setSegments((s) => [...s, { id: s.length, at: clock(), text, sys: true }]);
   }
@@ -408,10 +392,9 @@ export default function Home() {
       }
     };
     // Chrome ends recognition after silence — restart while the mic is meant
-    // to be on. But an end within ~1s of start means the recognizer is dying
-    // on arrival (another tab holds the mic, speech service unreachable) —
-    // restarting forever just flickers the recording light. Three rapid ends
-    // in a row: stop and say what still works.
+    // on. End within ~1s of start = dying on arrival (another tab holds the
+    // mic); three in a row → stop instead of flickering the recording light
+    // forever.
     rec.onend = () => {
       setInterim("");
       if (!activeRef.current) return;
@@ -434,9 +417,8 @@ export default function Home() {
     recStartedAtRef.current = Date.now();
     setStatus("listening");
     rec.start();
-    // Fire-and-forget warm-up: the serverless instance pays its one-time
-    // init now, during the seconds before the first utterance finalizes —
-    // so the first card is warm-path (~0.9s) instead of cold (~6s).
+    // fire-and-forget warm-up — instance pays one-time init before the first
+    // utterance finalizes: first card ~0.9s instead of ~6s
     fetch("/api/agent", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -452,20 +434,20 @@ export default function Home() {
   }
 
   const listening = status === "listening";
-  const streaming = current !== null; // a query is in flight
-  const liveView = following && streaming; // carousel shows the streaming card
+  const streaming = current !== null;
+  const liveView = following && streaming;
   const currentParse = current ? parseCard(current.text) : null;
   const currentIsCard =
     !!current && !!current.text.trim() && !!currentParse && !currentParse.none;
   const viewIndex = Math.min(view, Math.max(0, cards.length - 1));
   const shownCard = cards.length ? cards[viewIndex] : null;
-  const behind = cards.length - 1 - viewIndex; // newer cards off-screen
+  const behind = cards.length - 1 - viewIndex;
   const modeLabel =
     !listening && cards.length === 0 && !streaming
       ? "Idle"
       : following
         ? streaming
-          ? "Live · Searching…" // connected AND the agent is working right now
+          ? "Live · Searching…"
           : "Live"
         : `Paused${behind > 0 ? ` · ${behind} newer` : ""}`;
 
@@ -487,7 +469,7 @@ export default function Home() {
       </header>
 
       <div className="grid grid-cols-1 gap-[18px] md:grid-cols-2">
-        {/* Live call — dev visual aid; the transcript feeds the agent */}
+        {/* dev visual aid — the transcript feeds the agent */}
         <section
           aria-label="Live call transcript"
           className="flex min-h-[420px] flex-col rounded-[10px] border border-line bg-card"
@@ -553,15 +535,13 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Suggestions — the agent answers continuously as the transcript grows */}
         <section
           aria-label="k0 suggestions"
           className="flex min-h-[420px] flex-col rounded-[10px] border border-line bg-card"
         >
           <div className="flex items-center justify-between gap-2.5 border-b border-line px-3.5 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider">
             <span className={following ? "text-live" : "text-muted"}>
-              {/* The dot pulses while something is truthfully live: the mic
-                  listening, or the agent mid-search. Stops when both stop. */}
+              {/* dot pulses only while truthfully live: mic on or agent mid-search */}
               <span
                 className={`mr-1.5 inline-block h-[7px] w-[7px] -translate-y-px rounded-full bg-current ${
                   listening || streaming ? "dot-listening" : ""
@@ -569,7 +549,6 @@ export default function Home() {
               />
               {modeLabel}
             </span>
-            {/* Carousel transport — browse suggestion turns, or follow live */}
             <div
               className="flex items-center gap-1"
               role="group"
@@ -621,12 +600,10 @@ export default function Home() {
               </p>
             )}
 
-            {/* The settled card stays mounted while a query runs — swapping
-                it for a skeleton and back replays the entrance animation on
-                information that isn't new. The streaming card takes over
-                only once it has real card content (same key → no remount
-                when it settles); the skeleton only marks where the FIRST
-                answer will appear. */}
+            {/* Settled card stays mounted while a query runs — swapping to a
+                skeleton replays the entrance animation on old info. Streaming
+                card takes over only once it has real content (same key → no
+                remount on settle); the skeleton marks only the FIRST answer. */}
             {liveView && currentIsCard ? (
               <SuggestionCard key={current!.id} s={current!} />
             ) : shownCard ? (
@@ -649,8 +626,7 @@ export default function Home() {
         </section>
       </div>
 
-      {/* Agent trace — full-width debug panel. Survives NONE and failures,
-          where no card (and no per-card dropdown) ever lands. */}
+      {/* survives NONE and failures, where no card dropdown ever lands */}
       {trace && (
         <section
           aria-label="Agent trace"
