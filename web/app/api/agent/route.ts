@@ -1,8 +1,10 @@
 import { streamText, stepCountIs, tool, type ToolSet } from "ai";
 import { createMCPClient } from "@ai-sdk/mcp";
 import { z } from "zod";
+import { after } from "next/server";
 import { getCachedDoc } from "@/lib/docs-cache";
 import { retrieveWithInfo, type Candidate, type Backend } from "@/lib/retriever";
+import { parkCard, isValidSessionId } from "@/lib/session-store";
 
 export const maxDuration = 60;
 
@@ -222,6 +224,15 @@ export async function POST(req: Request) {
   if (typeof transcript !== "string" || !transcript.trim()) {
     return Response.json({ error: "transcript required" }, { status: 400 });
   }
+  // session parking: with a valid sessionId+turn the finished card is
+  // written to the session store even if the client dropped mid-stream
+  const b = body as { sessionId?: unknown; turn?: unknown; heard?: unknown };
+  const sessionId = isValidSessionId(b.sessionId) ? b.sessionId : null;
+  const turn =
+    typeof b.turn === "number" && Number.isInteger(b.turn) && b.turn >= 0
+      ? b.turn
+      : null;
+  const heard = typeof b.heard === "string" ? b.heard.slice(0, 500) : "";
 
   // pre-call retrieval — infrastructure, not a model decision. Top-k excerpts
   // ride the FIRST turn, so the fast path cards in one generation.
@@ -308,11 +319,44 @@ export async function POST(req: Request) {
   const RETRY_FLOOR = 0.85;
   const topScore = candidates[0]?.relevanceScore ?? 0;
   const encoder = new TextEncoder();
+
+  // The agent loop lives OUTSIDE the stream so a client disconnect cancels
+  // delivery, not the work: enqueues become no-ops, the turn finishes under
+  // after(), and the card parks for backfill.
+  let controllerRef: ReadableStreamDefaultController<Uint8Array> | null = null;
+  let clientGone = false;
   const stream = new ReadableStream<Uint8Array>({
-    async start(controller) {
-      const dbg = (m: string) =>
-        controller.enqueue(encoder.encode(`${DBG}${m}\n`));
-      dbg(`model: ${MODEL} · throughput · retriever: ${retrieverBackend ?? "unavailable"}`);
+    start(controller) {
+      controllerRef = controller;
+    },
+    cancel() {
+      clientGone = true;
+    },
+  });
+  const send = (bytes: Uint8Array) => {
+    if (clientGone) return;
+    try {
+      controllerRef?.enqueue(bytes);
+    } catch {
+      clientGone = true;
+    }
+  };
+  const closeStream = () => {
+    if (clientGone) return;
+    try {
+      controllerRef?.close();
+    } catch {
+      // already closed
+    }
+  };
+  const traceLines: string[] = [];
+
+  const work = (async () => {
+    const dbg = (m: string) => {
+      traceLines.push(m);
+      send(encoder.encode(`${DBG}${m}\n`));
+    };
+    dbg(`model: ${MODEL} · throughput · retriever: ${retrieverBackend ?? "unavailable"}`);
       if (coldInitMs != null) dbg(`❄ cold init ${coldInitMs}ms`);
       dbg(
         retrievalFailed
@@ -324,9 +368,9 @@ export async function POST(req: Request) {
             }`,
       );
 
-      let finalAnswer = "";
-      try {
-        for (let attempt = 1; attempt <= 2; attempt++) {
+    let finalAnswer = "";
+    try {
+      for (let attempt = 1; attempt <= 2; attempt++) {
           const result = makeAttempt();
           let step = 0;
           let reasoning = "";
@@ -343,7 +387,7 @@ export async function POST(req: Request) {
           };
           const flushHeld = () => {
             if (held) {
-              controller.enqueue(encoder.encode(held));
+              send(encoder.encode(held));
               emitted += held;
               held = "";
             }
@@ -396,7 +440,7 @@ export async function POST(req: Request) {
               }
               case "text-delta": {
                 if (!holding) {
-                  controller.enqueue(encoder.encode(part.text));
+                  send(encoder.encode(part.text));
                   emitted += part.text;
                   break;
                 }
@@ -441,15 +485,40 @@ export async function POST(req: Request) {
                   .slice(0, 200)}`,
           );
         }
-      } catch (err) {
-        dbg(`⚠ stream failed: ${oneline(String(err))}`);
-      } finally {
-        // MCP client is shared across requests — never close it here; it
-        // lives as long as the warm instance
-        controller.close();
+    } catch (err) {
+      dbg(`⚠ stream failed: ${oneline(String(err))}`);
+    } finally {
+      // MCP client is shared across requests — never close it here; close
+      // only the response stream (the client may already be gone)
+      closeStream();
+    }
+
+    // park AFTER stream close — parking latency never delays a connected
+    // client. Only renderable cards park: NONEs and half-refusals don't.
+    if (sessionId && turn !== null && /^DOC:/im.test(finalAnswer)) {
+      const c = extractCard(finalAnswer);
+      const renderable = [c.ANSWER, c.QUOTE].some(
+        (v) => v && !/^none$/i.test(v.trim()),
+      );
+      if (renderable) {
+        try {
+          await parkCard(sessionId, {
+            turn,
+            at: new Date().toISOString(),
+            heard,
+            text: finalAnswer,
+            debug: traceLines.slice(-40),
+          });
+          console.log(`parked card session=${sessionId} turn=${turn}`);
+        } catch (err) {
+          console.error("card park failed:", err);
+        }
       }
-    },
-  });
+    }
+  })();
+  // keep the function alive until the turn finishes and parks, even after
+  // the client disconnects
+  after(work);
 
   return new Response(stream, {
     headers: {
