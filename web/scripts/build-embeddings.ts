@@ -7,9 +7,9 @@
  * text hits the API). Run: pnpm build:embeddings
  *
  * Output (committed, shipped with deploys):
- *   web/embeddings.bin.br       brotli'd Float32Array, row i = chunk i,
- *                               unit-normalized at build time
- *   web/embeddings-meta.json.br {model, dims, rows, usage, costUSD, chunks[]}
+ *   web/embeddings.bin.br       brotli'd Int8Array (symmetric ×127 quant of
+ *                               unit-normalized vectors), row i = chunk i
+ *   web/embeddings-meta.json.br {model, dims, rows, quant, usage, costUSD, chunks[]}
  *
  * Cost rides in the meta (cumulative across additive runs) — SCORECARD.md
  * records it per the eval discipline.
@@ -33,6 +33,7 @@ interface Meta {
   model: string;
   dims: number;
   rows: number;
+  quant?: "int8"; // absent = legacy float32 bin
   usageTokens: number;
   costUSD: number;
   chunks: { key: string; idx: number; heading: string; title: string; hash: string }[];
@@ -53,12 +54,16 @@ let priorTokens = 0;
 let priorCost = 0;
 try {
   const oldMeta: Meta = JSON.parse(brotliDecompressSync(await readFile(metaPath)).toString());
-  const oldBin = new Float32Array(
-    brotliDecompressSync(await readFile(binPath)).buffer as ArrayBuffer,
-  );
+  const oldRaw = brotliDecompressSync(await readFile(binPath)).buffer as ArrayBuffer;
   if (oldMeta.model === MODEL && oldMeta.dims === DIMS) {
     oldMeta.chunks.forEach((c, i) => {
-      oldVectors.set(c.hash, oldBin.subarray(i * DIMS, (i + 1) * DIMS));
+      // legacy float32 bins reuse as-is; int8 bins dequantize (÷127)
+      if (oldMeta.quant === "int8") {
+        const q = new Int8Array(oldRaw, i * DIMS, DIMS);
+        oldVectors.set(c.hash, Float32Array.from(q, (x) => x / 127));
+      } else {
+        oldVectors.set(c.hash, new Float32Array(oldRaw, i * DIMS * 4, DIMS));
+      }
     });
     priorTokens = oldMeta.usageTokens ?? 0;
     priorCost = oldMeta.costUSD ?? 0;
@@ -107,6 +112,7 @@ const meta: Meta = {
   model: MODEL,
   dims: DIMS,
   rows: chunks.length,
+  quant: "int8",
   usageTokens: priorTokens + newTokens,
   costUSD: +(priorCost + newCost).toFixed(4),
   chunks: chunks.map((c, i) => ({
@@ -118,7 +124,13 @@ const meta: Meta = {
   })),
 };
 
-const rawBin = Buffer.from(out.buffer);
+// int8 fallback (P002 size gate): unit-normalized values quantize ×127 with
+// ~0.4%/dim error — retriever dequantizes and renormalizes at load
+const quantized = new Int8Array(out.length);
+for (let i = 0; i < out.length; i++) {
+  quantized[i] = Math.max(-127, Math.min(127, Math.round(out[i] * 127)));
+}
+const rawBin = Buffer.from(quantized.buffer);
 const binBr = brotliCompressSync(rawBin);
 await writeFile(binPath, binBr);
 await writeFile(metaPath, brotliCompressSync(Buffer.from(JSON.stringify(meta))));

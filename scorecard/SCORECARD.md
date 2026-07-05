@@ -59,6 +59,8 @@ whole point. Add new phrases as NEW rows alongside the old, never replace.
 | 2026-07-04 | initial build — 18,363 chunks from 2,732 cached pages (openai/text-embedding-3-small @ $0.02/M via gateway) | 5,544,997 | $0.1109 |
 | 2026-07-04 | additive: description-led first chunks (1,395 changed) + root-only refinement (165 changed) | +99,511 | $0.1129 cumulative |
 | 2026-07-04 | in-process index (bge-small, local model) — full builds ×2 | 0 (local) | $0 |
+| 2026-07-05 | additive: nextjs-docs source (470 pages → 3,243 new chunks, 19,395 rows) | +867,464 | $0.1302 cumulative |
+| 2026-07-05 | int8 requantize of gateway index (P002 size gate: 92.6MB br → 13.0MB) + local index stored raw — all vectors reused | 0 | $0.1302 cumulative |
 
 Additive rebuilds append rows here; the meta file carries the same running
 total. Query-time embedding costs ride the per-run cost/insight column.
@@ -284,3 +286,40 @@ run was cold contamination, now priced separately (init med 3.1s, cold
 cards ~6.2s). Best fail rate yet (0.4%); gateway phrase 0 NONEs this
 run (retry earning its keep); preview phrase 2 NONEs — the residual
 refusal wanders between phrases at ~2/500 scale.
+
+### PR #16 (Next.js support) — nextjs-docs source added (470 pages, 3,243 chunks; corpus 16,152 → 19,395 rows) · gateway index int8-quantized (P002 size gate; 13.0MB br) · local index stored RAW (brotli only shaved ~10% off float vectors for ~300ms cold decompress) · read_vercel_doc accepts nextjs.org documentUris · same model (gpt-5.4-mini, throughput sort)
+
+# run 2026-07-05 22:00 UTC · https://k0-ch24njszs-creatorplatform.vercel.app · commit a4280de · 100x per phrase, conc 100
+
+| phrase | ok | fail% | card med | card p95 | cost/insight | ground | gold hit | top link |
+|---|---|---|---|---|---|---|---|---|
+| So you are asking what is the AI gateway | 100/100 ❄98 | 0% | 0.9s | 1.0s | $0.0008 | 5/5 | 99/100 | ai-gateway ×99 |
+| You want to know how to enable fluid com | 100/100 ❄1 | 0% | 1.7s | 5.3s | $0.0018 | 5/5 | 100/100 | fluid-compute ×100 |
+| Your question is how long can a Vercel f | 100/100 | 0% | 1.0s | 2.4s | $0.0012 | 4/5 | 100/100 | functions/limitations ×100 |
+| So you are asking how preview deployment | 99/100 (NONE) | 1% | 0.8s | 1.9s | $0.0016 | 5/5 | 99/99 | deployments/environments ×99 |
+| You want to know how to add a custom dom | 100/100 | 0% | 1.2s | 2.5s | $0.0015 | 5/5 | 100/100 | domains/working-with-domains/add-a-domain ×100 |
+
+| control phrase (must be NONE) | NONE | false-pos% | med total |
+|---|---|---|---|
+| Thanks for joining, how was your weekend | 10/10 | 0% | 0.8s |
+| Give me one second, someone is at the door | 10/10 | 0% | 0.8s |
+
+**cold starts: 99/500 · init med 3.1s · cold card med 5.9s (excluded from table med/p95)**
+
+**overall: 499/500 ok (0.2% fail) · median time-to-card 0.9s · p95 4.0s (warm) · median cost/insight $0.0015 · total spend $0.7403**
+**gold-link precision: 498/499 (100%) · controls: 0/20 false positives**
+
+vs PR #11: the risk was dilution — 3,243 new Next.js chunks competing in
+the corpus — and it didn't happen: gold 100% held, 0/20 control false
+positives, ground 24/25 (best yet), fail 0.4% → 0.2%. Cold init med
+3.1s → 3.1s FLAT while boot-time corpus parsing grew 19% — the raw local
+index (−~300ms decompress) paid for the Next.js expansion. Warm median
+0.9s flat, cost flat. Note conc-100 here vs conc-50 prior: client
+contention pads warm p95 (4.0s), compare p95 only at equal CONC. New
+capability spot-checked separately: "use cache" cues retrieve
+nextjs.org/docs at 0.956 relevance (no fixed Next.js phrase in the set
+yet — add as NEW rows per method). Residual: preview-deployments NONE
+1/100 here + 1/10 in a warm-up run (~1–2%) — top candidate sits nearest
+the 0.9 retry floor; drop RETRY_FLOOR a notch if it recurs. A same-day
+prod run (main, 10x serial) for reference: 50/50 ok, 0.9s med, gold
+100%, ground 20/25, ❄2 init med 3.2s.

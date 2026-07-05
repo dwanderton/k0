@@ -32,6 +32,7 @@ interface Meta {
   model: string;
   dims: number;
   rows: number;
+  quant?: "int8"; // absent = float32 bin
   chunks: { key: string; idx: number; heading: string; title: string; hash: string }[];
 }
 
@@ -69,6 +70,7 @@ const ORIGINS: Record<string, string> = {
   "chat-sdk-docs": "https://chat-sdk.dev",
   "workflows-docs": "https://workflow-sdk.dev",
   "eve-docs": "https://eve.dev",
+  "nextjs-docs": "https://nextjs.org",
 };
 
 function keyToUri(key: string): string {
@@ -76,8 +78,10 @@ function keyToUri(key: string): string {
   return `${ORIGINS[source] ?? "https://vercel.com"}${pathname}`;
 }
 
+// local bin is RAW float32 — brotli shaves ~10% off float vectors but cost
+// ~300ms decompress on every cold start; text/meta stay compressed
 const FILES: Record<Backend, { bin: string; meta: string }> = {
-  "in-process": { bin: "embeddings-local.bin.br", meta: "embeddings-local-meta.json.br" },
+  "in-process": { bin: "embeddings-local.bin", meta: "embeddings-local-meta.json.br" },
   gateway: { bin: "embeddings.bin.br", meta: "embeddings-meta.json.br" },
 };
 
@@ -108,7 +112,30 @@ function loadIndex(backend: Backend) {
       loadCorpusTexts(),
     ]);
     const meta: Meta = JSON.parse((await decompress(metaRaw)).toString());
-    const matrix = new Float32Array((await decompress(binRaw)).buffer as ArrayBuffer);
+    const binBuf = FILES[backend].bin.endsWith(".br")
+      ? await decompress(binRaw)
+      : binRaw;
+    const bin = binBuf.buffer.slice(
+      binBuf.byteOffset,
+      binBuf.byteOffset + binBuf.byteLength,
+    );
+    let matrix: Float32Array;
+    if (meta.quant === "int8") {
+      // int8 bin (P002 size gate) — dequant + renorm fused: q/√Σq² equals
+      // the renormalized q/127, and integer math keeps cold load ~100ms
+      // where a Float32Array.from callback cost ~1.5s
+      const q = new Int8Array(bin);
+      matrix = new Float32Array(q.length);
+      for (let r = 0; r < meta.rows; r++) {
+        const off = r * meta.dims;
+        let ss = 0;
+        for (let d = 0; d < meta.dims; d++) ss += q[off + d] * q[off + d];
+        const inv = ss > 0 ? 1 / Math.sqrt(ss) : 0;
+        for (let d = 0; d < meta.dims; d++) matrix[off + d] = q[off + d] * inv;
+      }
+    } else {
+      matrix = new Float32Array(bin);
+    }
     if (matrix.length !== meta.rows * meta.dims) {
       throw new Error(`${backend} index mismatch: bin ${matrix.length} != rows×dims`);
     }

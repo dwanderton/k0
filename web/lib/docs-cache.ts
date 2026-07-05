@@ -25,8 +25,6 @@ const DOCUMENTATION_SOURCES = [
   {
     name: 'vercel-blog',
     baseUrl: 'https://vercel.com/blog',
-    // /blog/sitemap.xml 404s — root sitemap; fetchSource keeps only locs
-    // under baseUrl
     sitemapUrl: 'https://vercel.com/sitemap.xml',
   },
   {
@@ -48,6 +46,11 @@ const DOCUMENTATION_SOURCES = [
     name: "eve-docs",
     baseUrl: "https://eve.dev/docs",
     sitemapUrl: "https://eve.dev/sitemap.xml",
+  },
+  {
+    name: "nextjs-docs",
+    baseUrl: "https://nextjs.org/docs",
+    sitemapUrl: "https://nextjs.org/sitemap.xml",
   },
 ];
 

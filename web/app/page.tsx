@@ -54,6 +54,13 @@ const TIDY_RULES: [RegExp, string][] = [
   [/\bchromecast\b/gi, "cron task"],
   [/\bcrown\b/gi, "cron"],
   [/\bgerbil\b/gi, "durable"],
+  [/\bcase components\b/gi, "Cache Components"],
+  [/\bcash components\b/gi, "Cache Components"],
+  [/\bnexus\b/gi, "Next.js"],
+  [/\bnext js\b/gi, "Next.js"],
+  [/\bnext year's\b/gi, "Next.js"],
+  [/\bnext jazz\b/gi, "Next.js"],
+  [/\bcasing strategies\b/gi, "caching strategies"],
 ];
 
 function tidyTranscript(text: string) {
@@ -77,13 +84,21 @@ function splitStream(raw: string) {
 }
 
 function parseCard(text: string) {
-  const field = (k: string) =>
-    text.match(new RegExp(`^${k}:\\s*(.*)$`, "mi"))?.[1]?.trim() ?? "";
+  const field = (k: string) => {
+    const v = text.match(new RegExp(`^${k}:\\s*(.*)$`, "mi"))?.[1]?.trim() ?? "";
+    // half-refusal guard: model sometimes stuffs NONE into fields instead
+    // of replying bare NONE — an all-NONE card must land as a NONE turn
+    return /^none$/i.test(v) ? "" : v;
+  };
+  const answer = field("ANSWER");
+  const quote = field("QUOTE");
   return {
-    none: text.trim().toUpperCase().startsWith("NONE"),
+    none:
+      text.trim().toUpperCase().startsWith("NONE") ||
+      (/^DOC:/im.test(text) && !answer && !quote),
     doc: field("DOC"),
-    answer: field("ANSWER"),
-    quote: field("QUOTE"),
+    answer,
+    quote,
     anchor: field("ANCHOR"),
     source: field("SOURCE"),
   };
@@ -105,7 +120,7 @@ function SuggestionCard({ s }: { s: Suggestion }) {
     ) : (
       <>
         {quote.slice(0, i)}
-        <mark className="rounded-[3px] bg-frag px-[3px] py-px text-frag-ink">
+        <mark className="rounded-[3px] bg-frag px-0.75 py-px text-frag-ink">
           {quote.slice(i, i + p.anchor.length)}
         </mark>
         {quote.slice(i + p.anchor.length)}
@@ -155,7 +170,7 @@ function SuggestionCard({ s }: { s: Suggestion }) {
             </div>
             <div className="mt-2 flex flex-col gap-0.5 font-mono text-[10px] leading-relaxed text-[#b6b6be]">
               {s.debug.map((line, k) => (
-                <div key={k} className="whitespace-pre-wrap break-words">
+                <div key={k} className="whitespace-pre-wrap wrap-break-word">
                   {line}
                 </div>
               ))}
@@ -452,27 +467,27 @@ export default function Home() {
         : `Paused${behind > 0 ? ` · ${behind} newer` : ""}`;
 
   return (
-    <div className="mx-auto w-full max-w-[980px] px-5 pt-8 pb-12">
+    <div className="mx-auto w-full max-w-245 px-5 pt-8 pb-12">
       <header className="mb-6">
         <div
           aria-hidden="true"
-          className="mb-3 h-[34px] w-[34px] select-none rounded-lg bg-ink text-center font-mono text-[15px] font-bold leading-[34px] tracking-tight text-white"
+          className="mb-3 h-8.5 w-8.5 select-none rounded-lg bg-ink text-center font-mono text-[15px] font-bold leading-8.5 tracking-tight text-white"
         >
           k0
         </div>
         <h1 className="text-[26px] font-bold tracking-tight">
           Knowledge that{" "}
-          <span className="rounded-[3px] bg-frag px-[5px] text-frag-ink">
+          <span className="rounded-[3px] bg-frag px-1.25 text-frag-ink">
             follows your voice
           </span>
         </h1>
       </header>
 
-      <div className="grid grid-cols-1 gap-[18px] md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4.5 md:grid-cols-2">
         {/* dev visual aid — the transcript feeds the agent */}
         <section
           aria-label="Live call transcript"
-          className="flex min-h-[420px] flex-col rounded-[10px] border border-line bg-card"
+          className="flex min-h-105 flex-col rounded-[10px] border border-line bg-card"
         >
           <div className="flex items-center justify-between gap-2.5 border-b border-line px-3.5 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-muted">
             <span>Live call — your side (SA mic)</span>
@@ -480,7 +495,7 @@ export default function Home() {
           </div>
           <div
             ref={scrollRef}
-            className="flex max-h-[460px] flex-1 flex-col gap-3 overflow-y-auto p-4"
+            className="flex max-h-115 flex-1 flex-col gap-3 overflow-y-auto p-4"
           >
             {segments.length === 0 && !interim && (
               <p className="text-sm text-muted">
@@ -537,13 +552,13 @@ export default function Home() {
 
         <section
           aria-label="k0 suggestions"
-          className="flex min-h-[420px] flex-col rounded-[10px] border border-line bg-card"
+          className="flex min-h-105 flex-col rounded-[10px] border border-line bg-card"
         >
           <div className="flex items-center justify-between gap-2.5 border-b border-line px-3.5 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider">
             <span className={following ? "text-live" : "text-muted"}>
               {/* dot pulses only while truthfully live: mic on or agent mid-search */}
               <span
-                className={`mr-1.5 inline-block h-[7px] w-[7px] -translate-y-px rounded-full bg-current ${
+                className={`mr-1.5 inline-block h-1.75 w-1.75 -translate-y-px rounded-full bg-current ${
                   listening || streaming ? "dot-listening" : ""
                 }`}
               />
@@ -593,7 +608,7 @@ export default function Home() {
               </span>
             </div>
           </div>
-          <div className="flex max-h-[460px] flex-1 flex-col gap-4 overflow-y-auto p-4">
+          <div className="flex max-h-115 flex-1 flex-col gap-4 overflow-y-auto p-4">
             {agentError && (
               <p className="text-sm text-error">
                 Search failed. k0 retries on your next line.
@@ -630,7 +645,7 @@ export default function Home() {
       {trace && (
         <section
           aria-label="Agent trace"
-          className="mt-[18px] rounded-[10px] border border-line bg-card"
+          className="mt-4.5 rounded-[10px] border border-line bg-card"
         >
           <div className="flex items-center justify-between gap-2.5 border-b border-line px-3.5 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-muted">
             <span>Agent trace — turn {trace.turn}</span>
@@ -654,12 +669,12 @@ export default function Home() {
                       : "failed"}
             </span>
           </div>
-          <div className="flex max-h-[220px] flex-col gap-0.5 overflow-y-auto p-4 font-mono text-[10px] leading-relaxed text-[#b6b6be]">
+          <div className="flex max-h-55 flex-col gap-0.5 overflow-y-auto p-4 font-mono text-[10px] leading-relaxed text-[#b6b6be]">
             {trace.lines.length === 0 && (
               <span className="text-muted">waiting for the agent…</span>
             )}
             {trace.lines.map((line, k) => (
-              <div key={k} className="whitespace-pre-wrap break-words">
+              <div key={k} className="whitespace-pre-wrap wrap-break-word">
                 {line}
               </div>
             ))}
