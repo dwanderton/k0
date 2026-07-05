@@ -1,6 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import {
+  isGladiaCapable,
+  startGladiaLive,
+  type GladiaHandle,
+} from "@/lib/gladia-live";
 
 /* Minimal Web Speech API types — not in TS's dom lib. */
 interface SpeechRecognitionLike {
@@ -204,6 +209,8 @@ export default function Home() {
   const [view, setView] = useState(0); // index of the card on screen
   const [following, setFollowing] = useState(true); // carousel keeps up with live
   const recRef = useRef<SpeechRecognitionLike | null>(null);
+  const gladiaRef = useRef<GladiaHandle | null>(null);
+  const [engine, setEngine] = useState<"browser" | "gladia" | null>(null);
   const activeRef = useRef(false);
   // healthy recognizer runs seconds before Chrome ends it; ending right
   // after start = failing on arrival
@@ -235,6 +242,7 @@ export default function Home() {
     return () => {
       activeRef.current = false;
       recRef.current?.stop();
+      gladiaRef.current?.stop();
       inflightRef.current.forEach((c) => c.abort());
     };
   }, []);
@@ -371,13 +379,72 @@ export default function Home() {
     setSegments((s) => [...s, { id: s.length, at: clock(), text, sys: true }]);
   }
 
+  function fireWarmup() {
+    // fire-and-forget warm-up — instance pays one-time init before the first
+    // utterance finalizes: first card ~0.9s instead of ~6s
+    fetch("/api/agent", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ warmup: true }),
+    }).catch(() => {});
+  }
+
+  async function startGladia() {
+    setEngine("gladia");
+    setStatus("listening");
+    activeRef.current = true;
+    fireWarmup();
+    try {
+      gladiaRef.current = await startGladiaLive({
+        onFinal: (raw) => {
+          const text = tidyTranscript(raw);
+          if (text)
+            setSegments((s) => [...s, { id: s.length, at: clock(), text }]);
+          setInterim("");
+        },
+        onInterim: (raw) => setInterim(tidyTranscript(raw)),
+        onError: (message) => {
+          activeRef.current = false;
+          setStatus("unavailable");
+          logSystem(`mic error: ${message}`);
+        },
+      });
+      if (!activeRef.current) {
+        // user hit Stop while the session was still minting
+        gladiaRef.current?.stop();
+        gladiaRef.current = null;
+      }
+    } catch (err) {
+      activeRef.current = false;
+      if ((err as Error).name === "NotAllowedError") {
+        setMicError("not-allowed");
+        setStatus("denied");
+        logSystem("mic error: not-allowed — allow the mic for this site");
+      } else {
+        setStatus("unavailable");
+        logSystem(`mic error: ${String(err).slice(0, 140)}`);
+      }
+    }
+  }
+
   function start() {
     const w = window as unknown as Record<string, unknown>;
     const Rec = w.SpeechRecognition ?? w.webkitSpeechRecognition;
-    if (!Rec) {
-      setStatus("unsupported");
+    // mobile browsers ship no usable SpeechRecognition (and iOS Chrome none
+    // at all) — stream PCM to Gladia instead. Desktop keeps the free local
+    // path; Gladia also covers desktop browsers without SpeechRecognition.
+    const mobile =
+      typeof navigator !== "undefined" &&
+      /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (mobile || !Rec) {
+      if (isGladiaCapable()) {
+        startGladia();
+      } else {
+        setStatus("unsupported");
+      }
       return;
     }
+    setEngine("browser");
     const rec = new (Rec as new () => SpeechRecognitionLike)();
     rec.continuous = true;
     rec.interimResults = true;
@@ -434,18 +501,15 @@ export default function Home() {
     recStartedAtRef.current = Date.now();
     setStatus("listening");
     rec.start();
-    // fire-and-forget warm-up — instance pays one-time init before the first
-    // utterance finalizes: first card ~0.9s instead of ~6s
-    fetch("/api/agent", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ warmup: true }),
-    }).catch(() => {});
+    fireWarmup();
   }
 
   function stop() {
     activeRef.current = false;
     recRef.current?.stop();
+    gladiaRef.current?.stop();
+    gladiaRef.current = null;
+    setEngine(null);
     setInterim("");
     setStatus("idle");
   }
@@ -492,7 +556,9 @@ export default function Home() {
           className="flex min-h-105 flex-col rounded-[10px] border border-line bg-card"
         >
           <div className="flex items-center justify-between gap-2.5 border-b border-line px-3.5 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-muted">
-            <span>Live call — your side (SA mic)</span>
+            <span>
+              Live call — your side (SA mic{engine === "gladia" ? " · gladia" : ""})
+            </span>
             <span className="tabular-nums">{segments.length} lines</span>
           </div>
           <div
@@ -506,7 +572,7 @@ export default function Home() {
                     ? "Speech service blocked (service-not-allowed). Use desktop Chrome, then start listening again."
                     : "Microphone access denied (not-allowed). Allow the mic for this site — and check Chrome has mic access in System Settings → Privacy & Security."
                   : status === "unsupported"
-                    ? "Speech recognition isn't available in this browser. Use Chrome."
+                    ? "Speech transcription isn't available in this browser. Use Chrome on desktop, or Safari/Chrome on mobile."
                     : status === "unavailable"
                       ? "Speech recognition keeps disconnecting — usually another tab is listening. Close it, then start again."
                       : "Press Start Listening — your side of the call transcribes here."}
