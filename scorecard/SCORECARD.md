@@ -323,3 +323,37 @@ yet — add as NEW rows per method). Residual: preview-deployments NONE
 the 0.9 retry floor; drop RETRY_FLOOR a notch if it recurs. A same-day
 prod run (main, 10x serial) for reference: 50/50 ok, 0.9s med, gold
 100%, ground 20/25, ❄2 init med 3.2s.
+
+### PR #18 (mobile transcription + retry floor) — Gladia live transcription replaces browser SpeechRecognition on mobile (server-minted session, AudioWorklet 16kHz PCM over WS; agent path unchanged for this probe) · NONE-retry floor 0.9 → 0.85 · plural mishear tidy rules · same model (gpt-5.4-mini, throughput sort)
+
+# run 2026-07-05 22:54 UTC · https://k0-qqu87ew67-creatorplatform.vercel.app · commit 0aa017d · 10x per phrase, conc 1
+
+| phrase | ok | fail% | card med | card p95 | cost/insight | ground | gold hit | top link |
+|---|---|---|---|---|---|---|---|---|
+| So you are asking what is the AI gateway | 10/10 | 0% | 0.7s | 1.5s | $0.0009 | 5/5 | 9/10 | ai-gateway ×9 |
+| You want to know how to enable fluid com | 10/10 | 0% | 0.9s | 1.3s | $0.0020 | 5/5 | 10/10 | fluid-compute ×10 |
+| Your question is how long can a Vercel f | 9/10 (TimeoutError: The operation wa) | 10% | 1.2s | 1.7s | $0.0014 | 5/5 | 9/9 | functions/limitations ×9 |
+| So you are asking how preview deployment | 9/10 (NONE) | 10% | 0.6s | 1.5s | $0.0016 | 5/5 | 9/9 | deployments/environments ×9 |
+| You want to know how to add a custom dom | 10/10 ❄1 | 0% | 0.7s | 2.5s | $0.0014 | 4/5 | 10/10 | domains/working-with-domains/add-a-domain ×10 |
+
+| control phrase (must be NONE) | NONE | false-pos% | med total |
+|---|---|---|---|
+| Thanks for joining, how was your weekend | 10/10 | 0% | 0.7s |
+| Give me one second, someone is at the door | 10/10 | 0% | 0.7s |
+
+**cold starts: 1/50 · init med 2.6s · cold card med 4.5s (excluded from table med/p95)**
+
+**overall: 48/50 ok (4.0% fail) · median time-to-card 0.8s · p95 1.6s (warm) · median cost/insight $0.0016 · total spend $0.0756**
+**gold-link precision: 47/48 (98%) · controls: 0/20 false positives**
+
+An identical run minutes earlier (per-phrase table lost to a tail
+filter; summary preserved): 50/50 ok, gold 50/50, ground 24/25, controls
+0/20 FP, med 0.7s / p95 1.5s. Combined post-change: 98/100 ok, 0/40
+control false positives. Verdict on the 0.85 floor: controls UNAFFECTED
+(the risk being priced); the preview-deployments NONE still recurred
+1/20 — that residual is POST-retry (both attempts refused), the same
+~1–2% scale PR #10 documented. No-harm, unproven-gain. The
+duration-phrase failure is a client-side 30s probe timeout, not a
+server error. This probe hits /api/agent directly, so it measures the
+agent path only — the Gladia mobile path feeds the same segments
+pipeline upstream of it.
