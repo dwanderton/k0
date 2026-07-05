@@ -303,7 +303,9 @@ export async function POST(req: Request) {
   // high-confidence candidate. Text held back while it still looks like a
   // bare NONE (cards start "DOC:" — hold costs one chunk max); a finished
   // NONE with top candidate above RETRY_FLOOR gets exactly one regeneration.
-  const RETRY_FLOOR = 0.9;
+  // 0.85: gold hits cluster ≥0.88, observed refusals sat at 0.87-0.89 just
+  // under the old 0.9; controls peak ~0.56 so no false-positive exposure.
+  const RETRY_FLOOR = 0.85;
   const topScore = candidates[0]?.relevanceScore ?? 0;
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
