@@ -6,10 +6,8 @@ import { retrieveWithInfo, type Candidate, type Backend } from "@/lib/retriever"
 
 export const maxDuration = 60;
 
-/** Fetch the real, verbatim markdown of a Vercel docs page. The MCP search
- *  returns synthesized snippet captions, NOT page text — so quotes grounded in
- *  search never appear on the page and the #:~:text= highlight never lands.
- *  Every docs path is also served as markdown at `<path>.md`; that IS the page. */
+/** MCP search returns synthesized snippets, NOT page text — quotes grounded
+ *  in it never land the #:~:text= highlight. `<path>.md` IS the page. */
 const readVercelDoc = tool({
   description:
     "Fetch the full verbatim markdown of a Vercel docs page. Pass the docs " +
@@ -25,21 +23,19 @@ const readVercelDoc = tool({
   execute: async ({ path }) => {
     const clean = String(path ?? "")
       .trim()
-      .replace(/^https?:\/\/[^/]+/, "") // strip origin
-      .replace(/[#?].*$/, "") // strip fragment/query
-      .replace(/\.md$/, "") // strip .md
-      .replace(/^\/+/, "") // strip leading slashes
-      .replace(/^docs\//, "") // strip docs/
+      .replace(/^https?:\/\/[^/]+/, "")
+      .replace(/[#?].*$/, "")
+      .replace(/\.md$/, "")
+      .replace(/^\/+/, "")
+      .replace(/^docs\//, "")
       .replace(/^\/+/, "");
     if (!clean) return "No path given.";
-    // The model supplies this path — reject traversal / anything that isn't a
-    // plain docs slug before it reaches a fetch URL.
+    // model-supplied path — reject traversal / non-slug before it hits a URL
     if (!/^[a-z0-9]([a-z0-9/-]*[a-z0-9])?$/i.test(clean) || clean.includes("..")) {
       return `Invalid docs path: ${clean}`;
     }
     const url = `https://vercel.com/docs/${clean}.md`;
-    // Defense in depth: whatever the path resolves to, it must stay on
-    // vercel.com/docs — never fetch an arbitrary host.
+    // defense in depth — resolved URL must stay on vercel.com/docs
     let parsed: URL;
     try {
       parsed = new URL(url);
@@ -49,11 +45,8 @@ const readVercelDoc = tool({
     if (parsed.hostname !== "vercel.com" || !parsed.pathname.startsWith("/docs/")) {
       return `Refusing to fetch non-Vercel-docs URL: ${url}`;
     }
-    // Cache first: the docs-cache stores pages as `<source>:<pathname>`
-    // (e.g. "vercel-docs:/docs/functions"). A hit skips the network round
-    // trip entirely; a miss falls through to the live fetch. The verdict is
-    // the first line of the tool result, so it lands in the UI trace's
-    // `← read_vercel_doc:` line and in server logs.
+    // cache key shape `<source>:<pathname>`. Verdict rides the first line of
+    // the tool result → UI trace `← read_vercel_doc:` line + server logs.
     const cacheKey = `vercel-docs:/docs/${clean}`;
     const cached = await getCachedDoc(cacheKey);
     console.log(`docs-cache ${cached ? "HIT" : "MISS"}: ${cacheKey}`);
@@ -68,7 +61,7 @@ const readVercelDoc = tool({
       const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
       if (!res.ok) return `Could not fetch ${url} (HTTP ${res.status}).`;
       const md = await res.text();
-      // Cap to keep the tool result inside a sane context budget.
+      // cap tool result — context budget
       const body =
         md.length > 16000 ? md.slice(0, 16000) + "\n…[truncated]" : md;
       return `[docs-cache MISS ${cacheKey} — fetched live]\n\n${body}`;
@@ -78,19 +71,16 @@ const readVercelDoc = tool({
   },
 });
 
-// Gateway sorted for output THROUGHPUT: the pipeline is generation-bound —
-// stage timing showed ~1s of a ~2s card is the model writing tokens, so ttft
-// optimized the wrong stage once pre-call retrieval deleted the search turn.
-// gpt-5.4-mini is the one model that reliably runs the retrieval -> quote
-// flow; others either loop re-searching or fabricate quotes (see git history).
+// sort throughput not ttft — pipeline generation-bound (~1s of a ~2s card is
+// token writing once pre-call retrieval deleted the search turn).
+// gpt-5.4-mini: only model that reliably runs retrieval → quote; others loop
+// re-searching or fabricate quotes.
 const MODEL = "openai/gpt-5.4-mini";
 const GATEWAY_OPTIONS = { gateway: { sort: "throughput" as const } };
 
-/** MCP handshake + tool listing once per warm instance, not once per
- *  utterance — Fluid Compute reuses instances across requests, so every turn
- *  after the first skips the round trips to mcp.vercel.com. Those RTTs came
- *  straight out of the <1s first-content budget on every single query.
- *  On failure the cache resets so the next request retries the handshake. */
+/** MCP handshake once per warm instance — Fluid reuses instances; the
+ *  per-utterance RTTs to mcp.vercel.com came out of the <1s first-content
+ *  budget. Failure resets the cache so the next request retries. */
 let mcpTools: Promise<ToolSet> | null = null;
 function getMcpTools(token: string) {
   mcpTools ??= createMCPClient({
@@ -154,16 +144,15 @@ SOURCE: [full URL with #:~:text=ANCHOR]
 
 Or reply: NONE`;
 
-/** Injected when the step budget runs out — the long tool transcript makes
- *  models forget the output contract and answer in prose. */
+/** injected at step-budget end — long tool transcript makes models forget
+ *  the output contract and answer in prose */
 const FINAL_STEP = `${"\n\n"}TOOLS ARE DONE. Answer NOW from what you already read.
 Reply in the EXACT DOC/ANSWER/QUOTE/ANCHOR/SOURCE format, or NONE.
 No prose. No explanation. The format or NONE.`;
 
-/** The card contract. The stream is line-oriented text (the client parses it
- *  as it streams), so zod validates the assembled card at finish — the
- *  verdict lands in the trace, and cross-field rules (ANCHOR inside QUOTE,
- *  SOURCE carries the highlight fragment) live here, not in prose checks. */
+/** Card contract. Stream is line-oriented text, so zod validates the
+ *  assembled card at finish — verdict lands in the trace; cross-field rules
+ *  live here, not in prose checks. */
 const OutputSchema = z
   .object({
     DOC: z.string().min(1),
@@ -178,14 +167,12 @@ const OutputSchema = z
   .refine((c) => c.SOURCE.includes("#:~:text="), {
     message: "SOURCE must carry a #:~:text= highlight fragment",
   })
-  // The browser matches the fragment against RENDERED page text — code
-  // punctuation in the anchor (backticks, brackets, pipes) never renders,
-  // so the highlight silently fails to land.
+  // browser matches fragment against RENDERED text — code punctuation never
+  // renders, highlight silently misses
   .refine((c) => !/[`\[\]{}|<>]/.test(c.ANCHOR), {
     message: "ANCHOR must be plain prose — no backticks/brackets/pipes",
   });
 
-/** Pull the card fields out of the streamed text for validation. */
 function extractCard(text: string) {
   const field = (k: string) =>
     text.match(new RegExp(`^${k}:\\s*(.*)$`, "mi"))?.[1]?.trim() ?? "";
@@ -198,8 +185,8 @@ function extractCard(text: string) {
   };
 }
 
-/** Debug lines start with NUL and end with \n; the client splits them out of the
- *  card text and renders them as a light-grey trace. NUL never appears in prose. */
+/** debug lines = NUL … \n — client splits them from card text into the grey
+ *  trace. NUL never appears in prose. */
 const DBG = "\u0000";
 const oneline = (s: string, n = 160) =>
   s.replace(/\s+/g, " ").trim().slice(0, n);
@@ -211,9 +198,8 @@ export async function POST(req: Request) {
   } catch {
     return Response.json({ error: "invalid JSON body" }, { status: 400 });
   }
-  // Warm-up contract: the client fires this when the SA clicks Start
-  // Listening, so the ~3s one-time init (indexes + ONNX model) runs while
-  // the human is still talking. Loads retrieval, skips the model, ~$0.
+  // warm-up: client fires on Start Listening — ~3s one-time init (indexes +
+  // ONNX) runs while the human is still talking. No LLM call, ~$0.
   if ((body as { warmup?: unknown })?.warmup === true) {
     await retrieveWithInfo("warm up", 1).catch(() => {});
     return new Response(null, { status: 204 });
@@ -224,10 +210,8 @@ export async function POST(req: Request) {
     return Response.json({ error: "transcript required" }, { status: 400 });
   }
 
-  // Pre-call retrieval — infrastructure, not a model decision. Embeds the
-  // unconsumed tail (the client's transcript GC keeps it short/on-topic)
-  // and hands top-k page excerpts to the model's FIRST turn, so the fast
-  // path cards in one generation.
+  // pre-call retrieval — infrastructure, not a model decision. Top-k excerpts
+  // ride the FIRST turn, so the fast path cards in one generation.
   let candidates: Candidate[] = [];
   let retrievalFailed = false;
   let retrievalMs = 0;
@@ -236,17 +220,12 @@ export async function POST(req: Request) {
   {
     const t0 = performance.now();
     try {
-      // Deadline applies only to the gateway embed hop — the one-time index
-      // load on a cold instance may take seconds and must not misfire the
-      // fallback. in-process is tried first; gateway embeddings are the
-      // fallback backend.
       const r = await retrieveWithInfo(transcript, 2);
       candidates = r.candidates;
       retrieverBackend = r.backend;
       coldInitMs = r.coldInitMs ?? null;
-      // Dominant top candidate → send it alone. The 100%-gold run cited
-      // candidate #1 almost exclusively; above 0.95 the second excerpt is
-      // dead prefill weight (~900 tokens on the gateway phrase).
+      // >0.95 top score → send it alone. Gold run cited #1 almost
+      // exclusively; second excerpt is ~900 tokens dead prefill.
       if (candidates.length > 1 && candidates[0].relevanceScore > 0.95) {
         candidates = [candidates[0]];
       }
@@ -258,15 +237,8 @@ export async function POST(req: Request) {
   }
 
   const tools: ToolSet = {
-    // search_vercel_documentation (Vercel MCP) — retired from the fast path
-    // in favor of pre-call local retrieval. Kept as the explicit recovery
-    // path: a FAILED retriever (not an empty result) re-enables it below.
-    // Re-enable permanently by uncommenting:
-    // ...Object.fromEntries(
-    //   Object.entries(await getMcpTools(process.env.VERCEL_MCP_TOKEN!)).filter(
-    //     ([name]) => ["search_vercel_documentation"].includes(name),
-    //   ),
-    // ),
+    // MCP search retired from the fast path (pre-call retrieval replaced it);
+    // a FAILED retriever — not an empty result — re-enables it below.
     read_vercel_doc: readVercelDoc,
   };
   let fallbackNote = "";
@@ -304,9 +276,8 @@ export async function POST(req: Request) {
     system: SYSTEM,
     prompt: `${transcript}\n\n${candidatesBlock}`,
     tools,
-    // Fast path is one turn; the read_vercel_doc escape hatch two-three.
-    // The old cap of 8 was sized for search-loop pathology that pre-call
-    // retrieval removes.
+    // fast path is one turn, read_vercel_doc escape hatch 2-3; old cap of 8
+    // was sized for search-loop pathology pre-call retrieval removed
     stopWhen: stepCountIs(4),
     prepareStep: ({ stepNumber }) =>
       stepNumber >= 2
@@ -315,14 +286,10 @@ export async function POST(req: Request) {
     onError: (event) => console.error("agent stream error:", event.error),
   });
 
-  // Interleave the model's reasoning/tool trace (as NUL-prefixed debug lines)
-  // with the answer text, so the client can show what the agent is thinking.
-  //
-  // NONE-retry: the residual failure mode is the model refusing (NONE)
-  // despite a high-confidence candidate. Text is held back while it still
-  // looks like a bare NONE (cards start "DOC:", refusals start "NONE" — the
-  // hold costs one chunk at most); a finished NONE with a top candidate
-  // above RETRY_FLOOR gets exactly one regeneration.
+  // NONE-retry: residual failure mode is the model refusing despite a
+  // high-confidence candidate. Text held back while it still looks like a
+  // bare NONE (cards start "DOC:" — hold costs one chunk max); a finished
+  // NONE with top candidate above RETRY_FLOOR gets exactly one regeneration.
   const RETRY_FLOOR = 0.9;
   const topScore = candidates[0]?.relevanceScore ?? 0;
   const encoder = new TextEncoder();
@@ -394,16 +361,15 @@ export async function POST(req: Request) {
                 );
                 break;
               case "tool-error":
-                // A failed MCP call can mean the cached session went stale —
-                // drop the cache so the next request re-handshakes.
+                // failed MCP call may mean stale session — drop cache so the
+                // next request re-handshakes
                 if (part.toolName === "search_vercel_documentation") {
                   mcpTools = null;
                 }
                 dbg(`⚠ ${part.toolName} errored: ${oneline(String(part.error))}`);
                 break;
               case "finish-step": {
-                // Gateway reports per-step cost in providerMetadata; surface it
-                // so the scorecard can compute cost-per-insight from the trace.
+                // per-step cost → trace → scorecard cost-per-insight
                 const gw = part.providerMetadata?.gateway as
                   | { cost?: string | number }
                   | undefined;
@@ -447,9 +413,8 @@ export async function POST(req: Request) {
           break;
         }
 
-        // Validate the assembled card against the output contract — the
-        // verdict rides the trace so bad cards are visible in the UI
-        // dropdown and countable by the scorecard.
+        // zod verdict rides the trace — bad cards visible in the UI dropdown,
+        // countable by the scorecard
         if (finalAnswer.trim() && !finalAnswer.trim().toUpperCase().startsWith("NONE")) {
           const check = OutputSchema.safeParse(extractCard(finalAnswer));
           dbg(
@@ -464,8 +429,8 @@ export async function POST(req: Request) {
       } catch (err) {
         dbg(`⚠ stream failed: ${oneline(String(err))}`);
       } finally {
-        // The MCP client is shared across requests now — never close it here;
-        // it lives as long as the warm instance does.
+        // MCP client is shared across requests — never close it here; it
+        // lives as long as the warm instance
         controller.close();
       }
     },

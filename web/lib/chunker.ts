@@ -1,8 +1,8 @@
 /**
- * Deterministic page → chunk splitter for the embedding index. Pure
- * function of docs-cache.br content: same cache in, byte-identical chunks
- * out — chunk idx is the additive-rebuild anchor, so ordering must never
- * depend on anything but the page text.
+ * Deterministic page → chunk splitter. Pure function of docs-cache content:
+ * same cache in, byte-identical chunks out — chunk idx is the
+ * additive-rebuild anchor, so ordering must never depend on anything but
+ * page text.
  */
 
 export interface Chunk {
@@ -23,8 +23,8 @@ function frontmatter(md: string): { title: string; body: string; fm: string } {
     m[1].match(new RegExp(`^${k}:\\s*(.+)$`, "m"))?.[1]?.trim().replace(/^["']|["']$/g, "") ?? "";
   const title = pick("title");
   const description = pick("description");
-  // Raw YAML embeds as noise; a clean "Title — description" line is the
-  // strongest page-aboutness signal a first chunk can carry.
+  // raw YAML embeds as noise; "Title — description" is the strongest
+  // page-aboutness signal a first chunk can carry
   const fm = [title, description].filter(Boolean).join(" — ");
   return { title, body: md.slice(m[0].length), fm };
 }
@@ -41,8 +41,8 @@ function splitLong(body: string): string[] {
   if (body.length <= TARGET_MAX) return [body];
   const paras = body
     .split(/\n\n+/)
-    // A single para over budget (minified/no-break pages) gets hard-sliced —
-    // an oversized chunk would blow the embed API's 8191-token cap.
+    // para over budget (minified/no-break pages) gets hard-sliced — an
+    // oversized chunk blows the embed API's 8191-token cap
     .flatMap((p) => {
       if (p.length <= TARGET_MAX) return [p];
       const parts: string[] = [];
@@ -65,16 +65,14 @@ function splitLong(body: string): string[] {
 
 export function chunkPage(key: string, markdown: string): Chunk[] {
   let { title, body, fm } = frontmatter(markdown);
-  // Description-led first chunks for ROOT pages only (/docs/<product>) —
+  // description-led first chunks for ROOT pages only (/docs/<product>) —
   // that's where concept queries belong. Applied everywhere, descriptions
-  // lift wrong boats too (a Platforms action page once outranked the real
+  // lift wrong boats (a Platforms action page outranked the real
   // add-a-domain guide on its description alone).
   const pathname = key.slice(key.indexOf(":") + 1);
   if (!/^\/docs\/[^/]+$/.test(pathname)) {
-    fm = title; // deep pages: title prefix only, as before the experiment
+    fm = title; // deep pages: title prefix only
   }
-  // Frontmatter carries title/description — high retrieval signal, so it
-  // rides in the page's first chunk.
   const sections: { heading: string; body: string }[] = [];
   let heading = "";
   let buf: string[] = fm ? [fm] : [];
@@ -90,8 +88,8 @@ export function chunkPage(key: string, markdown: string): Chunk[] {
   }
   sections.push({ heading, body: buf.join("\n").trim() });
 
-  // Merge short sections into their predecessor (heading kept inline so
-  // the signal isn't lost), then split oversized ones on paragraphs.
+  // merge short sections into predecessor — heading kept inline so the
+  // signal isn't lost
   const merged: { heading: string; body: string }[] = [];
   for (const s of sections) {
     if (!s.body && !s.heading) continue;
@@ -123,14 +121,13 @@ export function chunkPage(key: string, markdown: string): Chunk[] {
 
 export function chunkAll(cache: Map<string, string>): Chunk[] {
   const raw: Chunk[] = [];
-  // Sort keys: chunk order must be independent of cache-map insertion order.
+  // sorted keys — chunk order independent of cache-map insertion order
   for (const key of [...cache.keys()].sort()) {
     raw.push(...chunkPage(key, cache.get(key)!));
   }
-  // Corpus-wide boilerplate dedup: identical bodies on ≥3 pages are template
-  // chrome (blog "Explore"/"Social" blocks — 2,211 rows at first count), not
-  // content. They embed as topical noise because the title prefix differs
-  // per page. Body = text minus the title/heading label line.
+  // identical bodies (text minus label line) on ≥3 pages = template chrome
+  // (blog "Explore"/"Social" blocks — 2,211 rows at first count); they embed
+  // as topical noise because the title prefix differs per page
   const body = (t: string) => t.split("\n").slice(1).join("\n").trim();
   const counts = new Map<string, number>();
   for (const c of raw) {

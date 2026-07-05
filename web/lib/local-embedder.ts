@@ -1,11 +1,8 @@
 /**
- * In-process query/chunk embedder — MiniLM (384 dims, int8 ONNX) via
- * transformers.js. Replaces the ~320ms gateway embedding hop with ~3ms of
- * local CPU after a one-time ~1.3s model load per warm instance.
- *
- * Model files are VENDORED at web/models/ (committed, LFS) and remote
- * fetches are disabled — a deploy must never depend on the HF CDN at
- * cold start.
+ * In-process embedder — bge-small (384 dims, int8 ONNX) via transformers.js.
+ * ~3ms local CPU vs the ~320ms gateway hop, after a one-time ~1.3s load per
+ * warm instance. Model files VENDORED at web/models/, remote fetch disabled
+ * — a deploy must never depend on the HF CDN at cold start.
  */
 import { pipeline, env } from "@huggingface/transformers";
 import { join } from "path";
@@ -34,12 +31,12 @@ function load() {
   return extractor;
 }
 
-/** BGE retrieval convention: queries carry an instruction prefix, passages
- *  don't. Applying it to chunks too would hurt ranking. */
+/** BGE convention: queries carry the instruction prefix, passages don't —
+ *  prefixing chunks too hurts ranking */
 const QUERY_PREFIX =
   "Represent this sentence for searching relevant passages: ";
 
-/** Embed texts → unit-normalized vectors, one Float32Array per input. */
+/** unit-normalized, one vector per input */
 export async function embedLocal(
   texts: string[],
   opts: { isQuery?: boolean } = {},
