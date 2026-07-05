@@ -140,6 +140,8 @@ CRITICAL RULES:
 - Candidate excerpts and read_vercel_doc output are the ONLY quote sources.
 - ANCHOR must appear on page as plain prose (no code punctuation).
 - Small talk stays NONE even when candidates are attached.
+- NONE is a complete reply, never a field value. No quotable sentence →
+  reply the single word NONE; never emit DOC/ANSWER/QUOTE lines around it.
 
 OUTPUT FORMAT (always):
 DOC: [path from Source]
@@ -177,6 +179,11 @@ const OutputSchema = z
   // renders, highlight silently misses
   .refine((c) => !/[`\[\]{}|<>]/.test(c.ANCHOR), {
     message: "ANCHOR must be plain prose — no backticks/brackets/pipes",
+  })
+  // half-refusal: DOC filled but NONE stuffed into fields — should have
+  // been a bare NONE reply
+  .refine((c) => ![c.ANSWER, c.QUOTE, c.ANCHOR].some((v) => /^none$/i.test(v.trim())), {
+    message: "NONE inside card fields — reply must be bare NONE",
   });
 
 function extractCard(text: string) {

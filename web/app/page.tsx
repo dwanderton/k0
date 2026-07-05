@@ -84,13 +84,21 @@ function splitStream(raw: string) {
 }
 
 function parseCard(text: string) {
-  const field = (k: string) =>
-    text.match(new RegExp(`^${k}:\\s*(.*)$`, "mi"))?.[1]?.trim() ?? "";
+  const field = (k: string) => {
+    const v = text.match(new RegExp(`^${k}:\\s*(.*)$`, "mi"))?.[1]?.trim() ?? "";
+    // half-refusal guard: model sometimes stuffs NONE into fields instead
+    // of replying bare NONE — an all-NONE card must land as a NONE turn
+    return /^none$/i.test(v) ? "" : v;
+  };
+  const answer = field("ANSWER");
+  const quote = field("QUOTE");
   return {
-    none: text.trim().toUpperCase().startsWith("NONE"),
+    none:
+      text.trim().toUpperCase().startsWith("NONE") ||
+      (/^DOC:/im.test(text) && !answer && !quote),
     doc: field("DOC"),
-    answer: field("ANSWER"),
-    quote: field("QUOTE"),
+    answer,
+    quote,
     anchor: field("ANCHOR"),
     source: field("SOURCE"),
   };
