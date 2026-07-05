@@ -2,7 +2,10 @@
  * Build the IN-PROCESS embedding index (separate files from the gateway
  * index — the two must never mix: different models, different dims).
  *
- *   web/embeddings-local.bin.br        brotli'd Float32Array, 384 dims
+ *   web/embeddings-local.bin           RAW Float32Array, 384 dims — brotli
+ *                                      shaves only ~10% off float vectors
+ *                                      but cost ~300ms decompress per cold
+ *                                      start
  *   web/embeddings-local-meta.json.br  same chunk table shape as gateway meta
  *
  * Additive by chunk hash like the gateway build. Cost: $0 — the model runs
@@ -16,7 +19,8 @@ import { embedLocal, LOCAL_MODEL, LOCAL_DIMS } from "../lib/local-embedder.ts";
 
 const BATCH = 64;
 const root = new URL("..", import.meta.url);
-const binPath = new URL("embeddings-local.bin.br", root);
+const binPath = new URL("embeddings-local.bin", root);
+const legacyBinPath = new URL("embeddings-local.bin.br", root); // pre-raw builds
 const metaPath = new URL("embeddings-local-meta.json.br", root);
 
 interface Meta {
@@ -39,9 +43,10 @@ console.log(`chunks: ${chunks.length}`);
 let oldVectors = new Map<string, Float32Array>();
 try {
   const oldMeta: Meta = JSON.parse(brotliDecompressSync(await readFile(metaPath)).toString());
-  const oldBin = new Float32Array(
-    brotliDecompressSync(await readFile(binPath)).buffer as ArrayBuffer,
+  const oldRaw = await readFile(binPath).catch(async () =>
+    brotliDecompressSync(await readFile(legacyBinPath)),
   );
+  const oldBin = new Float32Array(oldRaw.buffer, oldRaw.byteOffset, oldRaw.length / 4);
   if (oldMeta.model === LOCAL_MODEL && oldMeta.dims === LOCAL_DIMS) {
     oldMeta.chunks.forEach((c, i) => {
       oldVectors.set(c.hash, oldBin.subarray(i * LOCAL_DIMS, (i + 1) * LOCAL_DIMS));
@@ -89,9 +94,8 @@ const meta: Meta = {
 };
 
 const rawBin = Buffer.from(out.buffer);
-const binBr = brotliCompressSync(rawBin);
-await writeFile(binPath, binBr);
+await writeFile(binPath, rawBin);
 await writeFile(metaPath, brotliCompressSync(Buffer.from(JSON.stringify(meta))));
 
 const mb = (n: number) => (n / 1048576).toFixed(1) + "MB";
-console.log(`rows: ${meta.rows} · raw ${mb(rawBin.length)} → br ${mb(binBr.length)}`);
+console.log(`rows: ${meta.rows} · raw ${mb(rawBin.length)} (uncompressed on purpose)`);

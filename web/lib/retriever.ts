@@ -78,8 +78,10 @@ function keyToUri(key: string): string {
   return `${ORIGINS[source] ?? "https://vercel.com"}${pathname}`;
 }
 
+// local bin is RAW float32 — brotli shaves ~10% off float vectors but cost
+// ~300ms decompress on every cold start; text/meta stay compressed
 const FILES: Record<Backend, { bin: string; meta: string }> = {
-  "in-process": { bin: "embeddings-local.bin.br", meta: "embeddings-local-meta.json.br" },
+  "in-process": { bin: "embeddings-local.bin", meta: "embeddings-local-meta.json.br" },
   gateway: { bin: "embeddings.bin.br", meta: "embeddings-meta.json.br" },
 };
 
@@ -110,7 +112,13 @@ function loadIndex(backend: Backend) {
       loadCorpusTexts(),
     ]);
     const meta: Meta = JSON.parse((await decompress(metaRaw)).toString());
-    const bin = (await decompress(binRaw)).buffer as ArrayBuffer;
+    const binBuf = FILES[backend].bin.endsWith(".br")
+      ? await decompress(binRaw)
+      : binRaw;
+    const bin = binBuf.buffer.slice(
+      binBuf.byteOffset,
+      binBuf.byteOffset + binBuf.byteLength,
+    );
     let matrix: Float32Array;
     if (meta.quant === "int8") {
       // int8 bin (P002 size gate) — dequant + renorm fused: q/√Σq² equals

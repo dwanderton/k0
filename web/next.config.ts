@@ -13,7 +13,7 @@ const nextConfig: NextConfig = {
       "./docs-cache.br",
       "./embeddings.bin.br",
       "./embeddings-meta.json.br",
-      "./embeddings-local.bin.br",
+      "./embeddings-local.bin",
       "./embeddings-local-meta.json.br",
       "./models/**",
       // onnxruntime-node's .node binding dlopens sibling libs nft can't
