@@ -57,8 +57,6 @@ const TIDY_RULES: [RegExp, string][] = [
   [/\bcase components\b/gi, "Cache Components"],
   [/\bcash components\b/gi, "Cache Components"],
   [/\bnexus\b/gi, "Next.js"],
-  // also rewrites the legit English phrase "use case" — accepted tradeoff
-  [/\buse case\b/gi, "use cache"],
   [/\bnext js\b/gi, "Next.js"],
 ];
 
