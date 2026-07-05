@@ -58,6 +58,9 @@ const TIDY_RULES: [RegExp, string][] = [
   [/\bcash components\b/gi, "Cache Components"],
   [/\bnexus\b/gi, "Next.js"],
   [/\bnext js\b/gi, "Next.js"],
+  [/\bnext year's\b/gi, "Next.js"],
+  [/\bnext jazz\b/gi, "Next.js"],
+  [/\bcasing strategies\b/gi, "caching strategies"],
 ];
 
 function tidyTranscript(text: string) {
