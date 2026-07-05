@@ -113,15 +113,17 @@ function loadIndex(backend: Backend) {
     const bin = (await decompress(binRaw)).buffer as ArrayBuffer;
     let matrix: Float32Array;
     if (meta.quant === "int8") {
-      // int8 bin (P002 size gate) — dequantize, renormalize per row so the
-      // calibrated floors keep their meaning
-      matrix = Float32Array.from(new Int8Array(bin), (x) => x / 127);
+      // int8 bin (P002 size gate) — dequant + renorm fused: q/√Σq² equals
+      // the renormalized q/127, and integer math keeps cold load ~100ms
+      // where a Float32Array.from callback cost ~1.5s
+      const q = new Int8Array(bin);
+      matrix = new Float32Array(q.length);
       for (let r = 0; r < meta.rows; r++) {
         const off = r * meta.dims;
         let ss = 0;
-        for (let d = 0; d < meta.dims; d++) ss += matrix[off + d] ** 2;
+        for (let d = 0; d < meta.dims; d++) ss += q[off + d] * q[off + d];
         const inv = ss > 0 ? 1 / Math.sqrt(ss) : 0;
-        for (let d = 0; d < meta.dims; d++) matrix[off + d] *= inv;
+        for (let d = 0; d < meta.dims; d++) matrix[off + d] = q[off + d] * inv;
       }
     } else {
       matrix = new Float32Array(bin);
