@@ -57,10 +57,12 @@ const TIDY_RULES: [RegExp, string][] = [
   [/\bcase components\b/gi, "Cache Components"],
   [/\bcash components\b/gi, "Cache Components"],
   [/\bnexus\b/gi, "Next.js"],
-  [/\bnext js\b/gi, "Next.js"],
+  [/\bnext ?js\b/gi, "Next.js"],
   [/\bnext year's\b/gi, "Next.js"],
   [/\bnext jazz\b/gi, "Next.js"],
   [/\bcasing strategies\b/gi, "caching strategies"],
+  // narrow on purpose — bare "use case" is legit English (rule removed once)
+  [/\buse case directive\b/gi, "use cache directive"],
 ];
 
 function tidyTranscript(text: string) {
