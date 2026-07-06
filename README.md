@@ -38,7 +38,7 @@ Dev setup lives in [web/README.md](web/README.md)
 
 - **Why not just use Vercel's MCP `search_vercel_documentation` tool?**
   Two disqualifiers, both structural. 
-  1. Quality: MCP search returns synthesized snippet captions, not page text — a quote grounded in a caption never appears on the real page, so the `#:~:text=` highlight never lands, which breaks k0's contract of having a direct refernceto the source of truth. 
+  1. Quality: MCP search returns synthesized snippet captions, not page text — a quote grounded in a caption never appears on the real page, so the `#:~:text=` highlight never lands, which breaks k0's contract of having a direct reference to the source of truth. 
   2. Latency: 0.5–1.5s RTT per call, inside a model turn, on a sub-second budget. It also misrouted, for example, the preview-deployments gold page is one MCP search never found across 100 probes. However, the MCP now acts as a fallback. A FAILED retriever (not an empty result) re-enables the Vercel MCP as the disaster-recovery search for that request. → [why captions can't quote — route.ts#L12](web/app/api/agent/route.ts#L12-L13), [the recovery rung — route.ts#L294](web/app/api/agent/route.ts#L294-L296)
 
 - **Why does confidence shrink the context?** 
