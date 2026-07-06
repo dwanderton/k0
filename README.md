@@ -54,18 +54,16 @@ Two guardrails: sections greater than 3,200 chars (~800 tokens) are split on par
 
 ### Model choice
 
-- **Why `openai/gpt-5.4-mini`?** The scorecard picked it, not a leaderboard. It's the one model that reliably runs retrieval → verbatim quote; others loop
-  re-searching or fabricate. `openai/gpt-oss-20b` ended up looping infinitely with tool use, `alibaba/qwen3.7-plus` would routinely hallucinate and refuse to call tools, `zai/glm-4.7` was not surfacing the gold pages consistently.
+- **Why `openai/gpt-5.4-mini`?** The scorecard picked it, not a leaderboard. It's the one model that reliably runs retrieval → verbatim quote; others loop re-searching or fabricate. `openai/gpt-oss-20b` ended up looping infinitely with tool use, `alibaba/qwen3.7-plus` would routinely hallucinate and refuse to call tools, `zai/glm-4.7` was not surfacing the gold pages consistently.
   → [`MODEL` — route.ts#L92](web/app/api/agent/route.ts#L92-L103)
 
-- **Why the gpt-5.4 family at all?** k0's task is obedience, not brilliance: follow a numbered procedure, copy sentences exactly, refuse when unsure. Candidates were auditioned against that contract and the 5.4 family held it. cross-vendor alternatives looped re-searching or fabricated "quotes" that failed groundedness as discussed above. One family also makes the ladder coherent: `openai/gpt-5.4-mini` serves at ~$0.0015/card; `openai/gpt-5.4` stands behind it for outages and stubborn refusals with the same output behavior. One contract, two sizes, no prompt surgery at the failover boundary. Routed via AI Gateway, so if the audition result ever flips, the swap is a string. → [model ladder — route.ts#L92](web/app/api/agent/route.ts#L92-L103), [audition history — SCORECARD.md (PR #3–#9)](scorecard/SCORECARD.md)
+- **Why the gpt-5.4 family at all?** k0's task is obedience, not brilliance: follow a numbered procedure, copy sentences exactly, refuse when unsure. Candidates were auditioned against that contract and the 5.4 family held it. One family also makes the ladder coherent: `openai/gpt-5.4-mini` serves at ~$0.0015/card; `openai/gpt-5.4` stands behind it for outages and stubborn refusals with the same output behavior. One contract, two sizes, no prompt surgery at the failover boundary. Routed via AI Gateway, so if the audition result ever flips, the swap is a string. → [model ladder — route.ts#L92](web/app/api/agent/route.ts#L92-L103), [audition history — SCORECARD.md (PR #3–#9)](scorecard/SCORECARD.md)
 
 - **Why is the retry a *different* model?** 
 Re-rolling `openai/gpt-5.4-mini` on a refusal is the same coin flipped twice; `openai/gpt-5.4` runs only on the ~1–2% of turns mini already fumbled. Same-family only — cross-vendor fallbacks fabricated quotes. → [`ESCALATION_MODEL` — route.ts#L95](web/app/api/agent/route.ts#L92-L103), [`RETRY_FLOOR` — route.ts#L349](web/app/api/agent/route.ts#L349-L355)
 
 - **Why `Xenova/bge-small-en-v1.5` for embeddings?**
 MiniLM was auditioned first for the in-process embedding slot and failed (hit@1 3/5, hit@3 4/5, against floors of ≥4 and 5/5). It would have required significant tuning, whereas `Xenova/bge-small-en-v1.5`, untuned, was more effective at providing high-quality matches. → [the failed audition — SCORECARD.md (PR #9)](scorecard/SCORECARD.md)
-
 
 - **Why two embedding models with two committed indexes?** 
 In-process `Xenova/bge-small-en-v1.5` (~5ms, $0) serves; `openai/text-embedding-3-small` via the gateway is the fallback with its own index — different models with different dimensionality can't share vectors, and each gets its own empirically calibrated floors. → [`TUNING` — retriever.ts#L50](web/lib/retriever.ts#L50-L53)
