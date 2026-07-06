@@ -1,0 +1,105 @@
+# Weekly corpus refresh: re-crawl all doc sources, rebuild both embedding
+# indexes additively, run the retrieval eval gate, and open a PR with the
+# refreshed LFS artifacts. Gate failure = no PR, red run. Requires the
+# AI_GATEWAY_API_KEY repo secret for gateway embeddings.
+
+name: corpus-refresh
+
+on:
+  schedule:
+    - cron: "0 6 * * 1" # Mondays 06:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Re-crawl all doc sources
+        run: REFRESH=1 pnpm build:docs-cache
+
+      - name: Rebuild gateway embedding index (additive)
+        env:
+          AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY }}
+        run: pnpm build:embeddings
+
+      - name: Rebuild in-process embedding index (additive, $0)
+        run: pnpm build:embeddings-local
+
+      - name: Eval gate — in-process backend
+        run: |
+          # pipefail: tee must not mask a failed gate
+          set -euo pipefail
+          node scripts/eval-retriever.ts | tee /tmp/gate-local.txt
+
+      - name: Eval gate — gateway backend
+        env:
+          AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY }}
+          RETRIEVER_BACKEND: gateway
+        run: |
+          set -euo pipefail
+          node scripts/eval-retriever.ts | tee /tmp/gate-gateway.txt
+
+      - name: Detect artifact changes
+        id: diff
+        run: |
+          git add -N .
+          if git diff --quiet -- docs-cache.br embeddings.bin.br embeddings-meta.json.br embeddings-local.bin embeddings-local-meta.json.br; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No corpus changes this week — skipping PR."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit artifacts and open PR
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BRANCH="corpus-refresh/$(date -u +%Y-%m-%d)"
+          git config user.name "corpus-refresh[bot]"
+          git config user.email "noreply@github.com"
+          git checkout -b "$BRANCH"
+          git add docs-cache.br embeddings.bin.br embeddings-meta.json.br embeddings-local.bin embeddings-local-meta.json.br
+          git commit -m "corpus refresh $(date -u +%Y-%m-%d) — weekly re-crawl + additive embeds"
+          git push -u origin "$BRANCH"
+          {
+            echo "Weekly corpus refresh. Both eval gates passed before this PR was opened."
+            echo
+            echo '### Gate — in-process (bge-small)'
+            echo '```'
+            tail -8 /tmp/gate-local.txt
+            echo '```'
+            echo '### Gate — gateway (text-embedding-3-small, int8)'
+            echo '```'
+            tail -8 /tmp/gate-gateway.txt
+            echo '```'
+            echo
+            echo "Merging ships the refreshed artifacts with the next deploy. A failed gate would have failed this run instead of opening a PR."
+          } > /tmp/pr-body.md
+          gh pr create \
+            --title "Corpus refresh $(date -u +%Y-%m-%d)" \
+            --body-file /tmp/pr-body.md

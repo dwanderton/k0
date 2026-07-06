@@ -1,12 +1,14 @@
 /**
- * Additive docs-cache build. Run from web/:
+ * Docs-cache build. Run from web/:
  *
- *   pnpm build:docs-cache
+ *   pnpm build:docs-cache              # additive — skips cached sources
+ *   REFRESH=1 pnpm build:docs-cache    # re-crawl all sources, replace
+ *                                      # per-source on success (weekly job)
  *
- * Skips sources already in docs-cache.br, checkpoints after each source,
- * keeps partial progress when a source fails consistently. Commit the
- * refreshed docs-cache.br afterwards — deploys ship it, they never build it.
+ * Checkpoints after each source; an aborted source keeps its old pages.
+ * Commit the refreshed docs-cache.br afterwards — deploys ship it, they
+ * never build it.
  */
 import { buildAndSaveCache } from "../lib/docs-cache.ts";
 
-await buildAndSaveCache();
+await buildAndSaveCache({ refresh: process.env.REFRESH === "1" });
