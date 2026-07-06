@@ -7,22 +7,6 @@ import {
   type GladiaHandle,
 } from "@/lib/gladia-live";
 
-/* Minimal Web Speech API types — not in TS's dom lib. */
-interface SpeechRecognitionLike {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  start(): void;
-  stop(): void;
-  onresult: ((e: SpeechRecognitionEventLike) => void) | null;
-  onerror: ((e: { error: string }) => void) | null;
-  onend: (() => void) | null;
-}
-interface SpeechRecognitionEventLike {
-  resultIndex: number;
-  results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }>;
-}
-
 type Status = "idle" | "listening" | "denied" | "unsupported" | "unavailable";
 
 /** finalized utterance — streams to the agent, except sys lines (mic
@@ -331,9 +315,6 @@ function SuggestionCard({ s }: { s: Suggestion }) {
 
 export default function Home() {
   const [status, setStatus] = useState<Status>("idle");
-  // "not-allowed" (permission) vs "service-not-allowed" (service blocked)
-  // need different advice
-  const [micError, setMicError] = useState("");
   const [segments, setSegments] = useState<Segment[]>([]);
   const [interim, setInterim] = useState("");
   const [current, setCurrent] = useState<Suggestion | null>(null);
@@ -348,18 +329,12 @@ export default function Home() {
   } | null>(null);
   const [view, setView] = useState(0); // index of the card on screen
   const [following, setFollowing] = useState(true); // carousel keeps up with live
-  const recRef = useRef<SpeechRecognitionLike | null>(null);
   const gladiaRef = useRef<GladiaHandle | null>(null);
-  const [engine, setEngine] = useState<"browser" | "gladia" | null>(null);
   // per-tab session id (sessionStorage) — two tabs write two snapshot keys
   // instead of fighting over one
   const sessionIdRef = useRef("");
   const [resumeOffer, setResumeOffer] = useState<SessionSnapshot | null>(null);
   const activeRef = useRef(false);
-  // healthy recognizer runs seconds before Chrome ends it; ending right
-  // after start = failing on arrival
-  const recStartedAtRef = useRef(0);
-  const rapidEndsRef = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   // several queries can run at once; only unmount aborts
   const inflightRef = useRef(new Set<AbortController>());
@@ -385,7 +360,6 @@ export default function Home() {
   useEffect(() => {
     return () => {
       activeRef.current = false;
-      recRef.current?.stop();
       gladiaRef.current?.stop();
       inflightRef.current.forEach((c) => c.abort());
     };
@@ -629,7 +603,6 @@ export default function Home() {
   }
 
   async function startGladia() {
-    setEngine("gladia");
     setStatus("listening");
     activeRef.current = true;
     fireWarmup();
@@ -657,7 +630,6 @@ export default function Home() {
     } catch (err) {
       activeRef.current = false;
       if ((err as Error).name === "NotAllowedError") {
-        setMicError("not-allowed");
         setStatus("denied");
         logSystem("mic error: not-allowed — allow the mic for this site");
       } else {
@@ -669,88 +641,19 @@ export default function Home() {
 
   function start() {
     setResumeOffer(null); // starting a live call supersedes the offer
-    const w = window as unknown as Record<string, unknown>;
-    const Rec = w.SpeechRecognition ?? w.webkitSpeechRecognition;
-    // mobile browsers ship no usable SpeechRecognition (and iOS Chrome none
-    // at all) — stream PCM to Gladia instead. Desktop keeps the free local
-    // path; Gladia also covers desktop browsers without SpeechRecognition.
-    const mobile =
-      typeof navigator !== "undefined" &&
-      /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    if (mobile || !Rec) {
-      if (isGladiaCapable()) {
-        startGladia();
-      } else {
-        setStatus("unsupported");
-      }
+    // Gladia everywhere — browser SpeechRecognition mishears technical
+    // vocabulary too often for an SA call, and mobile never had it anyway
+    if (!isGladiaCapable()) {
+      setStatus("unsupported");
       return;
     }
-    setEngine("browser");
-    const rec = new (Rec as new () => SpeechRecognitionLike)();
-    rec.continuous = true;
-    rec.interimResults = true;
-    rec.lang = "en-US";
-    rec.onresult = (e) => {
-      let pending = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const r = e.results[i];
-        if (r.isFinal) {
-          const text = tidyTranscript(r[0].transcript.trim());
-          if (text)
-            setSegments((s) => [...s, { id: s.length, at: clock(), text }]);
-        } else {
-          pending += r[0].transcript;
-        }
-      }
-      setInterim(tidyTranscript(pending));
-    };
-    rec.onerror = (e) => {
-      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
-        activeRef.current = false;
-        setMicError(e.error);
-        setStatus("denied");
-        logSystem(
-          e.error === "service-not-allowed"
-            ? "mic error: service-not-allowed — speech service blocked; use desktop Chrome"
-            : "mic error: not-allowed — allow the mic for this site, and check Chrome has mic access in System Settings → Privacy & Security",
-        );
-      }
-    };
-    // Chrome ends recognition after silence — restart while the mic is meant
-    // on. End within ~1s of start = dying on arrival (another tab holds the
-    // mic); three in a row → stop instead of flickering the recording light
-    // forever.
-    rec.onend = () => {
-      setInterim("");
-      if (!activeRef.current) return;
-      const rapid = Date.now() - recStartedAtRef.current < 1000;
-      rapidEndsRef.current = rapid ? rapidEndsRef.current + 1 : 0;
-      if (rapidEndsRef.current >= 3) {
-        activeRef.current = false;
-        setStatus("unavailable");
-        logSystem(
-          "mic error: recognition keeps disconnecting — usually another tab is listening; close it and start again",
-        );
-        return;
-      }
-      recStartedAtRef.current = Date.now();
-      rec.start();
-    };
-    recRef.current = rec;
-    activeRef.current = true;
-    rapidEndsRef.current = 0;
-    recStartedAtRef.current = Date.now();
-    setStatus("listening");
-    rec.start();
-    fireWarmup();
+    startGladia();
   }
 
   function stop() {
     activeRef.current = false;
-    recRef.current?.stop();
     gladiaRef.current?.stop();
     gladiaRef.current = null;
-    setEngine(null);
     setInterim("");
     setStatus("idle");
   }
@@ -799,7 +702,7 @@ export default function Home() {
         >
           <div className="flex items-center justify-between gap-2.5 border-b border-line px-3.5 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-muted">
             <span>
-              Live call — your side (SA mic{engine === "gladia" ? " · gladia" : ""})
+              Live call — your side (SA mic · gladia)
             </span>
             <span className="tabular-nums">{segments.length} lines</span>
           </div>
@@ -839,13 +742,11 @@ export default function Home() {
             {segments.length === 0 && !interim && !resumeOffer && (
               <p className="text-sm text-muted">
                 {status === "denied"
-                  ? micError === "service-not-allowed"
-                    ? "Speech service blocked (service-not-allowed). Use desktop Chrome, then start listening again."
-                    : "Microphone access denied (not-allowed). Allow the mic for this site — and check Chrome has mic access in System Settings → Privacy & Security."
+                  ? "Microphone access denied (not-allowed). Allow the mic for this site — and check the browser has mic access in System Settings → Privacy & Security."
                   : status === "unsupported"
-                    ? "Speech transcription isn't available in this browser. Use Chrome on desktop, or Safari/Chrome on mobile."
+                    ? "Live transcription needs a modern browser (WebSocket + AudioWorklet + microphone). Update or switch browsers, then try again."
                     : status === "unavailable"
-                      ? "Speech recognition keeps disconnecting — usually another tab is listening. Close it, then start again."
+                      ? "Live transcription disconnected. Check your connection, then start listening again."
                       : "Press Start Listening — your side of the call transcribes here."}
               </p>
             )}
