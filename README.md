@@ -21,9 +21,9 @@ carries the run-by-run evidence.
 ### Prompting
 
 - **Why is the contract verbatim-quote-or-NONE?** It converts hallucination
-  detection from an LLM-judge problem into a deterministic substring check —
-  the whole eval strategy hangs off this one prompt rule.
+  detection from an LLM-judge problem into a deterministic substring check. The whole eval strategy hangs off this one prompt rule.
   → [`SYSTEM` — route.ts#L125](web/app/api/agent/route.ts#L125-L171)
+  
 - **Why is FLOW a numbered decision procedure, not a persona?** And the
   experiment that lost: a model-as-selector prompt line tripled misses —
   it primes the pages it names. → recorded in
@@ -74,6 +74,21 @@ carries the run-by-run evidence.
   size gate), while brotli on float vectors saved only ~10% but cost ~300ms
   every cold start — so the hot index ships raw.
   → [int8 dequant — retriever.ts#L126](web/lib/retriever.ts#L126-L128)
+- **Why no vector DB?** Real-time means minimizing network hops. At ~19k
+  rows a brute-force scan over the committed in-memory index takes
+  ~10–25ms with perfect recall — a vector DB would add a network RTT
+  larger than the entire search, on every single utterance. The whole
+  retrieval hot path is zero-network: query embeds in-process (~5ms),
+  index lives in instance memory.
+  → [retriever.ts#L1](web/lib/retriever.ts#L1-L8)
+- **Why is the entire docs corpus a file in the bundle?** Same principle,
+  applied to page text: docs-cache.br ships inside the function, so
+  `read_vercel_doc` serves full pages from the filesystem instead of
+  fetching vercel.com mid-call — the network is reserved for the one hop
+  that earns it (the LLM). Freshness comes from weekly gated deploys, not
+  runtime crawls.
+  → [bundled cache — docs-cache.ts#L64](web/lib/docs-cache.ts#L64-L66),
+  [cache-first read — route.ts#L59](web/app/api/agent/route.ts#L59-L67)
 - **Why a warm-up ping?** The one-time init is paid during the dead air
   after Start Listening — first card ~0.9s instead of ~6s. Cold starts are
   split out of every latency number (the ❄ discipline) so the tail never
