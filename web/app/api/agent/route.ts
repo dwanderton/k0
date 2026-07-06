@@ -2,6 +2,7 @@ import { streamText, stepCountIs, tool, type ToolSet } from "ai";
 import { createMCPClient } from "@ai-sdk/mcp";
 import { z } from "zod";
 import { after } from "next/server";
+import { checkBotId } from "botid/server";
 import { getCachedDoc } from "@/lib/docs-cache";
 import { retrieveWithInfo, type Candidate, type Backend } from "@/lib/retriever";
 import { parkCard, isValidSessionId } from "@/lib/session-store";
@@ -207,6 +208,18 @@ const oneline = (s: string, n = 160) =>
   s.replace(/\s+/g, " ").trim().slice(0, n);
 
 export async function POST(req: Request) {
+  // the scorecard IS a bot, deliberately — probes carry a shared secret
+  // and skip BotID; rotate SCORECARD_PROBE_SECRET to revoke
+  const probeSecret = process.env.SCORECARD_PROBE_SECRET;
+  const isProbe =
+    !!probeSecret && req.headers.get("x-k0-probe") === probeSecret;
+  if (!isProbe) {
+    const verdict = await checkBotId();
+    if (verdict.isBot) {
+      return Response.json({ error: "automated traffic" }, { status: 403 });
+    }
+  }
+
   let body: unknown;
   try {
     body = await req.json();

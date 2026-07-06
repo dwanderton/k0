@@ -23,6 +23,9 @@
 import { execSync } from "node:child_process";
 
 const BASE = process.argv[2] ?? "https://k0-omega.vercel.app";
+// the scorecard is a deliberate bot — SCORECARD_PROBE_SECRET bypasses BotID
+const PROBE = process.env.SCORECARD_PROBE_SECRET;
+const PROBE_HEADERS = PROBE ? { "x-k0-probe": PROBE } : {};
 const RUNS = Number(process.env.RUNS ?? 10);
 const CONC = Math.max(1, Number(process.env.CONC ?? 1));
 const NEG_RUNS = Math.max(3, Math.min(RUNS, 10));
@@ -111,7 +114,7 @@ async function probe(phrase) {
   try {
     const res = await fetch(`${BASE}/api/agent`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...PROBE_HEADERS },
       body: JSON.stringify({ transcript: phrase }),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
