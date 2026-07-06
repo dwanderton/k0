@@ -626,6 +626,10 @@ export default function Home() {
         onInterim: (raw) => setInterim(tidyTranscript(raw)),
         onError: (message) => {
           activeRef.current = false;
+          if (idleTimerRef.current) {
+            clearInterval(idleTimerRef.current);
+            idleTimerRef.current = null;
+          }
           setStatus("unavailable");
           logSystem(`mic error: ${message}`);
         },
@@ -636,6 +640,7 @@ export default function Home() {
         gladiaRef.current = null;
         return;
       }
+      if (idleTimerRef.current) clearInterval(idleTimerRef.current);
       idleTimerRef.current = setInterval(() => {
         if (!activeRef.current) return;
         if (Date.now() - lastFinalRef.current > IDLE_CUTOFF_MS) {
