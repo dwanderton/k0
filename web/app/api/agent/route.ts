@@ -67,7 +67,12 @@ const readVercelDoc = tool({
       return `[docs-cache HIT ${cacheKey}]\n\n${body}`;
     }
     try {
-      const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+      // miss-path pages cache 24h — an order tighter than the ≤7d staleness
+      // the weekly-refreshed bundled corpus already accepts
+      const res = await fetch(url, {
+        signal: AbortSignal.timeout(15000),
+        next: { revalidate: 86400 },
+      });
       if (!res.ok) return `Could not fetch ${url} (HTTP ${res.status}).`;
       const md = await res.text();
       // cap tool result — context budget
@@ -223,7 +228,9 @@ export async function POST(req: Request) {
   const probeSecret = process.env.SCORECARD_PROBE_SECRET;
   const isProbe =
     !!probeSecret && req.headers.get("x-k0-probe") === probeSecret;
-  if (!isProbe) {
+  // checkBotId() throws on local `next start` (off-Vercel) — enforce only
+  // where the challenge infrastructure exists
+  if (!isProbe && process.env.VERCEL) {
     const verdict = await checkBotId();
     if (verdict.isBot) {
       return Response.json({ error: "automated traffic" }, { status: 403 });

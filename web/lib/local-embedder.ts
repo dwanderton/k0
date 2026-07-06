@@ -4,6 +4,8 @@
  * warm instance. Model files VENDORED at web/models/, remote fetch disabled
  * — a deploy must never depend on the HF CDN at cold start.
  */
+// ONNX runtime must never reach a client bundle — poison client imports at build time
+import "server-only";
 import { pipeline, env } from "@huggingface/transformers";
 import { join } from "path";
 

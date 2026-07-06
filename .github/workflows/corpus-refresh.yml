@@ -62,7 +62,7 @@ jobs:
         run: |
           # pipefail: tee must not mask a failed gate
           set -euo pipefail
-          node scripts/eval-retriever.ts | tee /tmp/gate-local.txt
+          pnpm eval:retriever | tee /tmp/gate-local.txt
 
       - name: Eval gate — gateway backend
         env:
@@ -70,7 +70,7 @@ jobs:
           RETRIEVER_BACKEND: gateway
         run: |
           set -euo pipefail
-          node scripts/eval-retriever.ts | tee /tmp/gate-gateway.txt
+          pnpm eval:retriever | tee /tmp/gate-gateway.txt
 
       - name: Detect artifact changes
         id: diff
