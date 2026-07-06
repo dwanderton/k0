@@ -1,0 +1,79 @@
+# Hallucination gate + scorecard comment for PRs. Fires when Vercel reports
+# a successful Preview deployment, runs the scorecard against that exact
+# preview (RUNS=5, ~$0.04), fails the check if groundedness drops below 80%
+# or any control false-positive appears, and upserts one PR comment with the
+# full output either way.
+#
+# Required repo secrets:
+#   SCORECARD_PROBE_SECRET          — bypasses BotID + WAF rate limit
+#   VERCEL_AUTOMATION_BYPASS_SECRET — opens SSO-protected previews
+
+name: pr-scorecard
+
+on:
+  deployment_status: {}
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  gate:
+    if: github.event.deployment_status.state == 'success' && github.event.deployment.environment == 'Preview'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Find PR for this deployment
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PR=$(gh api "repos/${{ github.repository }}/commits/${{ github.event.deployment.sha }}/pulls" --jq '.[0].number' 2>/dev/null || true)
+          echo "number=$PR" >> "$GITHUB_OUTPUT"
+          if [ -z "$PR" ]; then echo "No PR for this deployment — skipping."; fi
+
+      - name: Scorecard against preview (gated)
+        if: steps.pr.outputs.number != ''
+        id: scorecard
+        env:
+          SCORECARD_PROBE_SECRET: ${{ secrets.SCORECARD_PROBE_SECRET }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          GATE: "1"
+          RUNS: "5"
+        run: |
+          set +e
+          node scorecard/run.mjs "${{ github.event.deployment_status.target_url }}" | tee /tmp/scorecard.md
+          echo "exit=$?" >> "$GITHUB_OUTPUT"
+
+      - name: Upsert PR comment with scorecard output
+        if: steps.pr.outputs.number != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo "<!-- k0-scorecard -->"
+            echo "### k0 scorecard — hallucination gate"
+            echo
+            echo "Preview: ${{ github.event.deployment_status.target_url }} · commit \`${{ github.event.deployment.sha }}\`"
+            echo
+            cat /tmp/scorecard.md
+          } > /tmp/comment.md
+          PR=${{ steps.pr.outputs.number }}
+          EXISTING=$(gh api "repos/${{ github.repository }}/issues/$PR/comments" --jq '.[] | select(.body | startswith("<!-- k0-scorecard -->")) | .id' | head -1)
+          if [ -n "$EXISTING" ]; then
+            gh api -X PATCH "repos/${{ github.repository }}/issues/comments/$EXISTING" -F body=@/tmp/comment.md > /dev/null
+          else
+            gh pr comment "$PR" --body-file /tmp/comment.md
+          fi
+
+      - name: Enforce gate
+        if: steps.pr.outputs.number != ''
+        run: exit ${{ steps.scorecard.outputs.exit }}

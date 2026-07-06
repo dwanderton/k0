@@ -23,9 +23,16 @@
 import { execSync } from "node:child_process";
 
 const BASE = process.argv[2] ?? "https://k0-omega.vercel.app";
-// the scorecard is a deliberate bot — SCORECARD_PROBE_SECRET bypasses BotID
+// the scorecard is a deliberate bot — SCORECARD_PROBE_SECRET bypasses
+// BotID + the WAF rate limit; VERCEL_AUTOMATION_BYPASS_SECRET opens
+// SSO-protected preview deployments (CI runs)
 const PROBE = process.env.SCORECARD_PROBE_SECRET;
-const PROBE_HEADERS = PROBE ? { "x-k0-probe": PROBE } : {};
+const PROBE_HEADERS = {
+  ...(PROBE ? { "x-k0-probe": PROBE } : {}),
+  ...(process.env.VERCEL_AUTOMATION_BYPASS_SECRET
+    ? { "x-vercel-protection-bypass": process.env.VERCEL_AUTOMATION_BYPASS_SECRET }
+    : {}),
+};
 const RUNS = Number(process.env.RUNS ?? 10);
 const CONC = Math.max(1, Number(process.env.CONC ?? 1));
 const NEG_RUNS = Math.max(3, Math.min(RUNS, 10));
@@ -240,7 +247,7 @@ console.log(`|---|---|---|---|---|---|---|---|---|`);
 const allCard = [];
 const allCost = [];
 const allCold = [];
-let allOk = 0, allN = 0, allGold = 0;
+let allOk = 0, allN = 0, allGold = 0, allGround = 0, allGroundN = 0;
 
 const pagePath = (source) =>
   source.replace(/^https?:\/\/vercel\.com\/docs\//, "").replace(/[#?].*$/, "").replace(/\/+$/, "");
@@ -274,6 +281,8 @@ for (const { text: phrase, gold } of PHRASES) {
   const sample = oks.slice(0, GROUND_SAMPLE);
   let g = 0;
   for (const r of sample) if (await grounded(r)) g++;
+  allGround += g;
+  allGroundN += sample.length;
 
   const errs = [...new Set(rs.filter((r) => !r.ok).map((r) => (r.none ? "NONE" : r.error)))];
   const failPct = (((rs.length - oks.length) / rs.length) * 100).toFixed(0);
@@ -304,4 +313,25 @@ if (allCold.length) {
   );
 }
 console.log(`\n**overall: ${allOk}/${allN} ok (${(((allN - allOk) / allN) * 100).toFixed(1)}% fail) · median time-to-card ${fmt(med(allCard))} · p95 ${fmt(p95(allCard))} (warm) · median cost/insight ${fmt$(med(allCost))} · total spend ${fmt$(allCost.reduce((a, b) => a + b, 0))}**`);
-console.log(`**gold-link precision: ${allOk ? `${allGold}/${allOk} (${((allGold / allOk) * 100).toFixed(0)}%)` : "—"} · controls: ${falsePos}/${negN} false positives**`);
+console.log(`**gold-link precision: ${allOk ? `${allGold}/${allOk} (${((allGold / allOk) * 100).toFixed(0)}%)` : "—"} · groundedness: ${allGroundN ? `${allGround}/${allGroundN}` : "—"} · controls: ${falsePos}/${negN} false positives**`);
+
+// GATE=1: hallucination gate for CI. Grounded quotes are the anti-
+// hallucination measure (QUOTE verbatim on the real page); control false
+// positives are the over-triggering measure. Either breach fails the run.
+if (process.env.GATE === "1") {
+  const groundFloorPct = Number(process.env.GATE_GROUND ?? 80);
+  const failCeilPct = Number(process.env.GATE_FAIL ?? 10);
+  const groundPct = allGroundN ? (allGround / allGroundN) * 100 : 0;
+  const failPct = allN ? ((allN - allOk) / allN) * 100 : 100;
+  const breaches = [];
+  if (groundPct < groundFloorPct)
+    breaches.push(`groundedness ${groundPct.toFixed(0)}% < ${groundFloorPct}% floor`);
+  if (falsePos > 0) breaches.push(`${falsePos} control false positive(s)`);
+  if (failPct > failCeilPct)
+    breaches.push(`fail rate ${failPct.toFixed(1)}% > ${failCeilPct}% ceiling`);
+  if (breaches.length) {
+    console.log(`\n**✗ GATE FAILED: ${breaches.join(" · ")}**`);
+    process.exit(1);
+  }
+  console.log(`\n**✓ gate passed: groundedness ${groundPct.toFixed(0)}% · 0 false positives · fail ${failPct.toFixed(1)}%**`);
+}
