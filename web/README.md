@@ -1,4 +1,7 @@
-# k0 — web
+<img width="445" height="121" alt="k0-header" src="https://github.com/user-attachments/assets/62dcb06a-8f1a-41e8-ba5a-ecfeea343c7c" />
+
+
+Live demo: **[k0-omega.vercel.app](https://k0-omega.vercel.app)**
 
 Live KB copilot for Vercel SAs. Mic → Gladia transcript → local retrieval → gpt-5.4-mini via AI Gateway → verbatim-quote card with `#:~:text=` highlight. Next.js 16, App Router, Vercel Functions Fluid compute.
 
@@ -11,7 +14,7 @@ pnpm build      # prod build (Turbopack)
 pnpm start      # serve prod build
 ```
 
-Needs `.env.local` (gitignored, never committed):
+Needs `.env.local` — `cp .env.template .env.local` and fill (gitignored, never committed):
 
 | var | for |
 |---|---|
