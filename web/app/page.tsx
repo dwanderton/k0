@@ -8,12 +8,8 @@ import {
 } from "@/lib/gladia-live";
 import { tidyTranscript, type Status } from "@/lib/call-shared";
 import { useCallSession } from "./use-call-session";
-import {
-  OfflineBanner,
-  SuggestionsPanel,
-  TracePanel,
-  TranscriptPanel,
-} from "./panels";
+import { OfflineBanner } from "./offline-banner";
+import { SuggestionsPanel, TracePanel, TranscriptPanel } from "./panels";
 
 export default function Home() {
   const session = useCallSession();
