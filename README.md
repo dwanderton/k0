@@ -132,6 +132,16 @@ carries the run-by-run evidence.
   → [loop outside the stream — route.ts#L353](web/app/api/agent/route.ts#L353-L355),
   [finish-after-disconnect — route.ts#L551](web/app/api/agent/route.ts#L551-L553),
   [the pipeline that went to Actions instead — corpus-refresh.yml](.github/workflows/corpus-refresh.yml)
+- **Why not build on Eve?** Eve is for agents that ARE the application —
+  long-lived sessions, rich tool orchestration, channels, subagents,
+  schedules. k0's agent is the opposite shape: a sub-second, streaming,
+  single-shot component inside a latency-critical UI — one retrieval, one
+  generation, one escape-hatch tool. The entire agent is a single
+  `streamText` call; a durable-agent runtime would put framework between
+  us and the stream and price every turn for capabilities k0 never uses.
+  (Eve's docs are in k0's corpus — it can quote them to you in 0.9s; it
+  just doesn't need to run on them.)
+  → [the whole agent — route.ts#L327](web/app/api/agent/route.ts#L327-L340)
 
 ### Safety
 
