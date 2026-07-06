@@ -4,10 +4,14 @@ import { checkBotId } from "botid/server";
  *  side — the returned WS URL embeds its own scoped auth, so the browser
  *  connects directly and PCM never proxies through us. */
 export async function POST(req: Request) {
-  // every mint spends our transcription minutes — bots don't get one
-  const verdict = await checkBotId();
-  if (verdict.isBot) {
-    return Response.json({ error: "automated traffic" }, { status: 403 });
+  // every mint spends our transcription minutes — bots don't get one.
+  // checkBotId() throws on local `next start` (off-Vercel) — enforce only
+  // where the challenge infrastructure exists
+  if (process.env.VERCEL) {
+    const verdict = await checkBotId();
+    if (verdict.isBot) {
+      return Response.json({ error: "automated traffic" }, { status: 403 });
+    }
   }
   const key = process.env.GLADIA_API_KEY;
   if (!key) {

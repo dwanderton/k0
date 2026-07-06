@@ -228,7 +228,9 @@ export async function POST(req: Request) {
   const probeSecret = process.env.SCORECARD_PROBE_SECRET;
   const isProbe =
     !!probeSecret && req.headers.get("x-k0-probe") === probeSecret;
-  if (!isProbe) {
+  // checkBotId() throws on local `next start` (off-Vercel) — enforce only
+  // where the challenge infrastructure exists
+  if (!isProbe && process.env.VERCEL) {
     const verdict = await checkBotId();
     if (verdict.isBot) {
       return Response.json({ error: "automated traffic" }, { status: 403 });
