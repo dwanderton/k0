@@ -67,65 +67,26 @@ MiniLM was auditioned first for the in-process embedding slot and failed (hit@1 
 - **Why two embedding models with two committed indexes?** 
 In-process `Xenova/bge-small-en-v1.5` (~5ms, $0) serves; `openai/text-embedding-3-small` via the gateway is the fallback with its own index — different models with different dimensionality can't share vectors, and each gets its own empirically calibrated floors. → [`TUNING` — retriever.ts#L50](web/lib/retriever.ts#L50-L53)
 
-
-# TODO
 ### Cost / latency tradeoffs
 
-- **Why does silence auto-stop the mic?** Transcription bills per listening
-  minute — ~97% of marginal cost — so silence costs the same as speech; ten
-  idle minutes bounds the worst-case spend per session.
-  → [`IDLE_CUTOFF_MS` — page.tsx#L26](web/app/page.tsx#L26),
-  [cost model — SCORECARD.md](scorecard/SCORECARD.md)
-- **Why is the big index int8 and the small one uncompressed?** Compression
-  has a third axis: decode CPU. int8 shrank the fallback index 81→13MB (a
-  size gate), while brotli on float vectors saved only ~10% but cost ~300ms
-  every cold start — so the hot index ships raw.
-  → [int8 dequant — retriever.ts#L126](web/lib/retriever.ts#L126-L128)
+- **Why does silence auto-stop the mic?** 
+Unlike in-browser transcription, Gladia bills per listening minute; silence costs the same as speech. Ten idle minutes bounds the worst-case spend per session. Previously I used browser transcript in chrome, however, in order to provide mobile support and improve the accuracy of utterences leading to false NONE responses from the agent Gladia was selected. → [`IDLE_CUTOFF_MS` — page.tsx#L26](web/app/page.tsx#L26), [cost model — SCORECARD.md](scorecard/SCORECARD.md)
+
+- **Why is the big index int8 and the small one uncompressed?** Compression has a cost. CPU used to decode. int8 shrank the high dimension fallback index from 81→13MB, while brotli on float vectors saved only ~10% on size but cost ~300ms every cold start to load into memory. Therefor I ship the hot index raw. → [int8 dequant — retriever.ts#L126](web/lib/retriever.ts#L126-L128)
 
 - **Why no vector DB?** 
-Real-time means minimizing network hops. At ~19k
-  rows a brute-force scan over the committed in-memory index takes
-  ~10–25ms with perfect recall — a vector DB would add a network RTT
-  larger than the entire search, on every single utterance. The whole
-  retrieval hot path is zero-network: query embeds in-process (~5ms),
-  index lives in instance memory. Approximate Nearest Neighbor trades accuracy for speed - at this scale we don't need to make that trade.
-  → [retriever.ts#L1](web/lib/retriever.ts#L1-L8)
-- **Why is the entire docs corpus a file in the bundle?** Same principle,
-  applied to page text: docs-cache.br ships inside the function, so
-  `read_vercel_doc` serves full pages from the filesystem instead of
-  fetching vercel.com mid-call — the network is reserved for the one hop
-  that earns it (the LLM). Freshness comes from weekly gated deploys, not
-  runtime crawls.
-  → [bundled cache — docs-cache.ts#L64](web/lib/docs-cache.ts#L64-L66),
-  [cache-first read — route.ts#L59](web/app/api/agent/route.ts#L59-L67)
-- **Why a warm-up ping?** The one-time init is paid during the dead air
-  after Start Listening — first card ~0.9s instead of ~6s. Cold starts are
-  split out of every latency number (the ❄ discipline) so the tail never
-  lies about the median. → [SCORECARD.md method](scorecard/SCORECARD.md)
-- **Why not Vercel Workflows for the agent turn?** WDK's durability is
-  bought with checkpoints — persisted state at every step boundary, on
-  100% of turns, to insure a crash that hits well under 0.1% of them —
-  and step-oriented execution fights token streaming, which the sub-second
-  card depends on. The hand-rolled equivalent covers the failure that
-  actually happens: the agent loop lives outside the response stream, so a
-  client disconnect cancels *delivery*, not *work* — the turn finishes
-  under `after()` and the card parks for reconnect backfill (proven by
-  aborting a client 1.0s into a 2.4s turn). Workflows was also weighed for
-  the weekly corpus pipeline and lost to a GitHub Action for a different
-  reason: the pipeline's outputs are git-LFS artifacts, and git lives on
-  the Actions side.
-  → [loop outside the stream — route.ts#L353](web/app/api/agent/route.ts#L353-L355),
-  [finish-after-disconnect — route.ts#L551](web/app/api/agent/route.ts#L551-L553),
-  [the pipeline that went to Actions instead — corpus-refresh.yml](.github/workflows/corpus-refresh.yml)
-- **Why not build on Eve?** Eve is for agents that ARE the application —
-  long-lived sessions, rich tool orchestration, channels, subagents,
-  schedules. k0's agent is the opposite shape: a sub-second, streaming,
-  single-shot component inside a latency-critical UI — one retrieval, one
-  generation, one escape-hatch tool. The entire agent is a single
-  `streamText` call; a durable-agent runtime would put framework between
-  us and the stream and price every turn for capabilities k0 never uses.
-  (Eve's docs are in k0's corpus — it can quote them to you in 0.9s; it
-  just doesn't need to run on them.)
+Real-time means minimizing network hops. At just under 20k rows a brute-force scan over the committed in-memory index takes less than 25ms with perfect recall. A vector DB would add a network RTT larger than the entire search, on every single utterance. Approximate Nearest Neighbor search algos trades accuracy for speed both in vector dbs and locally. At this scale we don't need to make that trade. The whole retrieval hot path is zero-network: query embeds in-process (~5ms), index lives in instance memory. → [retriever.ts#L1](web/lib/retriever.ts#L1-L8)
+
+- **Why is the entire docs corpus a file in the bundle?** Same principle, applied to page text: docs-cache.br ships inside the function, so  `read_vercel_doc` serves full pages from the filesystem instead of fetching vercel.com mid-call. Network is reserved for the one hop
+  that earns it - the LLM. Freshness comes from weekly (arbitrary for demo) gated deploys, not runtime crawls. → [bundled cache — docs-cache.ts#L64](web/lib/docs-cache.ts#L64-L66), [cache-first read — route.ts#L59](web/app/api/agent/route.ts#L59-L67)
+
+- **Why a warm-up ping?** 
+The one-time cold start init of around 3-5s is paid during the dead air after the "Start Listening" click. This leads first card ~0.9s instead of ~6s. Cold starts are split out of every latency number (the ❄ discipline) so the tail never lies about the median. → [SCORECARD.md method](scorecard/SCORECARD.md)
+
+- **Why not Vercel Workflows for the agent turn?** 
+WDK's durability is bought with checkpoints — persisted state at every step boundary, on 100% of turns, to insure a crash that hits well under 0.01% of them — and step-oriented execution fights token streaming, which the sub-second card depends on. The hand-rolled equivalent covers the failure that actually happens: the agent loop lives outside the response stream, so a client disconnect cancels *delivery*, not *work*. The turn finishes under `after()` and the card parks for reconnect backfill (smoke tested by aborting a client 1.0s into a 2.4s turn). Workflows was also weighed for the weekly corpus pipeline and lost to a GitHub Action for a different reason: today the pipeline's outputs are git-LFS artifacts to keep in filesystem, and git lives on the Actions side. → [loop outside the stream — route.ts#L353](web/app/api/agent/route.ts#L353-L355), [finish-after-disconnect — route.ts#L551](web/app/api/agent/route.ts#L551-L553), [the pipeline that went to Actions instead — corpus-refresh.yml](.github/workflows/corpus-refresh.yml)
+
+- **Why not build on Eve?** Eve thrives with long-lived sessions, rich tool orchestration, channels, subagents, and schedules. Today k0's agent is a slightly different shape: a sub-second, streaming, single-shot component inside a latency-critical UI — one retrieval, one generation, one escape-hatch tool. The entire agent is a single `streamText` call. However, fundatmentally this take home has proven the value that Eve is build to deliver, especially around step level agentic observability. Our hand-rolled agent using the AI SDK and Gateway falls short of what Eve could deliver out of the box.
   → [the whole agent — route.ts#L327](web/app/api/agent/route.ts#L327-L340)
 
 ### Safety
