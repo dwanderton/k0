@@ -1,36 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# k0 — web
 
-## Getting Started
+Live KB copilot for Vercel SAs. Mic → Gladia transcript → local retrieval → gpt-5.4-mini via AI Gateway → verbatim-quote card with `#:~:text=` highlight. Next.js 16, App Router, Fluid compute.
 
-First, run the development server:
+## Run
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
+pnpm dev        # http://localhost:3000
+pnpm build      # prod build (Turbopack)
+pnpm start      # serve prod build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Needs `.env.local` (gitignored, never committed):
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| var | for |
+|---|---|
+| `GLADIA_API_KEY` | live transcription session mint |
+| `VERCEL_MCP_TOKEN` | MCP search fallback when retrieval fails |
+| `BLOB_READ_WRITE_TOKEN` | session card parking (`k0-sessions` store) |
+| `SCORECARD_PROBE_SECRET` | scorecard bypass of BotID + rate limit |
+| `VERCEL_OIDC_TOKEN` | AI Gateway auth locally — `vercel env pull` refreshes (~24h) |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Chrome/Safari + mic. BotID no-ops off-Vercel — local dev unaffected.
 
-## Learn More
+## Data pipeline
 
-To learn more about Next.js, take a look at the following resources:
+Committed artifacts (LFS) ship with deploys — runtime never crawls:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+pnpm build:docs-cache              # additive crawl → docs-cache.br
+REFRESH=1 pnpm build:docs-cache    # weekly mode — re-crawl all, prune dead pages
+pnpm build:embeddings              # gateway index (te3-small, int8) — costs ~cents
+pnpm build:embeddings-local        # in-process index (bge-small) — $0
+node scripts/eval-retriever.ts     # gate: hit@1 ≥4/5, hit@3 5/5. Run after any index change
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Weekly refresh runs itself: `.github/workflows/corpus-refresh.yml` crawls, embeds, gates, opens PR. Human merges.
 
-## Deploy on Vercel
+## Quality
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+node ../scorecard/run.mjs                    # 10x per phrase vs prod
+node ../scorecard/run.mjs http://localhost:3000
+GATE=1 RUNS=5 node ../scorecard/run.mjs      # CI mode — exit 1 on groundedness/false-positive breach
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+History + method: `../scorecard/SCORECARD.md`. Append-only — every agent change gets a run.
+
+## Map
+
+- `app/page.tsx` — call cockpit: transcript, cards, session restore, offline banner
+- `app/api/agent/route.ts` — retrieval → model → card; NONE-retry escalates to gpt-5.4; parks cards for reconnect
+- `app/api/transcribe-session/route.ts` — Gladia session mint (key stays server-side)
+- `app/api/session/[id]/route.ts` — backfill parked cards on resume
+- `lib/retriever.ts` — brute-force cosine, two backends, no vector DB
+- `lib/chunker.ts` — deterministic page → chunks; idx anchors additive rebuilds
+- `lib/gladia-live.ts` — mic → 16kHz PCM worklet → WS
+- `lib/session-store.ts` — Blob card parking
