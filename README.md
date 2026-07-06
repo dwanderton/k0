@@ -31,6 +31,19 @@ carries the run-by-run evidence.
 
 ### Context selection
 
+- **Why traditional RAG instead of handing the model a search tool?** k0
+  shipped the other way first — an MCP search tool the model invoked at
+  will — and the scorecard killed it: 3.2s median cards (the decide →
+  search → read → answer round-trips), 55–60% gold with misrouting as the
+  dominant defect, and a step cap that existed purely to stop search
+  loops. Pre-call retrieval made the decision infrastructure instead of
+  tokens: every finalized utterance gets top-k injected before the first
+  model turn — 1.1s median, gold 77%→100%, and the retrieval stage became
+  offline-testable (hit@1/hit@3 gate) independently of the model. The
+  model keeps one tool (`read_vercel_doc`) for the case where judgment
+  helps: the excerpt lacks the exact quotable sentence.
+  → [pre-call retrieval — route.ts#L267](web/app/api/agent/route.ts#L267-L268),
+  [the before/after runs — SCORECARD.md (PR #6 vs #8)](scorecard/SCORECARD.md)
 - **Why does confidence shrink the context?** Above 0.95 relevance the
   second excerpt is ~900 tokens of dead prefill — measured −74% on the
   dominant-retrieval phrase.
