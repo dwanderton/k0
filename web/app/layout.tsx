@@ -4,10 +4,26 @@ import { GeistMono } from "geist/font/mono";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
+// the pitch, verbatim from the root README
+const description =
+  'k0 listens to your side of a live customer call and surfaces the right knowledge-base passage as you speak. Restate the customer\'s question aloud and the answer lands on screen, highlighted and sourced, before you say "let me check."';
+
 export const metadata: Metadata = {
+  metadataBase: new URL("https://k0-omega.vercel.app"),
   title: "k0",
-  description:
-    "k0 listens to your side of a live customer call and surfaces the right knowledge-base passage as you speak.",
+  description,
+  openGraph: {
+    title: "k0 — knowledge that follows your voice",
+    description,
+    url: "/",
+    siteName: "k0",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "k0 — knowledge that follows your voice",
+    description,
+  },
 };
 
 export default function RootLayout({
