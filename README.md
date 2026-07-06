@@ -1,4 +1,4 @@
-# k0
+<img width="587" height="114" alt="k0-header" src="https://github.com/user-attachments/assets/9fbbe58b-9628-4fb5-b543-2e693701704b" />
 
 k0 listens to your side of a live customer call and surfaces the right knowledge-base passage as you speak. Restate the customer's question aloud and the answer lands on screen, highlighted and sourced, before you say "let me check."
 
