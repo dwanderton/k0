@@ -11,7 +11,7 @@ pnpm build      # prod build (Turbopack)
 pnpm start      # serve prod build
 ```
 
-Needs `.env.local` (gitignored, never committed):
+Needs `.env.local` — `cp .env.template .env.local` and fill (gitignored, never committed):
 
 | var | for |
 |---|---|
