@@ -44,6 +44,17 @@ carries the run-by-run evidence.
   helps: the excerpt lacks the exact quotable sentence.
   → [pre-call retrieval — route.ts#L267](web/app/api/agent/route.ts#L267-L268),
   [the before/after runs — SCORECARD.md (PR #6 vs #8)](scorecard/SCORECARD.md)
+- **Why not just use Vercel's MCP `search_vercel_documentation` tool?**
+  Two disqualifiers, both structural. Quality: MCP search returns
+  synthesized snippet captions, not page text — a quote grounded in a
+  caption never appears on the real page, so the `#:~:text=` highlight
+  never lands, which breaks k0's core contract. Latency: 0.5–1.5s RTT per
+  call, inside a model turn, on a sub-second budget. It also misrouted —
+  the preview-deployments gold page is one MCP search never found across
+  100 probes. It's retired, not deleted: a FAILED retriever (not an empty
+  result) re-enables it as the disaster-recovery search for that request.
+  → [why captions can't quote — route.ts#L12](web/app/api/agent/route.ts#L12-L13),
+  [the recovery rung — route.ts#L294](web/app/api/agent/route.ts#L294-L296)
 - **Why does confidence shrink the context?** Above 0.95 relevance the
   second excerpt is ~900 tokens of dead prefill — measured −74% on the
   dominant-retrieval phrase.
@@ -106,6 +117,21 @@ carries the run-by-run evidence.
   after Start Listening — first card ~0.9s instead of ~6s. Cold starts are
   split out of every latency number (the ❄ discipline) so the tail never
   lies about the median. → [SCORECARD.md method](scorecard/SCORECARD.md)
+- **Why not Vercel Workflows for the agent turn?** WDK's durability is
+  bought with checkpoints — persisted state at every step boundary, on
+  100% of turns, to insure a crash that hits well under 0.1% of them —
+  and step-oriented execution fights token streaming, which the sub-second
+  card depends on. The hand-rolled equivalent covers the failure that
+  actually happens: the agent loop lives outside the response stream, so a
+  client disconnect cancels *delivery*, not *work* — the turn finishes
+  under `after()` and the card parks for reconnect backfill (proven by
+  aborting a client 1.0s into a 2.4s turn). Workflows was also weighed for
+  the weekly corpus pipeline and lost to a GitHub Action for a different
+  reason: the pipeline's outputs are git-LFS artifacts, and git lives on
+  the Actions side.
+  → [loop outside the stream — route.ts#L353](web/app/api/agent/route.ts#L353-L355),
+  [finish-after-disconnect — route.ts#L551](web/app/api/agent/route.ts#L551-L553),
+  [the pipeline that went to Actions instead — corpus-refresh.yml](.github/workflows/corpus-refresh.yml)
 
 ### Safety
 
