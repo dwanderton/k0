@@ -38,8 +38,11 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # before the crawl so a failed gate later never skips the sweep
+      # before the crawl so a failed gate later never skips the sweep;
+      # best-effort — a Blob blip must not kill the corpus refresh (the
+      # step still annotates red, and next week retries)
       - name: Prune session blobs older than 7 days
+        continue-on-error: true
         env:
           BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
         run: node scripts/prune-session-blobs.mjs
