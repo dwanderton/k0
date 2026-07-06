@@ -1,4 +1,5 @@
-# k0 — web
+<img width="445" height="121" alt="k0-header" src="https://github.com/user-attachments/assets/62dcb06a-8f1a-41e8-ba5a-ecfeea343c7c" />
+
 
 Live demo: **[k0-omega.vercel.app](https://k0-omega.vercel.app)**
 
