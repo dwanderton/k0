@@ -1,7 +1,14 @@
+import { checkBotId } from "botid/server";
+
 /** Mints a Gladia live-transcription session. The admin key stays server
  *  side — the returned WS URL embeds its own scoped auth, so the browser
  *  connects directly and PCM never proxies through us. */
 export async function POST(req: Request) {
+  // every mint spends our transcription minutes — bots don't get one
+  const verdict = await checkBotId();
+  if (verdict.isBot) {
+    return Response.json({ error: "automated traffic" }, { status: 403 });
+  }
   const key = process.env.GLADIA_API_KEY;
   if (!key) {
     return Response.json({ error: "GLADIA_API_KEY unset" }, { status: 503 });
