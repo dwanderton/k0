@@ -330,6 +330,11 @@ export default function Home() {
   const [view, setView] = useState(0); // index of the card on screen
   const [following, setFollowing] = useState(true); // carousel keeps up with live
   const gladiaRef = useRef<GladiaHandle | null>(null);
+  // transcription bills per LISTENING minute — silence costs the same as
+  // speech, so 10 idle minutes auto-stop the session; restart mints a new one
+  const IDLE_CUTOFF_MS = 10 * 60 * 1000;
+  const lastFinalRef = useRef(0);
+  const idleTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // per-tab session id (sessionStorage) — two tabs write two snapshot keys
   // instead of fighting over one
   const sessionIdRef = useRef("");
@@ -360,6 +365,7 @@ export default function Home() {
   useEffect(() => {
     return () => {
       activeRef.current = false;
+      if (idleTimerRef.current) clearInterval(idleTimerRef.current);
       gladiaRef.current?.stop();
       inflightRef.current.forEach((c) => c.abort());
     };
@@ -605,11 +611,13 @@ export default function Home() {
   async function startGladia() {
     setStatus("listening");
     activeRef.current = true;
+    lastFinalRef.current = Date.now();
     fireWarmup();
     try {
       gladiaRef.current = await startGladiaLive({
         sessionId: sessionIdRef.current,
         onFinal: (raw) => {
+          lastFinalRef.current = Date.now();
           const text = tidyTranscript(raw);
           if (text)
             setSegments((s) => [...s, { id: s.length, at: clock(), text }]);
@@ -626,7 +634,17 @@ export default function Home() {
         // user hit Stop while the session was still minting
         gladiaRef.current?.stop();
         gladiaRef.current = null;
+        return;
       }
+      idleTimerRef.current = setInterval(() => {
+        if (!activeRef.current) return;
+        if (Date.now() - lastFinalRef.current > IDLE_CUTOFF_MS) {
+          logSystem(
+            "mic idle for 10 minutes — transcription stopped to save cost; press Start Listening to resume",
+          );
+          stop();
+        }
+      }, 30_000);
     } catch (err) {
       activeRef.current = false;
       if ((err as Error).name === "NotAllowedError") {
@@ -652,6 +670,10 @@ export default function Home() {
 
   function stop() {
     activeRef.current = false;
+    if (idleTimerRef.current) {
+      clearInterval(idleTimerRef.current);
+      idleTimerRef.current = null;
+    }
     gladiaRef.current?.stop();
     gladiaRef.current = null;
     setInterim("");
