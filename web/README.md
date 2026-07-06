@@ -19,7 +19,7 @@ Needs `.env.local` (gitignored, never committed):
 | `VERCEL_MCP_TOKEN` | MCP search fallback when retrieval fails |
 | `BLOB_READ_WRITE_TOKEN` | session card parking (`k0-sessions` store) |
 | `SCORECARD_PROBE_SECRET` | scorecard bypass of BotID + rate limit |
-| `VERCEL_OIDC_TOKEN` | AI Gateway auth locally — `vercel env pull` refreshes (~24h) |
+| `AI_GATEWAY_API_KEY` | AI Gateway auth (falls back to `VERCEL_OIDC_TOKEN` if unset) |
 
 Chrome/Safari + mic. BotID no-ops off-Vercel — local dev unaffected.
 
