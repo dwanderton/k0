@@ -44,6 +44,13 @@ whole point. Add new phrases as NEW rows alongside the old, never replace.
   blend cold into p95 — compare tails accordingly.
 - Failures counted in `ok`, never dropped. `NONE` = agent judged no doc
   applies; that's a cue-phrase miss, not an API failure.
+- **transcription $/hr** (PR #20 / Gladia-only onward) — a fixed known, not
+  a probe measurement: Gladia real-time bills **$0.75/audio-hour** (list
+  price; volume tiers to ~$0.25) per LISTENING minute, independent of cards. The
+  probe hits `/api/agent` directly, so cost/insight columns are LLM-only;
+  on a realistic call transcription is ~97% of marginal cost (~$0.06/insight
+  at 12 cards/hr vs ~$0.0015 LLM). Idle cutoff (10 min without a finalized
+  utterance auto-stops the session) bounds the silence spend.
 - **ground** = ANCHOR inside QUOTE *and* QUOTE on the real `.md` page —
   judged on rendered words (markdown links/backticks/pipes/table rows
   stripped from both sides), passing on direct substring or ≥80% coverage
