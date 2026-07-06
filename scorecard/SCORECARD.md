@@ -61,6 +61,7 @@ whole point. Add new phrases as NEW rows alongside the old, never replace.
 | 2026-07-04 | in-process index (bge-small, local model) — full builds ×2 | 0 (local) | $0 |
 | 2026-07-05 | additive: nextjs-docs source (470 pages → 3,243 new chunks, 19,395 rows) | +867,464 | $0.1302 cumulative |
 | 2026-07-05 | int8 requantize of gateway index (P002 size gate: 92.6MB br → 13.0MB) + local index stored raw — all vectors reused | 0 | $0.1302 cumulative |
+| 2026-07-06 | weekly-refresh dry run — re-crawl ALL sources with replace semantics (3,202 → 3,196 pages; dead pages pruned), 174 changed chunks | +46,391 | $0.1311 cumulative |
 
 Additive rebuilds append rows here; the meta file carries the same running
 total. Query-time embedding costs ride the per-run cost/insight column.

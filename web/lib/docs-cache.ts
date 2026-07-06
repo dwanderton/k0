@@ -162,8 +162,11 @@ async function saveCache(allPages: Map<string, string>): Promise<void> {
   );
 }
 
-export async function buildAndSaveCache(): Promise<void> {
-  console.log("Building documentation cache (additive)...");
+export async function buildAndSaveCache(
+  opts: { refresh?: boolean } = {},
+): Promise<void> {
+  const { refresh = false } = opts;
+  console.log(`Building documentation cache (${refresh ? "refresh" : "additive"})...`);
   const startTime = Date.now();
   const DELAY_BETWEEN_SOURCES = 1000;
 
@@ -174,16 +177,30 @@ export async function buildAndSaveCache(): Promise<void> {
     const already = [...allPages.keys()].some((k) =>
       k.startsWith(`${source.name}:`),
     );
-    if (already) {
+    if (already && !refresh) {
       console.log(`\n${source.name}: already cached — skipping`);
       continue;
     }
 
     console.log(`\nFetching ${source.name}...`);
-    const { fetched, failed, aborted } = await fetchSource(source, allPages);
+    // refresh re-crawls into a fresh map: on success the source's pages are
+    // REPLACED wholesale (dead pages drop out); an aborted crawl keeps the
+    // old pages — a flaky site never nukes its corpus
+    const target = refresh ? new Map<string, string>() : allPages;
+    const { fetched, failed, aborted } = await fetchSource(source, target);
     console.log(
       `  ${source.name}: +${fetched} pages, ${failed} failed${aborted ? " (aborted early)" : ""}`,
     );
+    if (refresh) {
+      if (aborted || fetched === 0) {
+        console.log(`  ${source.name}: keeping ${[...allPages.keys()].filter((k) => k.startsWith(`${source.name}:`)).length} previously cached pages`);
+      } else {
+        for (const k of [...allPages.keys()]) {
+          if (k.startsWith(`${source.name}:`)) allPages.delete(k);
+        }
+        for (const [k, v] of target) allPages.set(k, v);
+      }
+    }
 
     // checkpoint after every source — a later source dying costs nothing
     await saveCache(allPages);
