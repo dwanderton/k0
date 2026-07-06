@@ -7,9 +7,13 @@ import {
   type GladiaHandle,
 } from "@/lib/gladia-live";
 import { tidyTranscript, type Status } from "@/lib/call-shared";
-import { useCallSession } from "./use-call-session";
-import { OfflineBanner } from "./offline-banner";
-import { SuggestionsPanel, TracePanel, TranscriptPanel } from "./panels";
+import { useCallSession } from "./_cockpit/use-call-session";
+import { OfflineBanner } from "./_cockpit/offline-banner";
+import {
+  SuggestionsPanel,
+  TracePanel,
+  TranscriptPanel,
+} from "./_cockpit/panels";
 
 export default function Home() {
   const session = useCallSession();
@@ -140,6 +144,16 @@ export default function Home() {
         </h1>
       </header>
 
+      <button
+        type="button"
+        onClick={toggleListening}
+        className={`mb-4.5 rounded-lg px-4 py-2.75 text-sm font-semibold text-white ${
+          listening ? "bg-live hover:opacity-90" : "bg-ink hover:bg-[#333]"
+        }`}
+      >
+        {listening ? "Stop Listening" : "Start Listening"}
+      </button>
+
       <div className="grid grid-cols-1 gap-4.5 md:grid-cols-2">
         {/* dev visual aid — the transcript feeds the agent */}
         <TranscriptPanel
@@ -149,7 +163,6 @@ export default function Home() {
           resumeOffer={session.resumeOffer}
           onResume={session.resumeSession}
           onStartFresh={session.startFresh}
-          onToggleListening={toggleListening}
         />
         <SuggestionsPanel
           cards={session.cards}

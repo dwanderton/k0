@@ -24,7 +24,6 @@ export const TranscriptPanel = memo(function TranscriptPanel({
   resumeOffer,
   onResume,
   onStartFresh,
-  onToggleListening,
 }: {
   segments: Segment[];
   interim: string;
@@ -32,9 +31,7 @@ export const TranscriptPanel = memo(function TranscriptPanel({
   resumeOffer: SessionSnapshot | null;
   onResume: (snap: SessionSnapshot) => void;
   onStartFresh: () => void;
-  onToggleListening: () => void;
 }) {
-  const listening = status === "listening";
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
@@ -46,7 +43,7 @@ export const TranscriptPanel = memo(function TranscriptPanel({
       className="flex min-h-105 flex-col rounded-[10px] border border-line bg-card"
     >
       <div className="flex items-center justify-between gap-2.5 border-b border-line px-3.5 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-muted">
-        <span>Live call — your side (SA mic · gladia)</span>
+        <span>Live call — your side</span>
         <span className="tabular-nums">{segments.length} lines</span>
       </div>
       <div
@@ -117,15 +114,6 @@ export const TranscriptPanel = memo(function TranscriptPanel({
             </div>
           </div>
         ) : null}
-        <button
-          type="button"
-          onClick={onToggleListening}
-          className={`mt-auto self-start rounded-lg px-4 py-2.75 text-sm font-semibold text-white ${
-            listening ? "bg-live hover:opacity-90" : "bg-ink hover:bg-[#333]"
-          }`}
-        >
-          {listening ? "Stop Listening" : "Start Listening"}
-        </button>
       </div>
     </section>
   );

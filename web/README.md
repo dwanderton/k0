@@ -32,7 +32,7 @@ pnpm build:docs-cache              # additive crawl → docs-cache.br
 REFRESH=1 pnpm build:docs-cache    # weekly mode — re-crawl all, prune dead pages
 pnpm build:embeddings              # gateway index (te3-small, int8) — costs ~cents
 pnpm build:embeddings-local        # in-process index (bge-small) — $0
-node scripts/eval-retriever.ts     # gate: hit@1 ≥4/5, hit@3 5/5. Run after any index change
+pnpm eval:retriever                # gate: hit@1 ≥4/5, hit@3 5/5. Run after any index change
 ```
 
 Weekly refresh runs itself: `.github/workflows/corpus-refresh.yml` crawls, embeds, gates, opens PR. Human merges.

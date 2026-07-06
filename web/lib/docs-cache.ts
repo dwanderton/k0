@@ -5,6 +5,8 @@
  * WITHOUT losing fetched pages. The .br is committed — deploys never build
  * it. Load: decompress once per warm instance.
  */
+// fs + zlib must never reach a client bundle — poison client imports at build time
+import "server-only";
 import { writeFile, readFile } from "fs/promises";
 import { join } from "path";
 // node:zlib brotli — same shape as the `brotli` npm package, no extra dep

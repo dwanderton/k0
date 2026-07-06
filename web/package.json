@@ -10,9 +10,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "build:docs-cache": "node scripts/build-docs-cache.ts",
-    "build:embeddings": "node scripts/build-embeddings.ts",
-    "build:embeddings-local": "node scripts/build-embeddings-local.ts"
+    "build:docs-cache": "node --conditions=react-server scripts/build-docs-cache.ts",
+    "build:embeddings": "node --conditions=react-server scripts/build-embeddings.ts",
+    "build:embeddings-local": "node --conditions=react-server scripts/build-embeddings-local.ts",
+    "eval:retriever": "node --conditions=react-server scripts/eval-retriever.ts"
   },
   "dependencies": {
     "@ai-sdk/mcp": "^2.0.5",
@@ -26,6 +27,7 @@
     "next": "16.2.10",
     "react": "19.2.7",
     "react-dom": "19.2.7",
+    "server-only": "^0.0.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {

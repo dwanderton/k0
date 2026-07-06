@@ -6,6 +6,8 @@
  * text-embedding-3-small (~320ms hop) as fallback. Indexes and corpus load
  * once per warm instance.
  */
+// fs + the ONNX chain must never reach a client bundle — poison client imports at build time
+import "server-only";
 import { readFile } from "fs/promises";
 import { join } from "path";
 import { brotliDecompress } from "zlib";

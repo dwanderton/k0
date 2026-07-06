@@ -6,6 +6,8 @@
  * Store is private Vercel Blob — one JSON blob per turn, no
  * read-modify-write races between concurrent turns.
  */
+// blob token must never reach a client bundle — poison client imports at build time
+import "server-only";
 import { put, list } from "@vercel/blob";
 
 export interface ParkedCard {
