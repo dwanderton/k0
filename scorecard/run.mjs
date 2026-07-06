@@ -287,7 +287,7 @@ for (const { text: phrase, gold } of PHRASES) {
   const errs = [...new Set(rs.filter((r) => !r.ok).map((r) => (r.none ? "NONE" : r.error)))];
   const failPct = (((rs.length - oks.length) / rs.length) * 100).toFixed(0);
   console.log(
-    `| ${phrase.slice(0, 40)} | ${oks.length}/${rs.length}${errs.length ? ` (${errs.join("; ").slice(0, 30)})` : ""}${colds.length ? ` ❄${colds.length}` : ""} | ${failPct}% | ${fmt(med(cards))} | ${fmt(p95(cards))} | ${fmt$(med(costs))} | ${g}/${sample.length} | ${oks.length ? `${goldHits}/${oks.length}` : "—"} | ${top ? `${top[0].replace("https://vercel.com/docs/", "")} ×${top[1]}` : "—"} |`,
+    `| ${phrase} | ${oks.length}/${rs.length}${errs.length ? ` (${errs.join("; ").slice(0, 30)})` : ""}${colds.length ? ` ❄${colds.length}` : ""} | ${failPct}% | ${fmt(med(cards))} | ${fmt(p95(cards))} | ${fmt$(med(costs))} | ${g}/${sample.length} | ${oks.length ? `${goldHits}/${oks.length}` : "—"} | ${top ? `[${top[0].replace(/^https?:\/\/[^/]+\/docs\//, "")}](${top[0]}) ×${top[1]}` : "—"} |`,
   );
 }
 
