@@ -86,24 +86,15 @@ The one-time cold start init of around 3-5s is paid during the dead air after th
 - **Why not Vercel Workflows for the agent turn?** 
 WDK's durability is bought with checkpoints — persisted state at every step boundary, on 100% of turns, to insure a crash that hits well under 0.01% of them — and step-oriented execution fights token streaming, which the sub-second card depends on. The hand-rolled equivalent covers the failure that actually happens: the agent loop lives outside the response stream, so a client disconnect cancels *delivery*, not *work*. The turn finishes under `after()` and the card parks for reconnect backfill (smoke tested by aborting a client 1.0s into a 2.4s turn). Workflows was also weighed for the weekly corpus pipeline and lost to a GitHub Action for a different reason: today the pipeline's outputs are git-LFS artifacts to keep in filesystem, and git lives on the Actions side. → [loop outside the stream — route.ts#L353](web/app/api/agent/route.ts#L353-L355), [finish-after-disconnect — route.ts#L551](web/app/api/agent/route.ts#L551-L553), [the pipeline that went to Actions instead — corpus-refresh.yml](.github/workflows/corpus-refresh.yml)
 
-- **Why not build on Eve?** Eve thrives with long-lived sessions, rich tool orchestration, channels, subagents, and schedules. Today k0's agent is a slightly different shape: a sub-second, streaming, single-shot component inside a latency-critical UI — one retrieval, one generation, one escape-hatch tool. The entire agent is a single `streamText` call. However, fundatmentally this take home has proven the value that Eve is build to deliver, especially around step level agentic observability. Our hand-rolled agent using the AI SDK and Gateway falls short of what Eve could deliver out of the box.
-  → [the whole agent — route.ts#L327](web/app/api/agent/route.ts#L327-L340)
+- **Why not build on Eve?** Eve thrives with long-lived sessions, rich tool orchestration, channels, subagents, and schedules. Today k0's agent is a slightly different shape: a sub-second, streaming, single-shot component inside a latency-critical UI — one retrieval, one generation, one escape-hatch tool. The entire agent is a single `streamText` call. However, fundatmentally this take home has proven the value that Eve is build to deliver, especially around step level agentic observability. Our hand-rolled agent using the AI SDK and Gateway falls short of what Eve could deliver out of the box. → [the whole agent — route.ts#L327](web/app/api/agent/route.ts#L327-L340)
 
 ### Safety
 
-- **Where is the bot boundary, and why there?** BotID guards exactly the two
-  routes where a request converts into spend (LLM tokens, transcription
-  minutes); a WAF rule (30 req/60s per IP — platform config, not visible in
-  this repo) handles volume; CI probes bypass both via a rotatable secret.
-  → [checkBotId — route.ts#L233](web/app/api/agent/route.ts#L226-L238),
-  [protected routes — instrumentation-client.ts](web/instrumentation-client.ts)
-- **What stops a hallucinated card from shipping?** Two layers: zod checks
-  the card's shape at stream finish, groundedness checks its truth — QUOTE
-  verbatim on the real page, where fabricated sentences score ~0. CI fails
-  any PR under 80%.
-  → [`OutputSchema` — route.ts#L182](web/app/api/agent/route.ts#L182-L199),
-  [pr-scorecard.yml](.github/workflows/pr-scorecard.yml)
-- **Who can read a parked session?** The session id is the capability —
-  random UUID, unguessable, near-zero-cost route; production would scope
-  this under SSO.
-  → [session backfill — route.ts](web/app/api/session/%5Bid%5D/route.ts)
+- **Where is the bot boundary, and why there?** 
+BotID guards exactly the two routes where a request converts into spend (LLM tokens, transcription minutes); a WAF rule (30 req/60s per IP) handles volume; CI probes bypass both via a rotatable secret. → [checkBotId — route.ts#L233](web/app/api/agent/route.ts#L226-L238), [protected routes — instrumentation-client.ts](web/instrumentation-client.ts)
+
+- **What stops a hallucinated card from shipping?** 
+Two layers: zod checks the card's shape at stream finish, groundedness checks its truth. QUOTE must be verbatim on the real page, where fabricated sentences score ~0. CI fails any PR under 80%. → [`OutputSchema` — route.ts#L182](web/app/api/agent/route.ts#L182-L199), [pr-scorecard.yml](.github/workflows/pr-scorecard.yml), [`grounded()` — run.mjs#L200](scorecard/run.mjs#L200-L221) — the orchestrator: takes a card, extracts the docs path from its SOURCE, fetches the real `.md` page from vercel.com (cached per path), then requires both conditions: ANCHOR appears inside QUOTE, and QUOTE appears on the page.
+
+- **Who can read a parked session?** The session id unlocks the parked session. An unguessable random UUID; production would scope
+  this under SSO. → [session backfill — route.ts](web/app/api/session/%5Bid%5D/route.ts)
