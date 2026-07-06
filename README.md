@@ -4,6 +4,8 @@ k0 listens to your side of a live customer call and surfaces the right knowledge
 
 **Try it live: [k0-omega.vercel.app](https://k0-omega.vercel.app)**  click "Start Listening" then say: *"So you are asking, how does Next.js help you with optimization and SEO?"*
 
+https://github.com/user-attachments/assets/c30dbe77-784e-4f5a-9fb2-5c1fe7fc13f1
+
 ```
 mic → Gladia transcript → local retrieval (~66ms) → gpt-5.4-mini via AI Gateway → verbatim card with #:~:text= highlight
 ```
