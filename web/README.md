@@ -1,6 +1,6 @@
 # k0 — web
 
-Live KB copilot for Vercel SAs. Mic → Gladia transcript → local retrieval → gpt-5.4-mini via AI Gateway → verbatim-quote card with `#:~:text=` highlight. Next.js 16, App Router, Fluid compute.
+Live KB copilot for Vercel SAs. Mic → Gladia transcript → local retrieval → gpt-5.4-mini via AI Gateway → verbatim-quote card with `#:~:text=` highlight. Next.js 16, App Router, Vercel Functions Fluid compute.
 
 ## Run
 
