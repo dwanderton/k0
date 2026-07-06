@@ -38,6 +38,12 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # before the crawl so a failed gate later never skips the sweep
+      - name: Prune session blobs older than 7 days
+        env:
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+        run: node scripts/prune-session-blobs.mjs
+
       - name: Re-crawl all doc sources
         run: REFRESH=1 pnpm build:docs-cache
 
