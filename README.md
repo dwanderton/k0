@@ -2,7 +2,11 @@
 
 k0 listens to your side of a live customer call and surfaces the right knowledge-base passage as you speak. Restate the customer's question aloud and the answer lands on screen, highlighted and sourced, before you say "let me check."
 
-**Try it live: [k0-omega.vercel.app](https://k0-omega.vercel.app)** — Chrome or Safari, allow the mic, then say: *"So you're asking how fluid compute works."*
+**Try it live: [k0-omega.vercel.app](https://k0-omega.vercel.app)**  click "Start Listening" then say: *"So you are asking, how does Next.js help you with optimization and SEO?"*
+
+```
+mic → Gladia transcript → local retrieval (~66ms) → gpt-5.4-mini via AI Gateway → verbatim card with #:~:text= highlight
+```
 
 The original concept for k0 is described [here](concept.md).
 
