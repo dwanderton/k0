@@ -85,7 +85,17 @@ const readVercelDoc = tool({
 // gpt-5.4-mini: only model that reliably runs retrieval → quote; others loop
 // re-searching or fabricate quotes.
 const MODEL = "openai/gpt-5.4-mini";
-const GATEWAY_OPTIONS = { gateway: { sort: "throughput" as const } };
+// NONE-retry second attempt escalates here — a smarter judge for the ~1-2%
+// of turns mini refuses twice, not the same coin flipped again
+const ESCALATION_MODEL = "openai/gpt-5.4";
+const GATEWAY_OPTIONS = {
+  gateway: {
+    sort: "throughput" as const,
+    // outage insurance only — same-family fallback honors the retrieval →
+    // verbatim-quote contract; cross-vendor fallbacks fabricated quotes
+    models: [ESCALATION_MODEL],
+  },
+};
 
 /** MCP handshake once per warm instance — Fluid reuses instances; the
  *  per-utterance RTTs to mcp.vercel.com came out of the <1s first-content
@@ -307,8 +317,8 @@ export async function POST(req: Request) {
           )
           .join("\n\n")}`;
 
-  const makeAttempt = () => streamText({
-    model: MODEL,
+  const makeAttempt = (model: string) => streamText({
+    model,
     providerOptions: GATEWAY_OPTIONS,
     system: SYSTEM,
     prompt: `${transcript}\n\n${candidatesBlock}`,
@@ -384,7 +394,9 @@ export async function POST(req: Request) {
     let finalAnswer = "";
     try {
       for (let attempt = 1; attempt <= 2; attempt++) {
-          const result = makeAttempt();
+          // attempt 2 escalates — mini already refused once; re-rolling the
+          // same model is the same coin flipped again
+          const result = makeAttempt(attempt === 1 ? MODEL : ESCALATION_MODEL);
           let step = 0;
           let reasoning = "";
           let held = "";
@@ -477,7 +489,7 @@ export async function POST(req: Request) {
 
           const heldNone = holding && held.trim().toUpperCase().startsWith("NONE");
           if (heldNone && attempt === 1 && !retrievalFailed && topScore > RETRY_FLOOR) {
-            dbg(`⟲ NONE despite top candidate ${topScore} — retrying once`);
+            dbg(`⟲ NONE despite top candidate ${topScore} — escalating to ${ESCALATION_MODEL}`);
             continue; // discard the held NONE; second attempt streams fresh
           }
           if (holding) flushHeld(); // NONE (kept) or a short real answer
