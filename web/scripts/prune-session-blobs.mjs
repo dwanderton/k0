@@ -5,7 +5,13 @@
  */
 import { list, del } from "@vercel/blob";
 
-const MAX_AGE_DAYS = Number(process.env.PRUNE_MAX_AGE_DAYS ?? 7);
+// fail fast on a bad override — "" coerces to 0, which would delete
+// every session
+const rawMaxAge = process.env.PRUNE_MAX_AGE_DAYS;
+const MAX_AGE_DAYS = rawMaxAge === undefined ? 7 : Number(rawMaxAge);
+if (!Number.isFinite(MAX_AGE_DAYS) || MAX_AGE_DAYS <= 0) {
+  throw new Error(`Invalid PRUNE_MAX_AGE_DAYS: ${rawMaxAge}`);
+}
 const DRY = process.env.DRY_RUN === "1";
 const cutoff = Date.now() - MAX_AGE_DAYS * 86_400_000;
 
