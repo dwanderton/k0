@@ -96,5 +96,4 @@ BotID guards exactly the two routes where a request converts into spend (LLM tok
 - **What stops a hallucinated card from shipping?** 
 Two layers: zod checks the card's shape at stream finish, groundedness checks its truth. QUOTE must be verbatim on the real page, where fabricated sentences score ~0. CI fails any PR under 80%. → [`OutputSchema` — route.ts#L182](web/app/api/agent/route.ts#L182-L199), [pr-scorecard.yml](.github/workflows/pr-scorecard.yml), [`grounded()` — run.mjs#L200](scorecard/run.mjs#L200-L221) — the orchestrator: takes a card, extracts the docs path from its SOURCE, fetches the real `.md` page from vercel.com (cached per path), then requires both conditions: ANCHOR appears inside QUOTE, and QUOTE appears on the page.
 
-- **Who can read a parked session?** The session id unlocks the parked session. An unguessable random UUID; production would scope
-  this under SSO. → [session backfill — route.ts](web/app/api/session/%5Bid%5D/route.ts)
+- **Who can read a parked session?** The session id unlocks the parked session. An unguessable random UUID; production would scope this under SSO. → [session backfill — route.ts](web/app/api/session/%5Bid%5D/route.ts)
