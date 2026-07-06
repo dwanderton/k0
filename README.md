@@ -2,21 +2,21 @@
 
 k0 listens to your side of a live customer call and surfaces the right knowledge-base passage as you speak. Restate the customer's question aloud and the answer lands on screen, highlighted and sourced, before you say "let me check."
 
+The original concept for k0 is described [here](concept.md).
+
 ## Repo
 
 | where | what |
 |---|---|
+| [`concept.md`](concept.md) | the design doc — problem, persona, pipeline, durability, evaluation |
 | [`web/`](web/README.md) | the app — setup, env, data pipeline, file map |
 | [`scorecard/`](scorecard/SCORECARD.md) | quality history — append-only runs, method, gates |
 | [`.github/workflows/`](.github/workflows/) | CI: per-PR hallucination gate · weekly corpus refresh |
 
 Dev setup lives in [web/README.md](web/README.md)
 
-## Design discussion — where the tradeoffs live
-
-Each question links to the decision in code; the comment at that site
-carries the reasoning, and [scorecard/SCORECARD.md](scorecard/SCORECARD.md)
-carries the run-by-run evidence.
+## Discussion Topics
+[scorecard/SCORECARD.md](scorecard/SCORECARD.md) carries the run-by-run evidence.
 
 ### Prompting
 
@@ -49,7 +49,6 @@ A card or NONE consumes the transcript that was sent was sent; failures don't �
 
 - **Why heading-based chunks (with a 3,200-char ceiling)?** 
 Chunks follow the docs' own structure — each `#`/`##`/`###` section is one topic and usually contains one quotable passage, so retrieval returns semantically whole units rather than arbitrary windows - especially given the structured and well maintained nature of Vercel's documentation.
-
 Two guardrails: sections greater than 3,200 chars (~800 tokens) are split on paragraphs so two candidates still fit a sub-second prefill budget, and stubs under 300 chars merge into their predecessor, heading kept inline, so tiny sections don't become noise rows. → [heading split — chunker.ts#L81](web/lib/chunker.ts#L81-L91), [`TARGET_MAX` ceiling — chunker.ts#L16](web/lib/chunker.ts#L16), [stub merge — chunker.ts#L93](web/lib/chunker.ts#L93-L104)
 
 ### Model choice
