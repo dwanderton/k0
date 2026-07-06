@@ -32,45 +32,28 @@ carries the run-by-run evidence.
 ### Context selection
 
 - **Why traditional RAG instead of handing the model a search tool?** 
-  k0 initially shipped the other way first. I attempted to utlize the Vercel MCP Server's `search_documentation tool`. However, the scorecard killed it: 3.2s median cards (the decide → search → read → answer round-trips), with misrouting as the dominant defect, and a step cap that existed purely to stop search loops. 
+  k0 initially shipped the other way first. I attempted to utlize the Vercel MCP Server's `search_documentation tool`. However, the scorecard killed it: 3.2s median cards (the decide → search → read → answer round-trips), with misrouting as the dominant defect, and a step cap that existed purely to stop search loops, even removing the tool from the model was insufficient. As models would relentlesly search for a better result that the `search_documentation` tool wasn't providing.
   
-   — an MCP search tool the model invoked at
-  will — and the scorecard killed it: 3.2s median cards (the decide →
-  search → read → answer round-trips), 55–60% gold with misrouting as the
-  dominant defect, and a step cap that existed purely to stop search
-  loops. Pre-call retrieval made the decision infrastructure instead of
-  tokens: every finalized utterance gets top-k injected before the first
-  model turn — 1.1s median, gold 77%→100%, and the retrieval stage became
-  offline-testable (hit@1/hit@3 gate) independently of the model. The
-  model keeps one tool (`read_vercel_doc`) for the case where judgment
-  helps: the excerpt lacks the exact quotable sentence.
-  → [pre-call retrieval — route.ts#L267](web/app/api/agent/route.ts#L267-L268),
-  [the before/after runs — SCORECARD.md (PR #6 vs #8)](scorecard/SCORECARD.md)
-- **Why not just use Vercel's MCP `search_vercel_documentation` tool?**
-  Two disqualifiers, both structural. Quality: MCP search returns
-  synthesized snippet captions, not page text — a quote grounded in a
-  caption never appears on the real page, so the `#:~:text=` highlight
-  never lands, which breaks k0's core contract. Latency: 0.5–1.5s RTT per
-  call, inside a model turn, on a sub-second budget. It also misrouted —
-  the preview-deployments gold page is one MCP search never found across
-  100 probes. It's retired, not deleted: a FAILED retriever (not an empty
-  result) re-enables it as the disaster-recovery search for that request.
-  → [why captions can't quote — route.ts#L12](web/app/api/agent/route.ts#L12-L13),
-  [the recovery rung — route.ts#L294](web/app/api/agent/route.ts#L294-L296)
-- **Why does confidence shrink the context?** Above 0.95 relevance the
-  second excerpt is ~900 tokens of dead prefill — measured −74% on the
-  dominant-retrieval phrase.
-  → [route.ts#L283](web/app/api/agent/route.ts#L283-L285)
-- **Why does the client garbage-collect the transcript?** A card or NONE
-  consumes what was sent; failures don't — so old topics never re-answer
-  and failed lines retry on the next utterance.
-  → [`consumedRef` — use-call-session.ts#L43](web/app/_cockpit/use-call-session.ts#L43),
-  [Consumed-GC — #L158](web/app/_cockpit/use-call-session.ts#L158-L162)
-- **Why 3,200-char chunks?** Big enough that a passage answers a question
-  whole, small enough that two candidates fit a sub-second prefill budget —
-  the size the entire eval history was tuned at.
-  → [`TARGET_MAX` — chunker.ts#L16](web/lib/chunker.ts#L16)
+  Pre-call retrieval made the decision infrastructure instead of tokens: every finalized utterance gets top-k injected before the first model turn — 1.1s median, gold 77%→100%, and the retrieval stage became offline-testable ([hit@1/hit@3 gate — eval-retriever.ts#L68](web/scripts/eval-retriever.ts#L68-L73)) independently of the model. The model keeps one tool (`read_vercel_doc`) for the case where judgment helps: the excerpt lacks the exact quotable sentence. → [pre-call retrieval — route.ts#L267](web/app/api/agent/route.ts#L267-L268), [the before/after runs — SCORECARD.md (PR #6 vs #8)](scorecard/SCORECARD.md)
 
+- **Why not just use Vercel's MCP `search_vercel_documentation` tool?**
+  Two disqualifiers, both structural. 
+  1. Quality: MCP search returns synthesized snippet captions, not page text — a quote grounded in a caption never appears on the real page, so the `#:~:text=` highlight never lands, which breaks k0's contract of having a direct refernceto the source of truth. 
+  2. Latency: 0.5–1.5s RTT per call, inside a model turn, on a sub-second budget. It also misrouted, for example, the preview-deployments gold page is one MCP search never found across 100 probes. A FAILED retriever (not an empty result) re-enables the Vercel MCP as the disaster-recovery search for that request. → [why captions can't quote — route.ts#L12](web/app/api/agent/route.ts#L12-L13), [the recovery rung — route.ts#L294](web/app/api/agent/route.ts#L294-L296)
+
+- **Why does confidence shrink the context?** 
+Above 0.95 relevance the second excerpt is approximately 900 tokens of dead prefill — measured −74% on the dominant-retrieval phrase. Reducing the number of prompt tokens reduces latency → [route.ts#L283](web/app/api/agent/route.ts#L283-L285)
+
+- **Why does the client garbage-collect the transcript?** 
+A card or NONE consumes the transcript that was sent was sent; failures don't — so old topics never re-answer and failed lines retry on the next utterance. In the MVP topics would unexpectedly resurface at seemingly irrelevant points later in the conversation. → [`consumedRef` — use-call-session.ts#L43](web/app/_cockpit/use-call-session.ts#L43), [Consumed-GC — #L158](web/app/_cockpit/use-call-session.ts#L158-L162)
+
+- **Why heading-based chunks (with a 3,200-char ceiling)?** 
+Chunks follow the docs' own structure — each `#`/`##`/`###` section is one topic and usually contains one quotable passage, so retrieval returns semantically whole units rather than arbitrary windows - especially given the structured and well maintained nature of Vercel's documentation.
+
+Two guardrails: 
+1. sections ver 3,200 chars (~800 tokens) split on paragraphs so two candidates still fit a sub-second prefill budget, and stubs under 300 chars merge into their predecessor, heading kept inline, so tiny sections don't become noise rows. → [heading split — chunker.ts#L81](web/lib/chunker.ts#L81-L91), [`TARGET_MAX` ceiling — chunker.ts#L16](web/lib/chunker.ts#L16), [stub merge — chunker.ts#L93](web/lib/chunker.ts#L93-L104)
+
+# TODO 
 ### Model choice
 
 - **Why gpt-5.4-mini?** The scorecard picked it, not a leaderboard — it's
