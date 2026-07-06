@@ -32,17 +32,17 @@ carries the run-by-run evidence.
 ### Context selection
 
 - **Why traditional RAG instead of handing the model a search tool?** 
-  k0 initially shipped the other way first. I attempted to utlize the Vercel MCP Server's `search_documentation tool`. However, the scorecard killed it: 3.2s median cards (the decide → search → read → answer round-trips), with misrouting as the dominant defect, and a step cap that existed purely to stop search loops, even removing the tool from the model was insufficient. As models would relentlesly search for a better result that the `search_documentation` tool wasn't providing.
+  k0 initially shipped the other way first. I attempted to utilize the Vercel MCP Server's `search_vercel_documentation` tool. However, the scorecard killed it: 3.2s median cards (the decide → search → read → answer round-trips), with misrouting as the dominant defect, and a step cap that existed purely to stop search loops — even after prompt modification, models kept requesting the tool, relentlessly re-searching for a better result it wasn't going to provide.
   
   Pre-call retrieval made the decision infrastructure instead of tokens: every finalized utterance gets top-k injected before the first model turn — 1.1s median, gold 77%→100%, and the retrieval stage became offline-testable ([hit@1/hit@3 gate — eval-retriever.ts#L68](web/scripts/eval-retriever.ts#L68-L73)) independently of the model. The model keeps one tool (`read_vercel_doc`) for the case where judgment helps: the excerpt lacks the exact quotable sentence. → [pre-call retrieval — route.ts#L267](web/app/api/agent/route.ts#L267-L268), [the before/after runs — SCORECARD.md (PR #6 vs #8)](scorecard/SCORECARD.md)
 
 - **Why not just use Vercel's MCP `search_vercel_documentation` tool?**
   Two disqualifiers, both structural. 
   1. Quality: MCP search returns synthesized snippet captions, not page text — a quote grounded in a caption never appears on the real page, so the `#:~:text=` highlight never lands, which breaks k0's contract of having a direct refernceto the source of truth. 
-  2. Latency: 0.5–1.5s RTT per call, inside a model turn, on a sub-second budget. It also misrouted, for example, the preview-deployments gold page is one MCP search never found across 100 probes. A FAILED retriever (not an empty result) re-enables the Vercel MCP as the disaster-recovery search for that request. → [why captions can't quote — route.ts#L12](web/app/api/agent/route.ts#L12-L13), [the recovery rung — route.ts#L294](web/app/api/agent/route.ts#L294-L296)
+  2. Latency: 0.5–1.5s RTT per call, inside a model turn, on a sub-second budget. It also misrouted, for example, the preview-deployments gold page is one MCP search never found across 100 probes. However, the MCP now acts as a fallback. A FAILED retriever (not an empty result) re-enables the Vercel MCP as the disaster-recovery search for that request. → [why captions can't quote — route.ts#L12](web/app/api/agent/route.ts#L12-L13), [the recovery rung — route.ts#L294](web/app/api/agent/route.ts#L294-L296)
 
 - **Why does confidence shrink the context?** 
-Above 0.95 relevance the second excerpt is approximately 900 tokens of dead prefill — measured −74% on the dominant-retrieval phrase. Reducing the number of prompt tokens reduces latency → [route.ts#L283](web/app/api/agent/route.ts#L283-L285)
+Above 0.95 relevance the second excerpt is approximately 900 tokens of dead prefill, measured at −74% on the dominant-retrieval phrase. Reducing the number of prompt tokens reduces latency → [route.ts#L283](web/app/api/agent/route.ts#L283-L285)
 
 - **Why does the client garbage-collect the transcript?** 
 A card or NONE consumes the transcript that was sent was sent; failures don't — so old topics never re-answer and failed lines retry on the next utterance. In the MVP topics would unexpectedly resurface at seemingly irrelevant points later in the conversation. → [`consumedRef` — use-call-session.ts#L43](web/app/_cockpit/use-call-session.ts#L43), [Consumed-GC — #L158](web/app/_cockpit/use-call-session.ts#L158-L162)
@@ -50,38 +50,24 @@ A card or NONE consumes the transcript that was sent was sent; failures don't �
 - **Why heading-based chunks (with a 3,200-char ceiling)?** 
 Chunks follow the docs' own structure — each `#`/`##`/`###` section is one topic and usually contains one quotable passage, so retrieval returns semantically whole units rather than arbitrary windows - especially given the structured and well maintained nature of Vercel's documentation.
 
-Two guardrails: 
-1. sections ver 3,200 chars (~800 tokens) split on paragraphs so two candidates still fit a sub-second prefill budget, and stubs under 300 chars merge into their predecessor, heading kept inline, so tiny sections don't become noise rows. → [heading split — chunker.ts#L81](web/lib/chunker.ts#L81-L91), [`TARGET_MAX` ceiling — chunker.ts#L16](web/lib/chunker.ts#L16), [stub merge — chunker.ts#L93](web/lib/chunker.ts#L93-L104)
+Two guardrails: sections greater than 3,200 chars (~800 tokens) are split on paragraphs so two candidates still fit a sub-second prefill budget, and stubs under 300 chars merge into their predecessor, heading kept inline, so tiny sections don't become noise rows. → [heading split — chunker.ts#L81](web/lib/chunker.ts#L81-L91), [`TARGET_MAX` ceiling — chunker.ts#L16](web/lib/chunker.ts#L16), [stub merge — chunker.ts#L93](web/lib/chunker.ts#L93-L104)
 
-# TODO 
 ### Model choice
 
-- **Why gpt-5.4-mini?** The scorecard picked it, not a leaderboard — it's
-  the one model that reliably runs retrieval → verbatim quote; others loop
-  re-searching or fabricate.
+- **Why gpt-5.4-mini?** The scorecard picked it, not a leaderboard. It's the one model that reliably runs retrieval → verbatim quote; others loop
+  re-searching or fabricate. `openai/gpt-oss-20b` ended up looping infinitely with tool use, `alibaba/qwen3.7-plus` would routinely hallucinate and refuse to call tools, `zai/glm-4.7` was not surfacing the gold pages consistently.
   → [`MODEL` — route.ts#L92](web/app/api/agent/route.ts#L92-L103)
-- **Why the gpt-5.4 family at all?** k0's task is obedience, not
-  brilliance: follow a numbered procedure, copy sentences exactly, refuse
-  when unsure. Candidates were auditioned against that contract and the
-  5.4 family held it — cross-vendor alternatives looped re-searching or
-  fabricated "quotes" that failed groundedness. One family also makes the
-  ladder coherent: mini serves at ~$0.0015/card; full 5.4 stands behind it
-  for outages and stubborn refusals with the same output behavior — one
-  contract, two sizes, no prompt surgery at the failover boundary. Routed
-  via AI Gateway, so if the audition result ever flips, the swap is a
-  string. → [model ladder — route.ts#L92](web/app/api/agent/route.ts#L92-L103),
-  [audition history — SCORECARD.md (PR #3–#9)](scorecard/SCORECARD.md)
-- **Why is the retry a *different* model?** Re-rolling mini on a refusal is
-  the same coin flipped twice; full gpt-5.4 runs only on the ~1–2% of turns
-  mini already fumbled. Same-family only — cross-vendor fallbacks fabricated
-  quotes. → [`ESCALATION_MODEL` — route.ts#L95](web/app/api/agent/route.ts#L92-L103),
-  [`RETRY_FLOOR` — route.ts#L349](web/app/api/agent/route.ts#L349-L355)
-- **Why two embedding models with two committed indexes?** In-process
-  bge-small (~5ms, $0) serves; gateway te3 is the fallback with its own
-  index — different models can't share vectors, and each gets its own
-  empirically calibrated floors.
-  → [`TUNING` — retriever.ts#L50](web/lib/retriever.ts#L50-L53)
 
+- **Why the gpt-5.4 family at all?** k0's task is obedience, not brilliance: follow a numbered procedure, copy sentences exactly, refuse when unsure. Candidates were auditioned against that contract and the 5.4 family held it. cross-vendor alternatives looped re-searching or fabricated "quotes" that failed groundedness as discussed above. One family also makes the ladder coherent: mini serves at ~$0.0015/card; full 5.4 stands behind it for outages and stubborn refusals with the same output behavior. One contract, two sizes, no prompt surgery at the failover boundary. Routed via AI Gateway, so if the audition result ever flips, the swap is a string. → [model ladder — route.ts#L92](web/app/api/agent/route.ts#L92-L103), [audition history — SCORECARD.md (PR #3–#9)](scorecard/SCORECARD.md)
+
+- **Why is the retry a *different* model?** 
+Re-rolling mini on a refusal is the same coin flipped twice; full gpt-5.4 runs only on the ~1–2% of turns mini already fumbled. Same-family only — cross-vendor fallbacks fabricated quotes. → [`ESCALATION_MODEL` — route.ts#L95](web/app/api/agent/route.ts#L92-L103), [`RETRY_FLOOR` — route.ts#L349](web/app/api/agent/route.ts#L349-L355)
+
+- **Why two embedding models with two committed indexes?** 
+In-process bge-small (~5ms, $0) serves; gateway te3 is the fallback with its own index — different models and different dimensions can't share vectors, and each gets its own empirically calibrated floors. → [`TUNING` — retriever.ts#L50](web/lib/retriever.ts#L50-L53)
+
+
+# TODO
 ### Cost / latency tradeoffs
 
 - **Why does silence auto-stop the mic?** Transcription bills per listening
@@ -94,12 +80,14 @@ Two guardrails:
   size gate), while brotli on float vectors saved only ~10% but cost ~300ms
   every cold start — so the hot index ships raw.
   → [int8 dequant — retriever.ts#L126](web/lib/retriever.ts#L126-L128)
-- **Why no vector DB?** Real-time means minimizing network hops. At ~19k
+
+- **Why no vector DB?** 
+Real-time means minimizing network hops. At ~19k
   rows a brute-force scan over the committed in-memory index takes
   ~10–25ms with perfect recall — a vector DB would add a network RTT
   larger than the entire search, on every single utterance. The whole
   retrieval hot path is zero-network: query embeds in-process (~5ms),
-  index lives in instance memory.
+  index lives in instance memory. Approximate Nearest Neighbor trades accuracy for speed - at this scale we don't need to make that trade.
   → [retriever.ts#L1](web/lib/retriever.ts#L1-L8)
 - **Why is the entire docs corpus a file in the bundle?** Same principle,
   applied to page text: docs-cache.br ships inside the function, so
