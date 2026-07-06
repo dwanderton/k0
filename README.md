@@ -31,8 +31,10 @@ carries the run-by-run evidence.
 
 ### Context selection
 
-- **Why traditional RAG instead of handing the model a search tool?** k0
-  shipped the other way first — an MCP search tool the model invoked at
+- **Why traditional RAG instead of handing the model a search tool?** 
+  k0 initially shipped the other way first. I attempted to utlize the Vercel MCP Server's `search_documentation tool`. However, the scorecard killed it: 3.2s median cards (the decide → search → read → answer round-trips), with misrouting as the dominant defect, and a step cap that existed purely to stop search loops. 
+  
+   — an MCP search tool the model invoked at
   will — and the scorecard killed it: 3.2s median cards (the decide →
   search → read → answer round-trips), 55–60% gold with misrouting as the
   dominant defect, and a step cap that existed purely to stop search
@@ -75,6 +77,17 @@ carries the run-by-run evidence.
   the one model that reliably runs retrieval → verbatim quote; others loop
   re-searching or fabricate.
   → [`MODEL` — route.ts#L92](web/app/api/agent/route.ts#L92-L103)
+- **Why the gpt-5.4 family at all?** k0's task is obedience, not
+  brilliance: follow a numbered procedure, copy sentences exactly, refuse
+  when unsure. Candidates were auditioned against that contract and the
+  5.4 family held it — cross-vendor alternatives looped re-searching or
+  fabricated "quotes" that failed groundedness. One family also makes the
+  ladder coherent: mini serves at ~$0.0015/card; full 5.4 stands behind it
+  for outages and stubborn refusals with the same output behavior — one
+  contract, two sizes, no prompt surgery at the failover boundary. Routed
+  via AI Gateway, so if the audition result ever flips, the swap is a
+  string. → [model ladder — route.ts#L92](web/app/api/agent/route.ts#L92-L103),
+  [audition history — SCORECARD.md (PR #3–#9)](scorecard/SCORECARD.md)
 - **Why is the retry a *different* model?** Re-rolling mini on a refusal is
   the same coin flipped twice; full gpt-5.4 runs only on the ~1–2% of turns
   mini already fumbled. Same-family only — cross-vendor fallbacks fabricated
