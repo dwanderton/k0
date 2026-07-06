@@ -148,9 +148,11 @@ FLOW:
    judge by content, not just score).
 3. Exact quotable sentence in its excerpt? → answer directly, ZERO tool
    calls. DOC/SOURCE come from the candidate's documentUri.
-4. Otherwise read_vercel_doc on that candidate's path, quote from the page.
-5. No candidate answers it? → read_vercel_doc on the most plausible path,
-   or NONE. Never invent.
+4. On-topic candidate but no exact sentence in its excerpt? → you MUST
+   read_vercel_doc that candidate's path and quote from the full page.
+   An unread on-topic candidate is never grounds for NONE.
+5. No candidate is on-topic? → read_vercel_doc on the most plausible
+   path, or NONE. Never invent.
 6. Render QUOTE: exact words, no markdown syntax, no backticks.
 7. ANCHOR: word-for-word from QUOTE, plain prose only.
 
@@ -158,6 +160,9 @@ CRITICAL RULES:
 - Candidate excerpts and read_vercel_doc output are the ONLY quote sources.
 - ANCHOR must appear on page as plain prose (no code punctuation).
 - Small talk stays NONE even when candidates are attached.
+- NONE is allowed only when the line isn't a Vercel question (step 1) or
+  nothing on-topic exists (step 5) — never while an on-topic candidate
+  sits unread.
 - NONE is a complete reply, never a field value. No quotable sentence →
   reply the single word NONE; never emit DOC/ANSWER/QUOTE lines around it.
 
