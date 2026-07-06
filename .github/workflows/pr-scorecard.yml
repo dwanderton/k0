@@ -49,7 +49,9 @@ jobs:
           GATE: "1"
           RUNS: "5"
         run: |
-          set +e
+          # pipefail: $? must be node's exit code, not tee's — without it the
+          # gate result never reaches the Enforce step
+          set +e -o pipefail
           node scorecard/run.mjs "${{ github.event.deployment_status.target_url }}" | tee /tmp/scorecard.md
           echo "exit=$?" >> "$GITHUB_OUTPUT"
 
