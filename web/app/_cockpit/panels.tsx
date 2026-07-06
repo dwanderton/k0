@@ -258,43 +258,53 @@ export const TracePanel = memo(function TracePanel({
 }: {
   trace: TraceState | null;
 }) {
-  if (!trace) return null;
+  // always mounted, fixed height — appearing/growing on first trace
+  // shifts the whole page (CLS)
   return (
     <section
       aria-label="Agent trace"
       className="mt-4.5 rounded-[10px] border border-line bg-card"
     >
       <div className="flex items-center justify-between gap-2.5 border-b border-line px-3.5 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-muted">
-        <span>Agent trace — turn {trace.turn}</span>
+        <span>Agent trace{trace ? ` — turn ${trace.turn}` : ""}</span>
         <span
           className={
-            trace.outcome === "failed"
-              ? "text-error"
-              : trace.outcome === "card"
-                ? "text-live"
-                : "text-muted"
+            !trace
+              ? "text-muted"
+              : trace.outcome === "failed"
+                ? "text-error"
+                : trace.outcome === "card"
+                  ? "text-live"
+                  : "text-muted"
           }
         >
-          {trace.outcome === "streaming"
-            ? "running…"
-            : trace.outcome === "card"
-              ? "card"
-              : trace.outcome === "none"
-                ? "none — no doc needed"
-                : trace.outcome === "duplicate"
-                  ? "duplicate — already on a card"
-                  : "failed"}
+          {!trace
+            ? "idle"
+            : trace.outcome === "streaming"
+              ? "running…"
+              : trace.outcome === "card"
+                ? "card"
+                : trace.outcome === "none"
+                  ? "none — no doc needed"
+                  : trace.outcome === "duplicate"
+                    ? "duplicate — already on a card"
+                    : "failed"}
         </span>
       </div>
-      <div className="flex max-h-55 flex-col gap-0.5 overflow-y-auto p-4 font-mono text-[10px] leading-relaxed text-[#b6b6be]">
-        {trace.lines.length === 0 ? (
+      <div className="flex h-55 flex-col gap-0.5 overflow-y-auto p-4 font-mono text-[10px] leading-relaxed text-[#b6b6be]">
+        {!trace ? (
+          <span className="text-muted">
+            agent activity appears here as you talk
+          </span>
+        ) : trace.lines.length === 0 ? (
           <span className="text-muted">waiting for the agent…</span>
-        ) : null}
-        {trace.lines.map((line, k) => (
-          <div key={k} className="whitespace-pre-wrap wrap-break-word">
-            {line}
-          </div>
-        ))}
+        ) : (
+          trace.lines.map((line, k) => (
+            <div key={k} className="whitespace-pre-wrap wrap-break-word">
+              {line}
+            </div>
+          ))
+        )}
       </div>
     </section>
   );
