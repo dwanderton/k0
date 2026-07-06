@@ -365,3 +365,20 @@ duration-phrase failure is a client-side 30s probe timeout, not a
 server error. This probe hits /api/agent directly, so it measures the
 agent path only — the Gladia mobile path feeds the same segments
 pipeline upstream of it.
+
+### PR #31 (NONE requires reading) — prompt: an unread on-topic candidate is never grounds for NONE (FLOW step 4 mandates read_vercel_doc; NONE legal only for non-questions or nothing-on-topic) · same model (gpt-5.4-mini, throughput)
+
+# run 2026-07-06 · preview k0-d08yajv84 · commit 33d24dc · 10x per phrase, conc 1
+# (per-phrase table lost to a tail filter; summary preserved)
+
+**overall: 50/50 ok (0.0% fail) · median time-to-card 1.3s · p95 2.2s (warm) · median cost/insight $0.0016 · total spend $0.1033**
+**gold-link precision: 50/50 (100%) · groundedness: 24/25 · controls: 0/20 false positives**
+**✓ gate passed: groundedness 96% · 0 false positives · fail 0.0%**
+
+First zero-refusal run in the history — no NONEs anywhere, including
+the preview-deployments residual documented since PR #10. Trigger case
+(/docs/agent at 0.7411 → 5-token NONE, tool never tried) now cards via
+a mandated read_vercel_doc. The priced tradeoff: median 0.9s → 1.3s —
+the mandated reads run on excerpt-poor turns that previously returned
+nothing. Controls structurally fenced (small talk retrieves zero
+candidates) and empirically clean at 0/20.
