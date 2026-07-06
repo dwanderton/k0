@@ -192,8 +192,22 @@ export async function buildAndSaveCache(
       `  ${source.name}: +${fetched} pages, ${failed} failed${aborted ? " (aborted early)" : ""}`,
     );
     if (refresh) {
-      if (aborted || fetched === 0) {
-        console.log(`  ${source.name}: keeping ${[...allPages.keys()].filter((k) => k.startsWith(`${source.name}:`)).length} previously cached pages`);
+      const prevCount = [...allPages.keys()].filter((k) =>
+        k.startsWith(`${source.name}:`),
+      ).length;
+      // replace only when the fresh crawl looks healthy: a few stragglers
+      // are normal, but a partial crawl (sitemap glitch, mid-run outage)
+      // must never nuke a section, and a too-strict failed>0 rule would
+      // silently freeze refresh forever on one flaky page
+      const healthy =
+        !aborted &&
+        fetched > 0 &&
+        failed <= Math.max(3, Math.ceil(fetched * 0.05)) &&
+        fetched >= Math.floor(prevCount * 0.8);
+      if (!healthy) {
+        console.log(
+          `  ${source.name}: crawl unhealthy (${fetched} fetched, ${failed} failed, had ${prevCount}) — keeping previous pages`,
+        );
       } else {
         for (const k of [...allPages.keys()]) {
           if (k.startsWith(`${source.name}:`)) allPages.delete(k);

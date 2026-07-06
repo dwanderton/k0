@@ -50,13 +50,18 @@ jobs:
         run: pnpm build:embeddings-local
 
       - name: Eval gate — in-process backend
-        run: node scripts/eval-retriever.ts | tee /tmp/gate-local.txt
+        run: |
+          # pipefail: tee must not mask a failed gate
+          set -euo pipefail
+          node scripts/eval-retriever.ts | tee /tmp/gate-local.txt
 
       - name: Eval gate — gateway backend
         env:
           AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY }}
           RETRIEVER_BACKEND: gateway
-        run: node scripts/eval-retriever.ts | tee /tmp/gate-gateway.txt
+        run: |
+          set -euo pipefail
+          node scripts/eval-retriever.ts | tee /tmp/gate-gateway.txt
 
       - name: Detect artifact changes
         id: diff
