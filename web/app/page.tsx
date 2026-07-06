@@ -48,6 +48,51 @@ function clock() {
   return new Date().toLocaleTimeString("en-US", { hour12: false });
 }
 
+/** everything needed to reconstruct a live call after refresh/crash —
+ *  watermarks persist atomically WITH the segments they describe */
+interface SessionSnapshot {
+  sessionId: string;
+  savedAt: number;
+  segments: Segment[];
+  cards: Suggestion[];
+  consumed: number;
+  lastCard: { id: number; start: number; doc: string } | null;
+}
+
+const SNAP_PREFIX = "k0-session:";
+const SNAP_LATEST = "k0-session-latest";
+const DEBUG_CAP = 40; // traces are chunky; localStorage is ~5MB
+
+function saveSnapshot(snap: SessionSnapshot) {
+  const write = (s: SessionSnapshot) => {
+    localStorage.setItem(SNAP_PREFIX + s.sessionId, JSON.stringify(s));
+    localStorage.setItem(SNAP_LATEST, s.sessionId);
+  };
+  try {
+    write({
+      ...snap,
+      cards: snap.cards.map((c) => ({ ...c, debug: c.debug.slice(0, DEBUG_CAP) })),
+    });
+  } catch {
+    // quota — drop traces and retry once; restore degrades, live call unaffected
+    try {
+      write({ ...snap, cards: snap.cards.map((c) => ({ ...c, debug: [] })) });
+    } catch {}
+  }
+}
+
+function loadLatestSnapshot(): SessionSnapshot | null {
+  try {
+    const latest = localStorage.getItem(SNAP_LATEST);
+    const raw = latest && localStorage.getItem(SNAP_PREFIX + latest);
+    if (!raw) return null;
+    const snap = JSON.parse(raw) as SessionSnapshot;
+    return snap.sessionId && snap.segments?.length ? snap : null;
+  } catch {
+    return null;
+  }
+}
+
 /** common speech-recognition mishears, fixed before the transcript */
 const TIDY_RULES: [RegExp, string][] = [
   [/\bthe cell\b/gi, "Vercel"],
@@ -115,6 +160,101 @@ function parseCard(text: string) {
  *  #:~:text= fragment fires and the highlight lands */
 function openDocs(url: string) {
   window.open(url, "k0Docs", "width=1100,height=800");
+}
+
+function OfflineBanner({ callLive }: { callLive: boolean }) {
+  const [conn, setConn] = useState<"online" | "offline" | "reconnected">(
+    "online",
+  );
+
+  useEffect(() => {
+    if (!navigator.onLine) setConn("offline");
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const off = () => {
+      if (timer) clearTimeout(timer);
+      setConn("offline");
+    };
+    const on = () => {
+      // green confirmation only after a real drop, then auto-dismiss
+      setConn((c) => (c === "offline" ? "reconnected" : c));
+      timer = setTimeout(() => setConn("online"), 4000);
+    };
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => {
+      if (timer) clearTimeout(timer);
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
+    };
+  }, []);
+
+  // presence outlives `conn` by one fade so dismissal animates out instead
+  // of vanishing
+  const [mounted, setMounted] = useState(false);
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    if (conn === "online") {
+      setShown(false);
+      const t = setTimeout(() => setMounted(false), 300);
+      return () => clearTimeout(t);
+    }
+    setMounted(true);
+    // opacity flips a frame after mount so the fade-in transition runs
+    const raf = requestAnimationFrame(() =>
+      requestAnimationFrame(() => setShown(true)),
+    );
+    return () => cancelAnimationFrame(raf);
+  }, [conn]);
+
+  if (!mounted) return null;
+  const offline = conn === "offline";
+
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className={`fixed inset-x-0 top-0 z-50 flex items-center justify-center gap-2 border-b bg-card px-3 py-2 text-sm font-semibold transition-all duration-300 motion-reduce:transition-none ${
+        shown ? "opacity-100" : "opacity-0"
+      } ${offline ? "border-error/30 text-error" : "border-live/30 text-live"}`}
+    >
+      <svg
+        aria-hidden="true"
+        className="h-4 w-4 shrink-0"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        {offline ? (
+          <>
+            <line x1="2" x2="22" y1="2" y2="22" />
+            <path d="M8.5 16.5a5 5 0 0 1 7 0" />
+            <path d="M2 8.82a15 15 0 0 1 4.17-2.65" />
+            <path d="M10.66 5c4.01-.36 8.14.9 11.34 3.76" />
+            <path d="M16.85 11.25a10 10 0 0 1 2.22 1.68" />
+            <path d="M5 13a10 10 0 0 1 5.24-2.76" />
+            <line x1="12" x2="12.01" y1="20" y2="20" />
+          </>
+        ) : (
+          <>
+            <path d="M2 8.82a15 15 0 0 1 20 0" />
+            <path d="M5 12.86a10 10 0 0 1 14 0" />
+            <path d="M8.5 16.43a5 5 0 0 1 7 0" />
+            <line x1="12" x2="12.01" y1="20" y2="20" />
+          </>
+        )}
+      </svg>
+      <span>
+        {offline
+          ? callLive
+            ? "You're offline. k0 keeps your transcript — unanswered lines retry when the connection returns. Don't close this tab."
+            : "You're offline."
+          : "You are back online"}
+      </span>
+    </div>
+  );
 }
 
 function SuggestionCard({ s }: { s: Suggestion }) {
@@ -211,6 +351,10 @@ export default function Home() {
   const recRef = useRef<SpeechRecognitionLike | null>(null);
   const gladiaRef = useRef<GladiaHandle | null>(null);
   const [engine, setEngine] = useState<"browser" | "gladia" | null>(null);
+  // per-tab session id (sessionStorage) — two tabs write two snapshot keys
+  // instead of fighting over one
+  const sessionIdRef = useRef("");
+  const [resumeOffer, setResumeOffer] = useState<SessionSnapshot | null>(null);
   const activeRef = useRef(false);
   // healthy recognizer runs seconds before Chrome ends it; ending right
   // after start = failing on arrival
@@ -247,6 +391,94 @@ export default function Home() {
     };
   }, []);
 
+  // session identity + resume offer, once per mount
+  useEffect(() => {
+    let sid = sessionStorage.getItem("k0-session-id");
+    if (!sid) {
+      sid = crypto.randomUUID();
+      sessionStorage.setItem("k0-session-id", sid);
+    }
+    sessionIdRef.current = sid;
+    setResumeOffer(loadLatestSnapshot());
+  }, []);
+
+  // write-through: every settle (segments, cards, or watermark movement via
+  // trace outcome) persists one atomic snapshot
+  const lastSavedRef = useRef<{ seg: unknown; cards: unknown }>({
+    seg: null,
+    cards: null,
+  });
+  useEffect(() => {
+    if (!sessionIdRef.current) return;
+    if (segments.length === 0 && cards.length === 0) return;
+    const changed =
+      lastSavedRef.current.seg !== segments || lastSavedRef.current.cards !== cards;
+    // trace updates per stream chunk — don't churn localStorage mid-stream
+    if (!changed && trace?.outcome === "streaming") return;
+    lastSavedRef.current = { seg: segments, cards };
+    saveSnapshot({
+      sessionId: sessionIdRef.current,
+      savedAt: Date.now(),
+      segments,
+      cards,
+      consumed: consumedRef.current,
+      lastCard: lastCardRef.current,
+    });
+  }, [segments, cards, trace]);
+
+  function resumeSession(snap: SessionSnapshot) {
+    sessionIdRef.current = snap.sessionId;
+    sessionStorage.setItem("k0-session-id", snap.sessionId);
+    // watermarks BEFORE state — the query effect must not re-fire on
+    // restored segments
+    queriedRef.current = snap.segments.length;
+    consumedRef.current = snap.consumed;
+    lastCardRef.current = snap.lastCard;
+    setSegments(snap.segments);
+    setCards(snap.cards);
+    setFollowing(true);
+    setResumeOffer(null);
+    // backfill cards the server finished after this client dropped
+    (async () => {
+      try {
+        const res = await fetch(`/api/session/${snap.sessionId}`);
+        if (!res.ok) return;
+        const { cards: parked } = (await res.json()) as {
+          cards: { turn: number; at: string; heard: string; text: string; debug: string[] }[];
+        };
+        if (!parked?.length) return;
+        setCards((cs) => {
+          const have = new Set(cs.map((c) => c.id));
+          const add = parked
+            .filter((p) => !have.has(p.turn))
+            .map((p) => ({
+              id: p.turn,
+              heard: p.heard,
+              at: new Date(p.at).toLocaleTimeString("en-US", { hour12: false }),
+              text: p.text,
+              debug: p.debug ?? [],
+            }));
+          if (add.length === 0) return cs;
+          for (const a of add) {
+            consumedRef.current = Math.max(consumedRef.current, a.id);
+          }
+          return [...cs, ...add].sort((a, b) => a.id - b.id);
+        });
+      } catch {
+        // backfill is best-effort; the local snapshot already restored
+      }
+    })();
+  }
+
+  function startFresh() {
+    try {
+      const latest = localStorage.getItem(SNAP_LATEST);
+      if (latest) localStorage.removeItem(SNAP_PREFIX + latest);
+      localStorage.removeItem(SNAP_LATEST);
+    } catch {}
+    setResumeOffer(null);
+  }
+
   // Every finalized utterance re-queries. Queries run concurrently — a newer
   // line never aborts an in-flight one (a finished answer is work already
   // paid for); turns settle out of order, cards insert sorted.
@@ -280,7 +512,14 @@ export default function Home() {
         const res = await fetch("/api/agent", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ transcript }),
+          // sessionId+turn let the server park this card for backfill if we
+          // drop mid-stream
+          body: JSON.stringify({
+            transcript,
+            sessionId: sessionIdRef.current,
+            turn: id,
+            heard,
+          }),
           signal: ctrl.signal,
         });
         if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
@@ -396,6 +635,7 @@ export default function Home() {
     fireWarmup();
     try {
       gladiaRef.current = await startGladiaLive({
+        sessionId: sessionIdRef.current,
         onFinal: (raw) => {
           const text = tidyTranscript(raw);
           if (text)
@@ -428,6 +668,7 @@ export default function Home() {
   }
 
   function start() {
+    setResumeOffer(null); // starting a live call supersedes the offer
     const w = window as unknown as Record<string, unknown>;
     const Rec = w.SpeechRecognition ?? w.webkitSpeechRecognition;
     // mobile browsers ship no usable SpeechRecognition (and iOS Chrome none
@@ -534,6 +775,7 @@ export default function Home() {
 
   return (
     <div className="mx-auto w-full max-w-245 px-5 pt-8 pb-12">
+      <OfflineBanner callLive={listening || streaming} />
       <header className="mb-6">
         <div
           aria-hidden="true"
@@ -565,7 +807,36 @@ export default function Home() {
             ref={scrollRef}
             className="flex max-h-115 flex-1 flex-col gap-3 overflow-y-auto p-4"
           >
-            {segments.length === 0 && !interim && (
+            {resumeOffer && segments.length === 0 && status === "idle" && (
+              <div className="rounded-lg border border-line bg-[#f4f4f5] px-3 py-2.5 text-sm">
+                Resume call from{" "}
+                {new Date(resumeOffer.savedAt).toLocaleTimeString("en-US", {
+                  hour12: false,
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}{" "}
+                — {resumeOffer.segments.filter((s) => !s.sys).length} lines,{" "}
+                {resumeOffer.cards.length} card
+                {resumeOffer.cards.length === 1 ? "" : "s"}?
+                <div className="mt-2 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => resumeSession(resumeOffer)}
+                    className="rounded-md bg-ink px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#333]"
+                  >
+                    Resume
+                  </button>
+                  <button
+                    type="button"
+                    onClick={startFresh}
+                    className="rounded-md border border-line px-3 py-1.5 text-xs font-semibold text-ink hover:border-accent hover:text-accent"
+                  >
+                    Start fresh
+                  </button>
+                </div>
+              </div>
+            )}
+            {segments.length === 0 && !interim && !resumeOffer && (
               <p className="text-sm text-muted">
                 {status === "denied"
                   ? micError === "service-not-allowed"

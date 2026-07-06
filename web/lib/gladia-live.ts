@@ -62,16 +62,22 @@ export function isGladiaCapable(): boolean {
 }
 
 export async function startGladiaLive(opts: {
+  /** k0 session id — one identity across transcription and agent turns */
+  sessionId?: string;
   onFinal: (text: string) => void;
   onInterim: (text: string) => void;
   onError: (message: string) => void;
 }): Promise<GladiaHandle> {
-  const { onFinal, onInterim, onError } = opts;
+  const { sessionId, onFinal, onInterim, onError } = opts;
 
   // mic first — permission prompt should precede any network work
   const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-  const resp = await fetch("/api/transcribe-session", { method: "POST" });
+  const resp = await fetch("/api/transcribe-session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sessionId }),
+  });
   if (!resp.ok) {
     stream.getTracks().forEach((t) => t.stop());
     const body = await resp.text();

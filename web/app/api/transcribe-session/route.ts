@@ -1,10 +1,16 @@
 /** Mints a Gladia live-transcription session. The admin key stays server
  *  side — the returned WS URL embeds its own scoped auth, so the browser
  *  connects directly and PCM never proxies through us. */
-export async function POST() {
+export async function POST(req: Request) {
   const key = process.env.GLADIA_API_KEY;
   if (!key) {
     return Response.json({ error: "GLADIA_API_KEY unset" }, { status: 503 });
+  }
+  // correlation only — one k0 session id spans transcription + agent turns
+  const sessionId = (await req.json().catch(() => ({}) as Record<string, unknown>))
+    ?.sessionId;
+  if (typeof sessionId === "string") {
+    console.log(`transcribe-session mint for session=${sessionId.slice(0, 64)}`);
   }
   const resp = await fetch("https://api.gladia.io/v2/live", {
     method: "POST",
