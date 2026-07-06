@@ -188,16 +188,34 @@ function OfflineBanner({ callLive }: { callLive: boolean }) {
     };
   }, []);
 
-  if (conn === "online") return null;
+  // presence outlives `conn` by one fade so dismissal animates out instead
+  // of vanishing
+  const [mounted, setMounted] = useState(false);
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    if (conn === "online") {
+      setShown(false);
+      const t = setTimeout(() => setMounted(false), 300);
+      return () => clearTimeout(t);
+    }
+    setMounted(true);
+    // opacity flips a frame after mount so the fade-in transition runs
+    const raf = requestAnimationFrame(() =>
+      requestAnimationFrame(() => setShown(true)),
+    );
+    return () => cancelAnimationFrame(raf);
+  }, [conn]);
+
+  if (!mounted) return null;
   const offline = conn === "offline";
 
   return (
     <div
       role="status"
       aria-live="polite"
-      className={`fixed inset-x-0 top-0 z-50 flex items-center justify-center gap-2 border-b bg-card px-3 py-2 text-sm font-semibold ${
-        offline ? "border-error/30 text-error" : "border-live/30 text-live"
-      }`}
+      className={`fixed inset-x-0 top-0 z-50 flex items-center justify-center gap-2 border-b bg-card px-3 py-2 text-sm font-semibold transition-all duration-300 motion-reduce:transition-none ${
+        shown ? "opacity-100" : "opacity-0"
+      } ${offline ? "border-error/30 text-error" : "border-live/30 text-live"}`}
     >
       <svg
         aria-hidden="true"
