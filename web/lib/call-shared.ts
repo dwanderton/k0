@@ -154,8 +154,9 @@ export function parseCard(text: string) {
   };
 }
 
-/** named target — every click top-level-navigates one reused window, so the
- *  #:~:text= fragment fires and the highlight lands */
+/** fresh noopener window per click — the #:~:text= highlight fires only on
+ *  cross-document navs with no opener; a reused named window re-navigates
+ *  same-document and keeps window.opener, so the fragment silently skips */
 export function openDocs(url: string) {
-  window.open(url, "k0Docs", "width=1100,height=800");
+  window.open(url, "_blank", "noopener,width=1100,height=800");
 }
