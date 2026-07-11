@@ -17,6 +17,8 @@ export interface CustomerStory {
   outcome: string;
   /** sha1 of the cached post markdown — enrichment reuse key */
   hash: string;
+  /** enrichment schema/prompt version — bumping forces re-enrichment */
+  v: number;
 }
 
 let stories: Promise<Map<string, CustomerStory>> | null = null;

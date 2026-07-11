@@ -2,27 +2,32 @@
   {
     "path": "/blog/360-billion-tokens-3-million-customers-6-engineers",
     "customer": "Durable",
-    "industry": "AI Business Builder",
+    "industry": "AI business builder",
     "vercelProducts": [
       "Next.js",
+      "Vercel Functions",
       "Fluid compute",
       "Turborepo",
       "AI SDK",
       "AI Gateway",
-      "Workflows",
+      "Workflow",
       "CDN",
       "Domains",
-      "Cron",
-      "BotID",
+      "Cron Jobs",
+      "Firewall",
       "Sandbox",
+      "Web Analytics",
+      "Speed Insights",
       "Blob"
     ],
     "otherTech": [
       "OpenTelemetry",
-      "AWS"
+      "AWS",
+      "iframe"
     ],
-    "outcome": "3-4x lower infra cost and 1-day production agent launches",
-    "hash": "cd6b89591062a962e0cf8c292167fd062ec2721d"
+    "outcome": "3-4x lower infra cost and 1-day agent shipping",
+    "hash": "cd6b89591062a962e0cf8c292167fd062ec2721d",
+    "v": 2
   },
   {
     "path": "/blog/a-better-developer-experience-makes-building-cruise-critic-more-efficient",
@@ -34,23 +39,25 @@
     "otherTech": [
       "PHP"
     ],
-    "outcome": "30 min to <8 min build times; 85% faster page downloads",
-    "hash": "7d249fe54844fc01b7a464d3ca57b5a93e0c8f97"
+    "outcome": "30 min to under 8 min build times; 85% faster page downloads",
+    "hash": "7d249fe54844fc01b7a464d3ca57b5a93e0c8f97",
+    "v": 2
   },
   {
     "path": "/blog/ai-agents-at-scale-roxs-vercel-powered-revenue-operating-system",
     "customer": "Rox",
-    "industry": "Revenue ops",
+    "industry": "Revenue OS",
     "vercelProducts": [
       "Next.js",
-      "Content Delivery",
+      "CDN",
       "Vercel Functions",
-      "AI SDK",
-      "Preview Deployments"
+      "Preview Deployments",
+      "AI SDK"
     ],
     "otherTech": [],
     "outcome": "3-5 minute deploys and 2.5x faster P95 load speed",
-    "hash": "40f2756d36f0fea3994036e5134e62b3da015e3f"
+    "hash": "40f2756d36f0fea3994036e5134e62b3da015e3f",
+    "v": 2
   },
   {
     "path": "/blog/architecting-reliability-stripes-black-friday-site",
@@ -58,15 +65,15 @@
     "industry": "Fintech",
     "vercelProducts": [
       "Next.js",
-      "SWR",
-      "ISR"
+      "ISR",
+      "CDN"
     ],
     "otherTech": [
-      "WebSockets",
-      "getStaticProps"
+      "SWR"
     ],
     "outcome": "17M+ edge requests at launch; 100% uptime",
-    "hash": "85f6c1691e19ef4d3132968918f3c4db145cf7b2"
+    "hash": "85f6c1691e19ef4d3132968918f3c4db145cf7b2",
+    "v": 2
   },
   {
     "path": "/blog/beyond-menu-scaling-with-hypertune-and-vercel",
@@ -79,8 +86,9 @@
     "otherTech": [
       "Hypertune"
     ],
-    "outcome": "Ultra-low latency flag reads with zero layout shift or UI flickers",
-    "hash": "acfe27083ab6405dc37d2e7d42f97e52cd3d6adb"
+    "outcome": "Zero latency feature flag reads with no impact to conversion",
+    "hash": "acfe27083ab6405dc37d2e7d42f97e52cd3d6adb",
+    "v": 2
   },
   {
     "path": "/blog/bnp-paribas-open-serving-up-scores-and-experiences-in-real-time-with-work",
@@ -89,8 +97,9 @@
     "vercelProducts": [
       "Next.js",
       "Vercel Functions",
-      "Edge Middleware",
-      "Preview Deployments"
+      "CDN",
+      "Preview Deployments",
+      "Instant Rollbacks"
     ],
     "otherTech": [
       "Work & Co",
@@ -99,8 +108,9 @@
       "Redis",
       "Supabase"
     ],
-    "outcome": "83,000 new accounts and millions of users handled in real time",
-    "hash": "42b25e36c1d5c4b6a310fc523b86c26aa890d59e"
+    "outcome": "83,000 new accounts and millions of users handled during tournament",
+    "hash": "42b25e36c1d5c4b6a310fc523b86c26aa890d59e",
+    "v": 2
   },
   {
     "path": "/blog/break-the-news-not-the-site",
@@ -114,11 +124,11 @@
     "otherTech": [
       "Contentful",
       "PHP",
-      "AWS",
-      "Git"
+      "AWS"
     ],
     "outcome": "30-50% of monthly new subscriber goal reached within 24 hours of launch",
-    "hash": "85664e54c30df44fc815a5dad1f8791561299d3f"
+    "hash": "85664e54c30df44fc815a5dad1f8791561299d3f",
+    "v": 2
   },
   {
     "path": "/blog/bridging-the-gap-between-design-and-code-with-v0",
@@ -133,18 +143,19 @@
       "AWS Bedrock",
       "Loom"
     ],
-    "outcome": "Single-day concept creation for Terminal Preview",
-    "hash": "d30835c7d7b1022746ad25b4bc998594fad767e4"
+    "outcome": "Single-day prototype creation for Terminal Preview",
+    "hash": "d30835c7d7b1022746ad25b4bc998594fad767e4",
+    "v": 2
   },
   {
     "path": "/blog/commerceui-headless-shopify-nextjs",
     "customer": "Commerce-UI",
-    "industry": "Ecommerce",
+    "industry": "Commerce",
     "vercelProducts": [
       "Next.js",
+      "Edge Middleware",
       "ISR",
-      "Preview Deployments",
-      "Edge Middleware"
+      "Preview Deployments"
     ],
     "otherTech": [
       "Shopify",
@@ -152,8 +163,9 @@
       "Slack",
       "Figma"
     ],
-    "outcome": "200% traffic spikes handled with fast localized storefronts",
-    "hash": "85b9eea7ba18869b44a29d88ccc3f2daab3521e0"
+    "outcome": "200% traffic spikes handled with static-like performance",
+    "hash": "85b9eea7ba18869b44a29d88ccc3f2daab3521e0",
+    "v": 2
   },
   {
     "path": "/blog/core-construction",
@@ -166,44 +178,45 @@
     "otherTech": [
       "AWS"
     ],
-    "outcome": "30 min builds down to 14 min",
-    "hash": "1281872ca5839873505a029a5fd2dc9c5ad547b2"
+    "outcome": "Builds cut from 30 minutes to 14 minutes",
+    "hash": "1281872ca5839873505a029a5fd2dc9c5ad547b2",
+    "v": 2
   },
   {
     "path": "/blog/creating-a-robust-platform-for-documentation-with-next-js-and-vercel",
     "customer": "Teleport",
-    "industry": "Infrastructure",
+    "industry": "Dev tools",
     "vercelProducts": [
       "Next.js",
       "Preview Deployments",
-      "Vercel Functions",
-      "Edge Middleware",
-      "ISR"
+      "Firewall"
     ],
     "otherTech": [
       "MkDocs",
       "Hugo",
       "GitHub",
-      "GitHub Actions",
+      "React",
       "CMS",
-      "Okta",
       "Mermaid.js",
-      "SSR",
-      "next/image"
+      "Okta",
+      "GDPR",
+      "SOC 2 Type II"
     ],
     "outcome": "60% decrease in build times; 3x more concurrent builds",
-    "hash": "313ee27c74161098e2c6e6384fb81e186419ef5d"
+    "hash": "313ee27c74161098e2c6e6384fb81e186419ef5d",
+    "v": 2
   },
   {
     "path": "/blog/cutting-delivery-times-in-half-with-v0",
     "customer": "Ready.net",
-    "industry": "Utility fintech",
+    "industry": "Fintech",
     "vercelProducts": [
       "v0"
     ],
     "otherTech": [],
     "outcome": "50% faster demo request to code delivery",
-    "hash": "f67b293027143e99ce2bb73bd3118035e1aebdd5"
+    "hash": "f67b293027143e99ce2bb73bd3118035e1aebdd5",
+    "v": 2
   },
   {
     "path": "/blog/datocms-builds-60-faster-with-a-streamlined-workflow",
@@ -214,20 +227,25 @@
       "Preview Deployments"
     ],
     "otherTech": [],
-    "outcome": "60% faster builds, from 10 to 4 minutes",
-    "hash": "f3710831d5e64b22dd7e17afcbcab35597509970"
+    "outcome": "60% faster build times from 10 to 4 minutes",
+    "hash": "f3710831d5e64b22dd7e17afcbcab35597509970",
+    "v": 2
   },
   {
     "path": "/blog/delivering-ai-analysis-faster-with-the-vercel-workflow",
     "customer": "Viable",
-    "industry": "AI company",
+    "industry": "AI",
     "vercelProducts": [
       "Next.js",
       "Preview Deployments"
     ],
-    "otherTech": [],
-    "outcome": "80% less back-and-forth on feedback",
-    "hash": "58fb0361540ab11feaeb7d89a9492246f4666a33"
+    "otherTech": [
+      "Slack",
+      "Zoom"
+    ],
+    "outcome": "80% less back and forth on feedback",
+    "hash": "58fb0361540ab11feaeb7d89a9492246f4666a33",
+    "v": 2
   },
   {
     "path": "/blog/demant-achieves-global-scalability-and-30x-faster-response-times-with-vercel",
@@ -235,15 +253,17 @@
     "industry": "Healthcare",
     "vercelProducts": [
       "Next.js",
-      "Preview Deployments",
-      "Edge Middleware"
+      "Edge Middleware",
+      "Preview Deployments"
     ],
     "otherTech": [
       "Sitecore",
-      "Azure"
+      "Azure",
+      "JSS SDK"
     ],
     "outcome": "30x faster response times and 10x lower hosting costs",
-    "hash": "43ed261d49fb86125b51da9483908f250e1c9d0e"
+    "hash": "43ed261d49fb86125b51da9483908f250e1c9d0e",
+    "v": 2
   },
   {
     "path": "/blog/deploying-at-the-speed-of-on-demand-streaming",
@@ -255,68 +275,74 @@
     ],
     "otherTech": [],
     "outcome": "47% better First Contentful Paint; 17% faster Time to First Byte",
-    "hash": "9ae2495b9e26cb953e10223fb46603584cda3437"
+    "hash": "9ae2495b9e26cb953e10223fb46603584cda3437",
+    "v": 2
   },
   {
     "path": "/blog/devolver-ships-game-websites-73-faster-with-vercel",
     "customer": "Devolver",
     "industry": "Gaming",
     "vercelProducts": [
+      "CI/CD",
       "Preview Deployments",
-      "Next.js"
+      "Vercel CLI"
     ],
     "otherTech": [
-      "Vercel CLI",
-      "CI/CD",
-      "API routes"
+      "AWS"
     ],
-    "outcome": "73% faster game website launches",
-    "hash": "405c60cd8dba6c68c1c695aa01c39deb1cffb7ce"
+    "outcome": "73% faster game website shipping",
+    "hash": "405c60cd8dba6c68c1c695aa01c39deb1cffb7ce",
+    "v": 2
   },
   {
     "path": "/blog/edge-functions-enable-read-cv-to-deliver-profiles-globally-with-near-zero",
     "customer": "Read.cv",
-    "industry": "Social networking",
+    "industry": "Professional networking",
     "vercelProducts": [
-      "Edge Functions",
-      "Next.js",
-      "CDN"
+      "Edge Middleware",
+      "CDN",
+      "Next.js"
     ],
     "otherTech": [
       "Create React App"
     ],
-    "outcome": "Near-zero latency globally; improved TTFB",
-    "hash": "3f0d88722a2b3fb792d3a29ed1dd3e2b62c26e04"
+    "outcome": "Near-zero latency for global profile delivery",
+    "hash": "3f0d88722a2b3fb792d3a29ed1dd3e2b62c26e04",
+    "v": 2
   },
   {
     "path": "/blog/elkjops-digital-transformation-with-next-js-and-vercel",
     "customer": "Elkjøp",
-    "industry": "Ecommerce",
+    "industry": "Retail",
     "vercelProducts": [
       "Next.js",
-      "Preview Deployments"
+      "Preview Deployments",
+      "Feature Flags",
+      "Vercel Toolbar"
     ],
     "otherTech": [
       "Angular",
       "Kubernetes"
     ],
-    "outcome": "93% CLS improvement; release cycles cut from 7 weeks to 1 day",
-    "hash": "b89ee79866e1b2a4edfba967b5b6d7f74a8a5248"
+    "outcome": "7 weeks to 1 day release cycles; 93% CLS improvement",
+    "hash": "b89ee79866e1b2a4edfba967b5b6d7f74a8a5248",
+    "v": 2
   },
   {
     "path": "/blog/examine",
     "customer": "Examine",
-    "industry": "Health database",
+    "industry": "Healthcare",
     "vercelProducts": [
-      "Next.js",
       "Preview Deployments",
+      "Next.js",
       "ISR"
     ],
     "otherTech": [
       "Sentry"
     ],
-    "outcome": "284% increase in free trials; build times cut 90%",
-    "hash": "2ab1073196fbdc5faa839a5bb99924263893b570"
+    "outcome": "284% increase in free trial signups",
+    "hash": "2ab1073196fbdc5faa839a5bb99924263893b570",
+    "v": 2
   },
   {
     "path": "/blog/extra-space-storages-build-times-became-17x-faster-with-vercel",
@@ -326,13 +352,15 @@
       "Next.js",
       "Edge Middleware",
       "ISR",
-      "Preview Deployments"
+      "Preview Deployments",
+      "Domains"
     ],
     "otherTech": [
       "AWS"
     ],
-    "outcome": "17x faster build times and 95% fewer build minutes",
-    "hash": "d472d822eb7ab1d68b0bab8ce3f1533f2cc48cf6"
+    "outcome": "95% decrease in build times; 17x faster builds",
+    "hash": "d472d822eb7ab1d68b0bab8ce3f1533f2cc48cf6",
+    "v": 2
   },
   {
     "path": "/blog/frameio-never-drop-the-illusion",
@@ -341,13 +369,16 @@
     "vercelProducts": [
       "Next.js",
       "Preview Deployments",
-      "ISR"
+      "ISR",
+      "CDN",
+      "Speed Insights"
     ],
     "otherTech": [
       "React"
     ],
-    "outcome": "6x faster preview builds and deployments",
-    "hash": "112c8ed95e902737b9bae4a188f7b5e31190300d"
+    "outcome": "6x faster preview builds & deployments",
+    "hash": "112c8ed95e902737b9bae4a188f7b5e31190300d",
+    "v": 2
   },
   {
     "path": "/blog/from-idea-to-acqusition-how-potion-shipped-4k-sites-on-vercel",
@@ -355,16 +386,15 @@
     "industry": "Website builder",
     "vercelProducts": [
       "Next.js",
-      "Preview Deployments",
+      "Platforms Starter Kit",
       "ISR"
     ],
     "otherTech": [
-      "Vercel Edge Network",
-      "Platforms Starter Kit",
-      "SSR"
+      "Notion"
     ],
-    "outcome": "$300K acquisition after reaching 4,000 custom domains",
-    "hash": "6bc22393799c920c9ac35aef712cf0833ce69781"
+    "outcome": "$300k acquisition after scaling to 4,000 custom domains",
+    "hash": "6bc22393799c920c9ac35aef712cf0833ce69781",
+    "v": 2
   },
   {
     "path": "/blog/from-minutes-to-seconds-how-meter-accelerates-delivery-with-vercel-and-next",
@@ -372,7 +402,8 @@
     "industry": "Networking",
     "vercelProducts": [
       "Next.js",
-      "Preview Deployments"
+      "Preview Deployments",
+      "Instant Rollbacks"
     ],
     "otherTech": [
       "AWS",
@@ -380,7 +411,8 @@
       "Vite"
     ],
     "outcome": "98.33% reduction in build times",
-    "hash": "ee0c0edeeaed4f121dc4a747db398baadd072196"
+    "hash": "ee0c0edeeaed4f121dc4a747db398baadd072196",
+    "v": 2
   },
   {
     "path": "/blog/from-monolith-to-composable-equipping-a-financial-services-ipo",
@@ -388,14 +420,16 @@
     "industry": "Financial services",
     "vercelProducts": [
       "Next.js",
-      "Vercel Analytics"
+      "Vercel API",
+      "Web Analytics"
     ],
     "otherTech": [
       "WordPress",
       "Strapi"
     ],
-    "outcome": "One developer migrated to composable Next.js, enabling IPO rebrand freedom",
-    "hash": "a11bdb5e3d9e40628e471e74ca939f3ccf767033"
+    "outcome": "One-developer team launched a composable Next.js frontend for IPO rebrand",
+    "hash": "a11bdb5e3d9e40628e471e74ca939f3ccf767033",
+    "v": 2
   },
   {
     "path": "/blog/from-newsletter-to-global-media-brand-with-a-headless-frontend",
@@ -411,14 +445,14 @@
       "Sanity"
     ],
     "outcome": "2.5x revenue after frontend cloud adoption",
-    "hash": "526a8cb58f943adf9c84caefdeebefef454809b0"
+    "hash": "526a8cb58f943adf9c84caefdeebefef454809b0",
+    "v": 2
   },
   {
     "path": "/blog/from-wordpress-monolith-to-vercel-personio-elevates-site-performance",
     "customer": "Personio",
-    "industry": "HR Tech",
+    "industry": "HR tech",
     "vercelProducts": [
-      "Vercel",
       "Next.js",
       "Preview Deployments"
     ],
@@ -426,69 +460,77 @@
       "WordPress",
       "Contentful"
     ],
-    "outcome": "90%+ Core Web Vitals improvement and 99.99% uptime",
-    "hash": "61083eb168ca2266ce0cee6e91e6ab8f82da1006"
+    "outcome": "90%+ better Core Web Vitals; 99.99% uptime",
+    "hash": "61083eb168ca2266ce0cee6e91e6ab8f82da1006",
+    "v": 2
   },
   {
     "path": "/blog/gamma-builds-design-first-agents-with-vercel",
     "customer": "Gamma",
-    "industry": "AI Apps",
+    "industry": "AI design",
     "vercelProducts": [
       "AI SDK",
       "Preview Deployments",
-      "Vercel Functions"
+      "Instant Rollbacks",
+      "Vercel Functions",
+      "Observability"
     ],
     "otherTech": [
       "Gemini",
       "Flux",
-      "Tiptap",
-      "JSDOM"
+      "JSDOM",
+      "Tiptap"
     ],
     "outcome": "250+ deployments/day with 99% success rate",
-    "hash": "9d81e3a8b697dde640bd23a94ea327c3f1fe95a6"
+    "hash": "9d81e3a8b697dde640bd23a94ea327c3f1fe95a6",
+    "v": 2
   },
   {
     "path": "/blog/hashnode-runs-faster-blogs-on-the-web-with-vercel",
     "customer": "Hashnode",
-    "industry": "Developer platform",
+    "industry": "Blogging platform",
     "vercelProducts": [
       "Next.js",
-      "Preview Deployments"
+      "Preview Deployments",
+      "Domains",
+      "CDN"
     ],
     "otherTech": [
       "AWS Amplify"
     ],
-    "outcome": "Faster blogs on the web with custom domains at scale",
-    "hash": "e80f4b6d20ac8efb259542da7f5cab682e0a4117"
+    "outcome": "Custom domains at scale with faster deploy previews and perfect Lighthouse scores",
+    "hash": "e80f4b6d20ac8efb259542da7f5cab682e0a4117",
+    "v": 2
   },
   {
     "path": "/blog/hashnode-runs-the-fastest-blogs-on-the-web-with-vercel",
     "customer": "Hashnode",
-    "industry": "Media",
+    "industry": "Blogging platform",
     "vercelProducts": [
       "Next.js",
-      "Preview Deployments"
+      "Preview Deployments",
+      "Domains",
+      "CDN"
     ],
     "otherTech": [
       "AWS Amplify"
     ],
-    "outcome": "Less time managing infrastructure and faster, perfect-score blog performance",
-    "hash": "1c4772b17871b138f5dd07285c49ddc5327f110b"
+    "outcome": "Faster blogging with custom domains at scale and perfect Lighthouse scores",
+    "hash": "1c4772b17871b138f5dd07285c49ddc5327f110b",
+    "v": 2
   },
   {
     "path": "/blog/helping-swells-merchants-provide-unparalleled-ecommerce-experiences",
     "customer": "Swell",
-    "industry": "Commerce",
+    "industry": "Ecommerce",
     "vercelProducts": [
       "Next.js",
       "ISR"
     ],
-    "otherTech": [
-      "Swell",
-      "Next.js Commerce starter kit"
-    ],
-    "outcome": "1 month to launch an ecommerce site vs. 4–12 months on legacy platforms",
-    "hash": "3f2dacde4014ff20b6e926255039c3c24d1dc9c0"
+    "otherTech": [],
+    "outcome": "1 month to build a new ecommerce site",
+    "hash": "3f2dacde4014ff20b6e926255039c3c24d1dc9c0",
+    "v": 2
   },
   {
     "path": "/blog/how-a-global-agency-built-a-web-innovation-engine-in-two-months",
@@ -496,11 +538,15 @@
     "industry": "Digital agency",
     "vercelProducts": [
       "Next.js",
-      "Preview Deployments"
+      "Preview Deployments",
+      "CDN"
     ],
-    "otherTech": [],
-    "outcome": "Two months to launch digital experiences after shifting from physical events",
-    "hash": "aa665639b3eebb2f27028ca9f31696c454dc9b83"
+    "otherTech": [
+      "Git"
+    ],
+    "outcome": "Built a web innovation engine in 2 months",
+    "hash": "aa665639b3eebb2f27028ca9f31696c454dc9b83",
+    "v": 2
   },
   {
     "path": "/blog/How-avalara-turns-pipedreams-into-patent-pending-with-v0",
@@ -511,11 +557,12 @@
     ],
     "otherTech": [
       "Chrome extension",
-      "Figma",
-      "Slack"
+      "Slack",
+      "Figma"
     ],
     "outcome": "2 patent-pending products in ~60 days",
-    "hash": "4b2743cee8a3d0066ab91979b5ad3719ce154542"
+    "hash": "4b2743cee8a3d0066ab91979b5ad3719ce154542",
+    "v": 2
   },
   {
     "path": "/blog/how-chatbase-scaled-rapidly-with-vercels-developer-experience-and-ai-sdk",
@@ -524,11 +571,14 @@
     "vercelProducts": [
       "AI SDK",
       "Next.js",
-      "Preview Deployments"
+      "Firewall",
+      "Preview Deployments",
+      "Instant Rollbacks"
     ],
     "otherTech": [],
     "outcome": "500K monthly visitors and $4M ARR in 1.5 years",
-    "hash": "f5ca4ad10099a0a2f9aa595d2599ad4a1dd88a08"
+    "hash": "f5ca4ad10099a0a2f9aa595d2599ad4a1dd88a08",
+    "v": 2
   },
   {
     "path": "/blog/how-code-and-theory-cut-time-to-prototype-75-with-v0",
@@ -538,8 +588,9 @@
       "v0"
     ],
     "otherTech": [],
-    "outcome": "75% faster time-to-prototype",
-    "hash": "3c61683697b17a376ad113239c2fd5c79e33e750"
+    "outcome": "75% cut in time-to-prototype",
+    "hash": "3c61683697b17a376ad113239c2fd5c79e33e750",
+    "v": 2
   },
   {
     "path": "/blog/how-conductor-moved-parallel-coding-agents-from-the-laptop-to-the-cloud-with-vercel-sandbox",
@@ -550,11 +601,11 @@
     ],
     "otherTech": [
       "Claude Code",
-      "Codex",
-      "GPT-5.5"
+      "Codex"
     ],
-    "outcome": "Parallel agents moved from laptop to cloud with no UX change",
-    "hash": "0957e1e430e3d0a5bbbe37ed2ccaebf32a786e55"
+    "outcome": "Remote cloud workspaces let agents run in parallel without laptop limits",
+    "hash": "0957e1e430e3d0a5bbbe37ed2ccaebf32a786e55",
+    "v": 2
   },
   {
     "path": "/blog/how-consensys-rebuilt-metamask-io-with-vercel-and-next-js",
@@ -564,21 +615,26 @@
       "Next.js",
       "Vercel Functions",
       "ISR",
-      "Preview Deployments"
+      "Preview Deployments",
+      "Speed Insights"
     ],
     "otherTech": [
+      "GitHub Pages",
       "Contentful"
     ],
-    "outcome": "100% traffic in 4 hours, with no rollback",
-    "hash": "d325055a7db9191bffab08dd365e1f57bd6ca1cb"
+    "outcome": "4 hours to scale rollout from 1% to 100%, with no rollback",
+    "hash": "d325055a7db9191bffab08dd365e1f57bd6ca1cb",
+    "v": 2
   },
   {
     "path": "/blog/how-coxwave-delivers-genai-value-faster-with-vercel",
     "customer": "Coxwave",
-    "industry": "AI analytics",
+    "industry": "GenAI",
     "vercelProducts": [
       "Next.js",
       "Preview Deployments",
+      "CDN",
+      "Instant Rollbacks",
       "AI SDK"
     ],
     "otherTech": [
@@ -586,7 +642,8 @@
       "S3"
     ],
     "outcome": "85% faster deployment times",
-    "hash": "de982a6148499f23f2ec89bf506d551f4c55816c"
+    "hash": "de982a6148499f23f2ec89bf506d551f4c55816c",
+    "v": 2
   },
   {
     "path": "/blog/how-dub-grew-to-3000-active-domains-with-vercels-multi-tenant-saas-toolkit",
@@ -600,7 +657,8 @@
     ],
     "otherTech": [],
     "outcome": "3,000 active domains and 5M redirects/month",
-    "hash": "a9547074227193ecdbb6bb79851cce8902ff78b1"
+    "hash": "a9547074227193ecdbb6bb79851cce8902ff78b1",
+    "v": 2
   },
   {
     "path": "/blog/how-emburse-increased-site-performance-by-4x-with-vercel",
@@ -610,46 +668,52 @@
       "Next.js"
     ],
     "otherTech": [
-      "Sanity"
+      "Sanity",
+      "Rangle"
     ],
-    "outcome": "4x faster site performance; INP under 200ms",
-    "hash": "fb29b19312506c97c7d6d567aab3cd5019b22452"
+    "outcome": "4x faster site performance; INP below 200ms",
+    "hash": "fb29b19312506c97c7d6d567aab3cd5019b22452",
+    "v": 2
   },
   {
     "path": "/blog/how-fern-delivers-6m-monthly-views-and-80-faster-docs-with-vercel",
     "customer": "Fern",
-    "industry": "Dev tools",
+    "industry": "Developer tools",
     "vercelProducts": [
       "Next.js",
       "Edge Middleware",
       "Vercel Functions",
-      "ISR"
+      "CDN",
+      "ISR",
+      "Instant Rollbacks",
+      "Preview Deployments",
+      "Domains"
     ],
     "otherTech": [
       "AWS Fargate",
       "AWS CDK",
-      "Algolia",
-      "React Suspense",
-      "loading.tsx"
+      "Algolia"
     ],
-    "outcome": "83% reduction in deploy times; 50-80% faster load times",
-    "hash": "30d00a2ac5bdbd7b6b9ff9c34343947883dee8ab"
+    "outcome": "83% reduction in deploy times; 80% faster docs and 3x faster TTFB",
+    "hash": "30d00a2ac5bdbd7b6b9ff9c34343947883dee8ab",
+    "v": 2
   },
   {
     "path": "/blog/how-fern-runs-multi-tenant-docs-for-webflow-and-elevenlabs-on-vercel",
     "customer": "Fern",
     "industry": "Developer tools",
     "vercelProducts": [
-      "Next.js"
+      "Next.js",
+      "Preview Deployments",
+      "ISR"
     ],
     "otherTech": [
       "Webflow",
-      "ElevenLabs",
-      "Pages Router",
-      "App Router"
+      "ElevenLabs"
     ],
-    "outcome": "3x faster TTFB; page loads reduced by 80%",
-    "hash": "a079cde84c4d1e59140f4319460e6c9851a236bc"
+    "outcome": "3x faster TTFB; page load times cut 80%",
+    "hash": "a079cde84c4d1e59140f4319460e6c9851a236bc",
+    "v": 2
   },
   {
     "path": "/blog/how-flora-shipped-a-creative-agent-on-vercels-ai-stack",
@@ -657,7 +721,7 @@
     "industry": "Creative AI",
     "vercelProducts": [
       "AI SDK",
-      "Workflow SDK",
+      "Workflow",
       "Fluid compute"
     ],
     "otherTech": [
@@ -665,51 +729,57 @@
       "Temporal"
     ],
     "outcome": "2x faster to production with their generation system",
-    "hash": "f718c9e34fc5495bc4e0632d1020e2e925e80de7"
+    "hash": "f718c9e34fc5495bc4e0632d1020e2e925e80de7",
+    "v": 2
   },
   {
     "path": "/blog/how-general-intelligence-used-agents-to-build-an-agent-platform-on-vercel",
     "customer": "General Intelligence",
-    "industry": "AI Platform",
+    "industry": "AI platform",
     "vercelProducts": [
+      "Next.js",
       "Preview Deployments",
       "Fluid compute",
       "Vercel Functions",
-      "Next.js"
+      "Vercel for Platforms",
+      "Domains",
+      "CDN"
     ],
     "otherTech": [
-      "GitHub",
-      "Python",
       "Render",
-      "CLI",
-      "APIs"
+      "Python",
+      "GitHub",
+      "CLI"
     ],
-    "outcome": "90% of SRE work automated; 4,000+ previews and 10 PRs/day",
-    "hash": "6e4ded81c45e4ec33b71b570f19dc8afcdf26528"
+    "outcome": "90% of SRE work automated through Vercel and Cofounder",
+    "hash": "6e4ded81c45e4ec33b71b570f19dc8afcdf26528",
+    "v": 2
   },
   {
     "path": "/blog/how-gitbook-serves-30000-sites-with-sub-second-content-updates",
     "customer": "GitBook",
-    "industry": "Developer tools",
+    "industry": "Documentation",
     "vercelProducts": [
-      "Next.js",
-      "Content Delivery",
-      "CI/CD"
+      "Next.js"
     ],
     "otherTech": [
       "GitHub",
-      "GitLab"
+      "GitLab",
+      "LLM"
     ],
-    "outcome": "300,000? 40,000 cache invalidations daily resolved under 300ms",
-    "hash": "cd4d3b90a8aee5d3f149bb5179397b5d2775cfdf"
+    "outcome": "40,000 invalidations/day resolved in under 300ms",
+    "hash": "cd4d3b90a8aee5d3f149bb5179397b5d2775cfdf",
+    "v": 2
   },
   {
     "path": "/blog/how-global-retail-brands-cut-development-time-from-months-to-1-week",
-    "customer": "Global Retail Brands (GRB)",
-    "industry": "Ecommerce",
+    "customer": "Global Retail Brands",
+    "industry": "Retail",
     "vercelProducts": [
       "Next.js",
-      "Preview Deployments"
+      "Preview Deployments",
+      "Speed Insights",
+      "Domains"
     ],
     "otherTech": [
       "Shopify Plus",
@@ -718,27 +788,28 @@
       "Convert Digital"
     ],
     "outcome": "75% decrease in development time; deploys under 10 minutes",
-    "hash": "416c1429fc1b2de4dc99b94068a9fb57c39db0f9"
+    "hash": "416c1429fc1b2de4dc99b94068a9fb57c39db0f9",
+    "v": 2
   },
   {
     "path": "/blog/how-helly-hansen-migrated-to-vercel-and-drove-80-black-friday-growth",
     "customer": "Helly Hansen",
-    "industry": "Commerce",
+    "industry": "Ecommerce",
     "vercelProducts": [
       "Next.js",
+      "CDN",
       "Vercel Functions",
-      "Vercel CDN",
-      "Vercel Web Analytics",
+      "Web Analytics",
       "ISR",
-      "Vercel Data Cache",
-      "feature flags"
+      "Feature Flags"
     ],
     "otherTech": [
       "Adobe Commerce",
       "Constructor.io"
     ],
     "outcome": "80% YoY Black Friday growth with zero downtime",
-    "hash": "1563bf827533c8ce4115ea599393f790504c83be"
+    "hash": "1563bf827533c8ce4115ea599393f790504c83be",
+    "v": 2
   },
   {
     "path": "/blog/how-indent-delivers-secure-access-with-next.js-and-vercel",
@@ -753,7 +824,8 @@
       "Slack"
     ],
     "outcome": "80% faster time-to-feedback with previews",
-    "hash": "ccbfcd169eb96d125ed1ff7b8a43fb0f40604752"
+    "hash": "ccbfcd169eb96d125ed1ff7b8a43fb0f40604752",
+    "v": 2
   },
   {
     "path": "/blog/how-kiko-milano-scales-for-black-friday",
@@ -766,28 +838,29 @@
     "otherTech": [
       "AWS EC2"
     ],
-    "outcome": "75% decrease in app build times; eliminated 3 weeks of Black Friday prep",
-    "hash": "558bfb2e57f5d56bdd23c3833239e8c3e6804302"
+    "outcome": "75% decrease in app build times",
+    "hash": "558bfb2e57f5d56bdd23c3833239e8c3e6804302",
+    "v": 2
   },
   {
     "path": "/blog/how-makeswift-improved-ci-speed-by-65-with-turborepo",
     "customer": "Makeswift",
-    "industry": "Developer tools",
+    "industry": "Dev tools",
     "vercelProducts": [
       "Turborepo",
+      "Next.js",
       "Preview Deployments",
       "Edge Middleware"
     ],
     "otherTech": [
-      "Next.js",
       "Kubernetes",
       "Bazel",
       "GitHub Actions",
-      "Docker",
-      "npm"
+      "Docker"
     ],
-    "outcome": "65% faster CI pipeline time; commit-to-deploy cut to under 1 minute",
-    "hash": "15b034422be15a337d613300ee62bb9e54cbe68a"
+    "outcome": "65% faster CI pipeline time",
+    "hash": "15b034422be15a337d613300ee62bb9e54cbe68a",
+    "v": 2
   },
   {
     "path": "/blog/how-notion-powers-rapid-and-performant-experimentation",
@@ -795,19 +868,20 @@
     "industry": "Productivity",
     "vercelProducts": [
       "Next.js",
+      "Edge Config",
       "Edge Middleware",
       "Preview Deployments",
-      "Vercel Functions",
       "Vercel Toolbar",
-      "Observability"
+      "Observability",
+      "Instant Rollbacks"
     ],
     "otherTech": [
       "Statsig",
-      "ECS",
-      "Edge Config"
+      "ECS"
     ],
-    "outcome": "300% faster hotfix deploys; 0.09 CLS",
-    "hash": "e4a262367eaa10f0ecd88b20ff6ade0e8030bbbd"
+    "outcome": "300% faster to deploy hotfixes",
+    "hash": "e4a262367eaa10f0ecd88b20ff6ade0e8030bbbd",
+    "v": 2
   },
   {
     "path": "/blog/how-nous-research-used-botid-to-block-automated-abuse-at-scale",
@@ -820,8 +894,9 @@
       "Cloudflare Turnstile",
       "tRPC"
     ],
-    "outcome": "3,000% traffic spike blocked while inference stayed stable",
-    "hash": "ee4f3aa227c86167a1a14bad4e204c4b7cd05b8d"
+    "outcome": "3,000% traffic spike blocked with stable inference availability",
+    "hash": "ee4f3aa227c86167a1a14bad4e204c4b7cd05b8d",
+    "v": 2
   },
   {
     "path": "/blog/how-okara-runs-cmo-agents-for-120000-companies-on-vercel",
@@ -832,8 +907,9 @@
       "Sandbox"
     ],
     "otherTech": [],
-    "outcome": "4B tokens/day powering AI CMOs for 120,000+ companies",
-    "hash": "18c0538cfa03ff5addbb1883d08f966a81d44260"
+    "outcome": "120,000 companies served with same-day model launches",
+    "hash": "18c0538cfa03ff5addbb1883d08f966a81d44260",
+    "v": 2
   },
   {
     "path": "/blog/how-openevidence-built-a-healthcare-ai-that-physicians-can-trust",
@@ -842,14 +918,16 @@
     "vercelProducts": [
       "Next.js",
       "Preview Deployments",
-      "Fluid compute"
+      "Fluid compute",
+      "Domains"
     ],
     "otherTech": [
       "Python",
       "Google Cloud Platform"
     ],
-    "outcome": "90% lower serverless spend while maintaining performance",
-    "hash": "8595422fbfd6bc0b5e4cf254998c72c2581fd450"
+    "outcome": "90% lower serverless spend while scaling to 1000x growth",
+    "hash": "8595422fbfd6bc0b5e4cf254998c72c2581fd450",
+    "v": 2
   },
   {
     "path": "/blog/how-paige-grew-revenue-by-22-with-shopify-next-js-and-vercel",
@@ -857,8 +935,9 @@
     "industry": "Ecommerce",
     "vercelProducts": [
       "Next.js",
+      "CDN",
       "Preview Deployments",
-      "Content Delivery"
+      "Instant Rollbacks"
     ],
     "otherTech": [
       "Shopify",
@@ -867,25 +946,29 @@
       "Bloomreach"
     ],
     "outcome": "22% revenue increase during Black Friday Cyber Monday",
-    "hash": "adaaebc48ee003aa19144b59aaaf4c82da24765c"
+    "hash": "adaaebc48ee003aa19144b59aaaf4c82da24765c",
+    "v": 2
   },
   {
     "path": "/blog/how-plex-6x-their-impressions-deploying-next-js-on-vercel",
     "customer": "Plex",
-    "industry": "Media",
+    "industry": "Streaming media",
     "vercelProducts": [
       "Next.js",
       "Edge Middleware",
-      "ISR"
+      "ISR",
+      "Web Analytics"
     ],
     "otherTech": [
       "GitHub",
       "Kubernetes",
       "Checkly",
-      "Axiom"
+      "Axiom",
+      "Google Search"
     ],
-    "outcome": "6x impressions and 40% smaller codebase",
-    "hash": "9177809eaad9fa05b7fe587a2aa3f93c4fff9346"
+    "outcome": "6x impressions and 40% less code",
+    "hash": "9177809eaad9fa05b7fe587a2aa3f93c4fff9346",
+    "v": 2
   },
   {
     "path": "/blog/how-ramp-kept-100-uptime-through-100x-traffic-surges-on-vercel",
@@ -897,7 +980,8 @@
     ],
     "otherTech": [],
     "outcome": "100% uptime through 100x traffic surges",
-    "hash": "e26ec330d3e4a5c373a696043baf6921cbd1217e"
+    "hash": "e26ec330d3e4a5c373a696043baf6921cbd1217e",
+    "v": 2
   },
   {
     "path": "/blog/how-ruggable-saw-more-organic-clicks-by-optimizing-their-frontend",
@@ -911,47 +995,56 @@
       "Shopify",
       "Contentful"
     ],
-    "outcome": "300% more organic clicks; 75% higher rankings",
-    "hash": "62324b0fafe4295f406651c4d52cc2ea5c8954a4"
+    "outcome": "300% more organic clicks; 75% higher search rankings",
+    "hash": "62324b0fafe4295f406651c4d52cc2ea5c8954a4",
+    "v": 2
   },
   {
     "path": "/blog/how-sensay-went-from-zero-to-product-in-six-weeks",
     "customer": "Sensay",
-    "industry": "AI software",
+    "industry": "AI",
     "vercelProducts": [
-      "Next.js",
       "Preview Deployments",
-      "Vercel Toolbar",
       "Feature Flags",
       "Instant Rollbacks",
-      "AI SDK"
+      "Domains",
+      "Firewall",
+      "BotID",
+      "Observability",
+      "Next.js",
+      "AI SDK",
+      "Vercel Toolbar"
     ],
     "otherTech": [
       "Hono"
     ],
     "outcome": "6 weeks from zero to MVP launch",
-    "hash": "ac2f53cb614dec0d15613eaea593b0efc53f6b2b"
+    "hash": "ac2f53cb614dec0d15613eaea593b0efc53f6b2b",
+    "v": 2
   },
   {
     "path": "/blog/how-sonos-amplified-their-devex",
     "customer": "Sonos",
-    "industry": "Ecommerce",
+    "industry": "Consumer Electronics",
     "vercelProducts": [
       "Next.js",
+      "Edge Middleware",
+      "ISR",
       "Preview Deployments",
       "Web Analytics",
-      "ISR",
-      "Edge Middleware"
+      "Observability"
     ],
     "otherTech": [
-      "Sanity",
       "Salesforce Commerce Cloud",
+      "Sanity",
       "AWS",
-      "AWS CloudFront",
-      "GitHub"
+      "CloudFront",
+      "GitHub",
+      "Lighthouse"
     ],
-    "outcome": "75% faster build times; 10% performance lift",
-    "hash": "f4f55f7c6098f26d59fa1646cce12a95c178d289"
+    "outcome": "75% faster builds; 10% lift in performance",
+    "hash": "f4f55f7c6098f26d59fa1646cce12a95c178d289",
+    "v": 2
   },
   {
     "path": "/blog/how-stably-ships-ai-testing-agents-in-hours-not-weeks",
@@ -965,15 +1058,16 @@
     ],
     "otherTech": [
       "Claude Code",
-      "Slack",
-      "MongoDB",
-      "HubSpot",
       "Google Chrome",
       "Uber",
-      "LinkedIn"
+      "Slack",
+      "LinkedIn",
+      "MongoDB",
+      "HubSpot"
     ],
     "outcome": "Hours instead of weeks to launch new product lines",
-    "hash": "8b85ef9f5a05ba25c942410e5b271a37fad19a2e"
+    "hash": "8b85ef9f5a05ba25c942410e5b271a37fad19a2e",
+    "v": 2
   },
   {
     "path": "/blog/how-stripe-built-a-game-changing-app-in-a-single-flight-with-v0",
@@ -986,24 +1080,27 @@
       "Google Sheets"
     ],
     "outcome": "288% increase in weekly internal users",
-    "hash": "231142ad3cc36c276cfa68ce7754e1b6a135305f"
+    "hash": "231142ad3cc36c276cfa68ce7754e1b6a135305f",
+    "v": 2
   },
   {
     "path": "/blog/how-supabase-elevated-their-developer-experience-with-turborepo",
     "customer": "Supabase",
-    "industry": "Dev tools",
+    "industry": "Developer tools",
     "vercelProducts": [
       "Next.js",
       "Turborepo",
       "Preview Deployments"
     ],
     "otherTech": [
+      "Firebase",
       "Tailwind",
       "TypeScript",
       "npm"
     ],
-    "outcome": "One developer can make UI changes in one PR, improving DX and speeding collaboration",
-    "hash": "5a1df013c0ff1a0b1f283dcf1eff5cef283b051e"
+    "outcome": "One PR can now ship UI changes end to end",
+    "hash": "5a1df013c0ff1a0b1f283dcf1eff5cef283b051e",
+    "v": 2
   },
   {
     "path": "/blog/how-superset-built-the-ide-for-ai-agents-on-vercel",
@@ -1016,26 +1113,29 @@
       "AI Gateway",
       "Blob",
       "Fluid compute",
-      "BotID"
+      "Cron Jobs",
+      "BotID",
+      "Instant Rollbacks"
     ],
     "otherTech": [
-      "GitHub",
-      "Hacker News"
+      "AI Elements",
+      "GitHub"
     ],
     "outcome": "1,000–1,400 deployments/week with ~30s builds",
-    "hash": "bb773bdc15bb0a1e57c78e763c429317a61bb5db"
+    "hash": "bb773bdc15bb0a1e57c78e763c429317a61bb5db",
+    "v": 2
   },
   {
     "path": "/blog/how-the-weather-company-serves-real-time-forecasts-to-350-million-daily-active-users-on-vercel",
     "customer": "The Weather Company",
     "industry": "Weather",
     "vercelProducts": [
-      "v0",
-      "Next.js"
+      "v0"
     ],
     "otherTech": [],
     "outcome": "80% increase in velocity from design to live web page",
-    "hash": "98cc0dc913f481ed0564f9fc8e9e2fc412ccdf72"
+    "hash": "98cc0dc913f481ed0564f9fc8e9e2fc412ccdf72",
+    "v": 2
   },
   {
     "path": "/blog/how-vercel-and-next-js-keep-rippling-on-their-rising-path-to-success",
@@ -1048,19 +1148,21 @@
     "otherTech": [
       "WordPress"
     ],
-    "outcome": "90% of site changes deployed immediately; updates propagate in as little as 300ms",
-    "hash": "c638c18ad53ae2f7fc71d3b726d845c45a919a49"
+    "outcome": "90% of site changes deployed immediately",
+    "hash": "c638c18ad53ae2f7fc71d3b726d845c45a919a49",
+    "v": 2
   },
   {
     "path": "/blog/how-vercel-enables-wunderman-thompson-to-launch-global-brands",
     "customer": "Wunderman Thompson",
-    "industry": "Marketing",
+    "industry": "Digital agency",
     "vercelProducts": [
       "Turborepo",
       "Preview Deployments",
-      "Vercel Analytics",
+      "Vercel Toolbar",
+      "Web Analytics",
       "Vercel Checks",
-      "Comments"
+      "Domains"
     ],
     "otherTech": [
       "GitHub",
@@ -1068,8 +1170,9 @@
       "PHP",
       "CMS"
     ],
-    "outcome": "Same-day launches and same-day client feedback loops",
-    "hash": "18569515c6f22b9d8ad59cc23be08a96054bb2d3"
+    "outcome": "Same-day launches and week-long feedback cycles cut to same-day deploys",
+    "hash": "18569515c6f22b9d8ad59cc23be08a96054bb2d3",
+    "v": 2
   },
   {
     "path": "/blog/how-vercel-helped-desenio-future-proof-their-business",
@@ -1081,8 +1184,9 @@
       "Next.js"
     ],
     "otherTech": [],
-    "outcome": "37% lower bounce rate; 34% improvement in site conversions",
-    "hash": "b000ef7ee89304ecc978878806d533580b853ab0"
+    "outcome": "37% lower bounce rate and 34% higher site conversions",
+    "hash": "b000ef7ee89304ecc978878806d533580b853ab0",
+    "v": 2
   },
   {
     "path": "/blog/how-vercel-helped-justincase-technologies-cut-their-build-time-in-half",
@@ -1090,13 +1194,15 @@
     "industry": "Insurance",
     "vercelProducts": [
       "Preview Deployments",
-      "Next.js"
+      "Next.js",
+      "Web Analytics"
     ],
     "otherTech": [
       "GitHub Actions"
     ],
-    "outcome": "50% faster builds; 72 hours saved per month",
-    "hash": "a687a6072ac8dd4d83dd51f67381ee7c9c8cf6f7"
+    "outcome": "50% faster builds; 72 hours saved per developer per month",
+    "hash": "a687a6072ac8dd4d83dd51f67381ee7c9c8cf6f7",
+    "v": 2
   },
   {
     "path": "/blog/how-vercel-helped-tonies-expand-into-new-markets",
@@ -1105,18 +1211,19 @@
     "vercelProducts": [
       "Next.js",
       "Preview Deployments",
-      "Monitoring",
-      "Content Delivery"
+      "CDN",
+      "Observability"
     ],
     "otherTech": [
       "Contentful",
       "Commercetools",
-      "AWS",
       "PHP",
-      "React"
+      "React",
+      "AWS"
     ],
-    "outcome": "Expanded from 2 to 4 markets and improved conversion rates",
-    "hash": "f0803da90d56d0cd68d85160e95d0e4ef330f6ff"
+    "outcome": "Expanded from 2 to 4 markets with improved conversion rates",
+    "hash": "f0803da90d56d0cd68d85160e95d0e4ef330f6ff",
+    "v": 2
   },
   {
     "path": "/blog/how-vercel-helps-mmm-page-manage-over-30-000-custom-domains",
@@ -1124,39 +1231,42 @@
     "industry": "Website builder",
     "vercelProducts": [
       "Next.js",
-      "Preview Deployments"
+      "SSR",
+      "Preview Deployments",
+      "Domains",
+      "CDN"
     ],
     "otherTech": [
       "Amazon S3",
-      "SSR"
+      "Amazon Simple Storage Service (Amazon S3)"
     ],
-    "outcome": "30,000+ sites managed with faster scaling and custom domain setup",
-    "hash": "04dccef009429120d15a7b54045aeb42f78101b2"
+    "outcome": "30,000+ sites managed with faster custom-domain setup",
+    "hash": "04dccef009429120d15a7b54045aeb42f78101b2",
+    "v": 2
   },
   {
     "path": "/blog/how-waldium-made-a-blog-platform-work-for-humans-and-ai-alike",
     "customer": "Waldium",
-    "industry": "Content platform",
+    "industry": "AI CMS",
     "vercelProducts": [
       "Next.js",
-      "Vercel Middleware",
       "Vercel for Platforms",
-      "Preview Deployments",
-      "Vercel Domains",
-      "Neon",
-      "Upstash"
+      "Edge Middleware",
+      "Domains",
+      "Preview Deployments"
     ],
     "otherTech": [
+      "MCP",
       "AWS Amplify",
       "GitHub Actions",
-      "MCP",
+      "Neon",
+      "Upstash",
       "Claude Desktop",
-      "ChatGPT",
-      "LLMs.txt",
-      "robots.txt"
+      "ChatGPT"
     ],
-    "outcome": "500+ blogs from one deployment; MCP endpoints live in under 5 minutes",
-    "hash": "3bfe089031be7c44cec3252043b0d0aeb0ff7b15"
+    "outcome": "500+ customer blogs from one deployment; MCP live in under 5 minutes",
+    "hash": "3bfe089031be7c44cec3252043b0d0aeb0ff7b15",
+    "v": 2
   },
   {
     "path": "/blog/how-whop-improved-their-real-experience-score-by-200-with-the-next-js-app",
@@ -1165,16 +1275,17 @@
     "vercelProducts": [
       "Next.js",
       "ISR",
-      "Edge Middleware",
-      "Preview Deployments"
+      "Edge Middleware"
     ],
     "otherTech": [
       "Ruby on Rails",
       "React",
+      "App Router",
       "React Server Components"
     ],
-    "outcome": "200% RES improvement, from the 30s to the high 90s",
-    "hash": "72b64a52793a4467f946248887c5a10a279a14d0"
+    "outcome": "200% improvement in Real Experience Score, from 30s to high 90s",
+    "hash": "72b64a52793a4467f946248887c5a10a279a14d0",
+    "v": 2
   },
   {
     "path": "/blog/how-zapier-scales-product-partnerships-with-v0",
@@ -1184,10 +1295,12 @@
       "v0"
     ],
     "otherTech": [
-      "Zapier Workflow API"
+      "Zapier Developer Platform",
+      "Workflow API"
     ],
-    "outcome": "12+ hours saved per prototype; 100x more partner demos delivered",
-    "hash": "fa4d59a4049785ba8cfbb0b760fdd6c58cafeb16"
+    "outcome": "12+ hours saved per prototype and 100x more partner demos delivered",
+    "hash": "fa4d59a4049785ba8cfbb0b760fdd6c58cafeb16",
+    "v": 2
   },
   {
     "path": "/blog/how-zo-computer-improved-ai-reliability-20x-on-vercel",
@@ -1202,12 +1315,11 @@
       "Anthropic",
       "MiniMax",
       "GLM",
-      "Fireworks",
-      "Stripe",
-      "iMessage"
+      "Fireworks"
     ],
     "outcome": "20x lower retry rate (7.5% → 0.34%)",
-    "hash": "f435eb0fbf072c03c2a2becf40fcaf1f7f2ba488"
+    "hash": "f435eb0fbf072c03c2a2becf40fcaf1f7f2ba488",
+    "v": 2
   },
   {
     "path": "/blog/hydrow",
@@ -1215,18 +1327,20 @@
     "industry": "Ecommerce",
     "vercelProducts": [
       "Next.js",
+      "ISR",
       "Preview Deployments",
-      "ISR"
+      "Edge Middleware"
     ],
     "otherTech": [
       "Contentful",
-      "Shopify",
       "WordPress",
+      "Shopify",
       "AWS S3",
       "AWS Lambda"
     ],
-    "outcome": "3000% faster website updates",
-    "hash": "8f599fd40e840d866be9cdde83e479a9e3cfab96"
+    "outcome": "3000% faster website updates; authoring cut from weeks to minutes",
+    "hash": "8f599fd40e840d866be9cdde83e479a9e3cfab96",
+    "v": 2
   },
   {
     "path": "/blog/incremental-migration-from-wordpress-for-a-dev-first-approach",
@@ -1239,12 +1353,13 @@
     ],
     "otherTech": [
       "WordPress",
-      "Gatsby",
       "GitHub",
-      "Sanity CMS"
+      "Sanity CMS",
+      "Gatsby"
     ],
-    "outcome": "Less than 5 minutes to clone, hook up, and get running",
-    "hash": "1a4f4087936773354d6041da23f32e4c15d7cc07"
+    "outcome": "<5 min to onboard a new developer",
+    "hash": "1a4f4087936773354d6041da23f32e4c15d7cc07",
+    "v": 2
   },
   {
     "path": "/blog/incrementally-adopting-next-js-at-one-of-europes-fastest-growing-brands",
@@ -1261,25 +1376,27 @@
       "Figma"
     ],
     "outcome": "87% decrease in build times",
-    "hash": "4da5f448627e83f4b0be43b49746284858ded1db"
+    "hash": "4da5f448627e83f4b0be43b49746284858ded1db",
+    "v": 2
   },
   {
     "path": "/blog/integrating-vercel-and-sitecore-for-2x-faster-development-times-and-111",
     "customer": "Avanade",
-    "industry": "Enterprise services",
+    "industry": "Digital transformation",
     "vercelProducts": [
       "Next.js",
+      "ISR",
       "Preview Deployments",
-      "Vercel Functions",
-      "ISR"
+      "Vercel Functions"
     ],
     "otherTech": [
       "Sitecore XM Cloud",
-      "Sitecore Content Hub",
+      "Content Hub",
       "Azure DevOps"
     ],
-    "outcome": "111% higher conversions and 2x faster site development time",
-    "hash": "43c093297581fd032eb7b072c5136dddd98b61ee"
+    "outcome": "111% higher conversions; 2x faster site development time",
+    "hash": "43c093297581fd032eb7b072c5136dddd98b61ee",
+    "v": 2
   },
   {
     "path": "/blog/konobos-empowers-industry-giant-to-deploy-50-faster",
@@ -1295,12 +1412,13 @@
       "Octopus"
     ],
     "outcome": "50% faster deployments; build times cut from 30 hours to 3 minutes",
-    "hash": "1882f6a80165dea40cb16023deea8c36877a5024"
+    "hash": "1882f6a80165dea40cb16023deea8c36877a5024",
+    "v": 2
   },
   {
     "path": "/blog/ledgers-solution-to-traffic-spike-stability-with-vercel",
     "customer": "Ledger",
-    "industry": "Web3",
+    "industry": "Ecommerce",
     "vercelProducts": [
       "Next.js",
       "Preview Deployments"
@@ -1309,29 +1427,31 @@
       "Shopify",
       "Liquid",
       "AWS Lambda",
-      "NextAuth.js",
       "Terraform",
       "GitHub Actions",
+      "NextAuth.js",
       "SSR"
     ],
-    "outcome": "100x more releases and 67% faster load times",
-    "hash": "e32122d4a53c65653dfe2b2579738c06037aeee5"
+    "outcome": "67% reduction in load time",
+    "hash": "e32122d4a53c65653dfe2b2579738c06037aeee5",
+    "v": 2
   },
   {
     "path": "/blog/leonardo-ai-performantly-generates-4-5-million-images-daily-with-next-js-and-vercel",
-    "customer": "Leonardo.AI",
-    "industry": "AI image generation",
+    "customer": "Leonardo.Ai",
+    "industry": "AI creative platform",
     "vercelProducts": [
       "Next.js",
       "Preview Deployments",
-      "Vercel Monitoring",
-      "Content Delivery"
+      "Observability",
+      "CDN"
     ],
     "otherTech": [
       "AWS Bedrock"
     ],
     "outcome": "95% reduction in page load times; build times cut from 10 to 2 minutes",
-    "hash": "13fe9354d6e0ef735fe93219627f793afa1952b5"
+    "hash": "13fe9354d6e0ef735fe93219627f793afa1952b5",
+    "v": 2
   },
   {
     "path": "/blog/leveraging-vercel-and-the-ai-sdk-to-deliver-a-seamless-ai-powered-experience",
@@ -1341,10 +1461,12 @@
       "AI SDK"
     ],
     "otherTech": [
-      "GPT-4 Omni"
+      "GPT-4 Omni",
+      "OpenAI"
     ],
-    "outcome": "20,000 users in 9 months with faster AI-powered product docs",
-    "hash": "ed37066a637fdc03aed2a519bb754d359aa63ca1"
+    "outcome": "20,000 users in 9 months from MVP to market",
+    "hash": "ed37066a637fdc03aed2a519bb754d359aa63ca1",
+    "v": 2
   },
   {
     "path": "/blog/making-commerce-ui-a-trusted-partner-for-global-ecommerce-brands",
@@ -1357,12 +1479,13 @@
       "Preview Deployments"
     ],
     "otherTech": [
-      "Shopify",
       "WordPress",
-      "PHP"
+      "PHP",
+      "Shopify"
     ],
-    "outcome": "200% traffic spikes handled while keeping CLS at zero",
-    "hash": "f6340d64c08e182027516714d0dfeae375507ae9"
+    "outcome": "200% traffic spikes handled with fast, localized experiences",
+    "hash": "f6340d64c08e182027516714d0dfeae375507ae9",
+    "v": 2
   },
   {
     "path": "/blog/managing-275-thousand-pages-and-8-million-assets-with-isr",
@@ -1376,8 +1499,9 @@
       "WordPress",
       "Algolia"
     ],
-    "outcome": "120M+ annual page views with 275K pages and 8M assets",
-    "hash": "80c8c34dbe837634af80bebb39469bfdfe8dcea3"
+    "outcome": "120M+ annual page views across 275k pages and 8M assets",
+    "hash": "80c8c34dbe837634af80bebb39469bfdfe8dcea3",
+    "v": 2
   },
   {
     "path": "/blog/managing-major-traffic-spikes-during-ticket-drops-with-vercel",
@@ -1386,22 +1510,26 @@
     "vercelProducts": [
       "Next.js",
       "Preview Deployments",
+      "Edge Config",
+      "Instant Rollbacks",
       "Vercel Functions",
-      "Edge Middleware"
+      "Cron Jobs",
+      "Edge Middleware",
+      "Web Analytics"
     ],
     "otherTech": [
       "Heroku",
       "Firebase",
-      "Git",
       "React 18"
     ],
-    "outcome": "200x traffic spikes handled with serverless autoscaling",
-    "hash": "320591d4ff35d2e0825f9923fea51bd811a84c77"
+    "outcome": "200x traffic spikes handled with Vercel autoscaling",
+    "hash": "320591d4ff35d2e0825f9923fea51bd811a84c77",
+    "v": 2
   },
   {
     "path": "/blog/mintlify-scaling-a-powerful-documentation-platform-with-vercel",
     "customer": "Mintlify",
-    "industry": "Dev tools",
+    "industry": "Developer tools",
     "vercelProducts": [
       "Next.js",
       "Preview Deployments",
@@ -1409,24 +1537,29 @@
       "ISR"
     ],
     "otherTech": [],
-    "outcome": "2,500 active custom domains on a single Vercel project",
-    "hash": "1aadab8d67545a820c81ef5ed5c29a019f9591b3"
+    "outcome": "2,500 active domains on a single Vercel project",
+    "hash": "1aadab8d67545a820c81ef5ed5c29a019f9591b3",
+    "v": 2
   },
   {
     "path": "/blog/motortrend-shifting-into-overdrive-with-vercel",
     "customer": "MotorTrend",
     "industry": "Media",
     "vercelProducts": [
+      "Preview Deployments",
+      "Vercel Toolbar",
       "Next.js",
-      "Preview Deployments"
+      "Speed Insights",
+      "CDN"
     ],
     "otherTech": [
       "GitHub",
       "Jenkins",
       "AWS"
     ],
-    "outcome": "7x faster build times; feature releases cut from 18.9 days to 10 minutes",
-    "hash": "792994c91bf7a347fb0be04d30f863e8d7a4be0c"
+    "outcome": "7x faster build times; feature release time cut from 18.9 days to 10 minutes",
+    "hash": "792994c91bf7a347fb0be04d30f863e8d7a4be0c",
+    "v": 2
   },
   {
     "path": "/blog/neo-financial",
@@ -1436,48 +1569,51 @@
       "Next.js",
       "Edge Middleware",
       "Preview Deployments",
-      "ISR"
+      "CDN"
     ],
     "otherTech": [
-      "Contentful",
       "AWS Fargate",
-      "S3"
+      "S3",
+      "Contentful"
     ],
-    "outcome": "77% faster page loads; 50% less infrastructure admin",
-    "hash": "4f1a2fccbff16875805aeb579b5f5a9ccb2100ff"
+    "outcome": "50% less infrastructure admin; 77% faster page loads",
+    "hash": "4f1a2fccbff16875805aeb579b5f5a9ccb2100ff",
+    "v": 2
   },
   {
     "path": "/blog/notion-workers-vercel-sandbox",
     "customer": "Notion",
-    "industry": "Developer Platform",
+    "industry": "Developer platform",
     "vercelProducts": [
       "Sandbox"
     ],
     "otherTech": [
-      "Firecracker"
+      "Firecracker microVM"
     ],
-    "outcome": "Runs untrusted code at scale with secure isolation",
-    "hash": "8a0e45110e2e022f0e2f19cfc18c1c48615a0b96"
+    "outcome": "Runs untrusted code securely at scale",
+    "hash": "8a0e45110e2e022f0e2f19cfc18c1c48615a0b96",
+    "v": 2
   },
   {
     "path": "/blog/retailer-sees-10m-increase-in-sales-on-vercel",
     "customer": "Global sportswear retailer",
     "industry": "Ecommerce",
     "vercelProducts": [
-      "Next.js",
       "Vercel Functions",
-      "Edge Middleware"
+      "Edge Middleware",
+      "Next.js"
     ],
     "otherTech": [
       "Salesforce Commerce Cloud"
     ],
-    "outcome": "$10M sales lift and 33% more orders per minute on Black Friday",
-    "hash": "35fcff86d96e8bbbdcdfdaf794d8bb6891e17cff"
+    "outcome": "$10M revenue increase; 33% more orders per minute",
+    "hash": "35fcff86d96e8bbbdcdfdaf794d8bb6891e17cff",
+    "v": 2
   },
   {
     "path": "/blog/rethinking-prototyping-requirements-and-project-delivery-at-code-and-theory",
     "customer": "Code and Theory",
-    "industry": "Digital agency",
+    "industry": "Creative technology",
     "vercelProducts": [
       "v0",
       "Next.js"
@@ -1485,8 +1621,9 @@
     "otherTech": [
       "GitHub"
     ],
-    "outcome": "75% cut in time-to-prototype; 50-75% faster delivery horizons",
-    "hash": "6aaa03e32bdad978a67be875a6f873caf30f3114"
+    "outcome": "75% faster time-to-prototype; 4x delivery speed",
+    "hash": "6aaa03e32bdad978a67be875a6f873caf30f3114",
+    "v": 2
   },
   {
     "path": "/blog/revolutionizing-video-editing-on-the-web-with-next-js-and-vercel",
@@ -1494,8 +1631,7 @@
     "industry": "Video editing",
     "vercelProducts": [
       "Next.js",
-      "AI SDK",
-      "Preview Deployments"
+      "AI SDK"
     ],
     "otherTech": [
       "Heroku",
@@ -1506,34 +1642,37 @@
       "ElevenLabs"
     ],
     "outcome": "5x faster development and 85% shorter build times",
-    "hash": "39cd257e51770b540d8c78552d3ea7e166de1ad3"
+    "hash": "39cd257e51770b540d8c78552d3ea7e166de1ad3",
+    "v": 2
   },
   {
     "path": "/blog/runway-enables-next-generation-content-creation-with-ai-and-vercel",
     "customer": "Runway",
     "industry": "AI",
     "vercelProducts": [
-      "Vercel Preview Deployments"
+      "Preview Deployments",
+      "Web Analytics"
     ],
     "otherTech": [
       "Netlify",
       "GitHub Pages",
-      "GitHub",
       "AWS Bedrock",
       "Figma"
     ],
-    "outcome": "40s builds, down from 5–8 minutes",
-    "hash": "fd5a3f7441f76435e0b57590ea403c7e502c4de7"
+    "outcome": "Build times cut from 5–8 min to 40s",
+    "hash": "fd5a3f7441f76435e0b57590ea403c7e502c4de7",
+    "v": 2
   },
   {
     "path": "/blog/sanity-edge-middleware",
     "customer": "Sanity",
-    "industry": "Content Cloud",
+    "industry": "Content platform",
     "vercelProducts": [
       "Next.js",
       "Edge Middleware",
+      "Vercel Functions",
       "Preview Deployments",
-      "CI/CD"
+      "CDN"
     ],
     "otherTech": [
       "Google Cloud Platform",
@@ -1541,10 +1680,12 @@
       "Kubernetes",
       "GitHub",
       "Marketo",
-      "Checkly"
+      "Checkly",
+      "AT&T"
     ],
-    "outcome": "8+ A/B tests run in one summer without hurting site performance",
-    "hash": "594c0a267cdf6ce9ccd2b10ee6ded76a0a3b0851"
+    "outcome": "8+ A/B tests run while improving performance and onboarding",
+    "hash": "594c0a267cdf6ce9ccd2b10ee6ded76a0a3b0851",
+    "v": 2
   },
   {
     "path": "/blog/scale-unifies-design-and-performance-with-next-js-and-vercel",
@@ -1552,7 +1693,9 @@
     "industry": "Data platform",
     "vercelProducts": [
       "Next.js",
-      "Preview Deployments"
+      "Preview Deployments",
+      "Web Analytics",
+      "Vercel CLI"
     ],
     "otherTech": [
       "AWS Bedrock",
@@ -1560,13 +1703,14 @@
       "GitHub",
       "Slack"
     ],
-    "outcome": "Under 5 minutes from idea to shareable deployment",
-    "hash": "551c7ddc8c0017bb94c4097339794ebc59c11f84"
+    "outcome": "Products up and running in under 5 minutes",
+    "hash": "551c7ddc8c0017bb94c4097339794ebc59c11f84",
+    "v": 2
   },
   {
     "path": "/blog/serhants-playbook-for-rapid-ai-iteration",
     "customer": "SERHANT.",
-    "industry": "Real estate",
+    "industry": "Real estate AI",
     "vercelProducts": [
       "Next.js",
       "AI SDK",
@@ -1575,40 +1719,46 @@
     ],
     "otherTech": [
       "React Native",
-      "iOS",
       "OpenAI",
       "Claude",
       "Gemini"
     ],
-    "outcome": "900+ users scaled from pilot without replatforming",
-    "hash": "1060fd92b741fa967297f32fd2ddd9b60eabe9d8"
+    "outcome": "900+ users without replatforming",
+    "hash": "1060fd92b741fa967297f32fd2ddd9b60eabe9d8",
+    "v": 2
   },
   {
     "path": "/blog/super-serves-thousands-of-domains-on-one-project-with-next-js-and-vercel",
     "customer": "Super",
-    "industry": "Platforms",
+    "industry": "Website platforms",
     "vercelProducts": [
       "Next.js",
-      "Domains API",
-      "Edge Middleware",
+      "Domains",
+      "Vercel API",
       "ISR",
+      "Edge Middleware",
       "Preview Deployments"
     ],
     "otherTech": [
+      "Notion",
       "Gatsby",
       "Netlify",
-      "GitHub",
-      "Notion"
+      "GitHub"
     ],
-    "outcome": "15,000+ custom domains on one codebase",
-    "hash": "382cf5188d3f8fb7d5b70f34739fbb6542f81991"
+    "outcome": "15,000+ custom domains served from one codebase",
+    "hash": "382cf5188d3f8fb7d5b70f34739fbb6542f81991",
+    "v": 2
   },
   {
     "path": "/blog/teklas-ecommerce-evolution-harnessing-flexibility-with-vercel-and-medusa",
     "customer": "Tekla",
     "industry": "Ecommerce",
     "vercelProducts": [
-      "Next.js"
+      "Next.js",
+      "Web Analytics",
+      "Observability",
+      "Edge Middleware",
+      "Vercel Functions"
     ],
     "otherTech": [
       "Medusa",
@@ -1616,31 +1766,35 @@
       "WooCommerce",
       "GatsbyJS"
     ],
-    "outcome": "Faster, more reliable ecommerce with improved performance and customer experience",
-    "hash": "956643b3f1d0784d53cbadc64c0b2ab54038da67"
+    "outcome": "Greater site performance and reliability on a faster ecommerce stack",
+    "hash": "956643b3f1d0784d53cbadc64c0b2ab54038da67",
+    "v": 2
   },
   {
     "path": "/blog/tray-ai-cut-build-times-from-a-day-to-minutes-with-vercel",
     "customer": "Tray.ai",
-    "industry": "AI integration",
+    "industry": "AI integration platform",
     "vercelProducts": [
       "Next.js",
       "Turborepo",
       "Preview Deployments",
       "Vercel Functions",
-      "Edge Middleware"
+      "Web Analytics",
+      "Speed Insights",
+      "Firewall"
     ],
     "otherTech": [
       "Serverless",
-      "recaptcha"
+      "reCAPTCHA"
     ],
-    "outcome": "99.86% decrease in build times; builds cut from a day to 2 minutes",
-    "hash": "97be8e375b0cbcb4decc2156a083eef3a3c7260b"
+    "outcome": "99.86% decrease in build times, from a day to 2 minutes",
+    "hash": "97be8e375b0cbcb4decc2156a083eef3a3c7260b",
+    "v": 2
   },
   {
     "path": "/blog/using-the-ai-sdk-to-build-sitecore-streams-ai-powered-brand-aware-assistant",
     "customer": "Sitecore",
-    "industry": "Digital experience platform",
+    "industry": "Digital experience",
     "vercelProducts": [
       "AI SDK",
       "Next.js"
@@ -1649,8 +1803,9 @@
       "Python",
       "Azure"
     ],
-    "outcome": "Built a real-time brand assistant with AI SDK for fast, conversational marketer experiences",
-    "hash": "f695f193f8320d59e24426c79eefe3b6da2cb292"
+    "outcome": "Faster AI app delivery with real-time brand-aware chat",
+    "hash": "f695f193f8320d59e24426c79eefe3b6da2cb292",
+    "v": 2
   },
   {
     "path": "/blog/vapi-mcp-server-on-vercel",
@@ -1658,15 +1813,19 @@
     "industry": "Voice AI",
     "vercelProducts": [
       "Next.js",
-      "Fluid compute"
+      "Fluid compute",
+      "Observability",
+      "Firewall"
     ],
     "otherTech": [
-      "MCP adapter",
-      "Server-Sent Events (SSE)",
-      "Streamable HTTP"
+      "MCP",
+      "SSE",
+      "Streamable HTTP",
+      "Node.js"
     ],
     "outcome": "Faster MCP server deployment with SSE + Streamable HTTP support",
-    "hash": "40bfbd2c6cd978bb672a3338c416589df9fb9ccb"
+    "hash": "40bfbd2c6cd978bb672a3338c416589df9fb9ccb",
+    "v": 2
   },
   {
     "path": "/blog/washington-post-next.js-vercel-engineering-at-the-speed-of-breaking-news",
@@ -1683,10 +1842,12 @@
       "SQS",
       "EC2",
       "TypeScript",
-      "WebSockets"
+      "Figma",
+      "websocket"
     ],
-    "outcome": "Smoothest election night anyone could remember",
-    "hash": "72de8032eb655e61eb8be6617c9ea899ba617031"
+    "outcome": "1000+ elections on 52 results pages, with smoother election-night deployment",
+    "hash": "72de8032eb655e61eb8be6617c9ea899ba617031",
+    "v": 2
   },
   {
     "path": "/blog/why-vercel-and-next-js-are-the-perfect-fit-for-this-global-fashion-media",
@@ -1694,14 +1855,16 @@
     "industry": "Media",
     "vercelProducts": [
       "Next.js",
-      "ISR",
-      "Preview Deployments"
+      "Web Analytics",
+      "Preview Deployments",
+      "ISR"
     ],
     "otherTech": [
       "Ruby on Rails"
     ],
-    "outcome": "60% increase in web traffic after a zero-downtime migration",
-    "hash": "77cc49be64059f17facf5dc6e883155be7af35ad"
+    "outcome": "60% increase in web traffic",
+    "hash": "77cc49be64059f17facf5dc6e883155be7af35ad",
+    "v": 2
   },
   {
     "path": "/blog/wunderman-thompson-composable-workflow",
@@ -1714,12 +1877,10 @@
     ],
     "otherTech": [
       "SvelteKit",
-      "Atomic Design",
-      "headless CMS",
-      "PHP",
-      "WordPress"
+      "DatoCMS"
     ],
     "outcome": "10x faster development and 25x lower costs",
-    "hash": "50181d18549646c2b5c32d5a8015454953a7a81e"
+    "hash": "50181d18549646c2b5c32d5a8015454953a7a81e",
+    "v": 2
   }
 ]

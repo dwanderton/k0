@@ -25,6 +25,7 @@ import {
   getCachedDoc,
   upsertPages,
 } from "../lib/docs-cache.ts";
+import { chunkPage } from "../lib/chunker.ts";
 import type { CustomerStory } from "../lib/customers.ts";
 
 const BASE = "https://vercel.com/blog/category/customers";
@@ -32,6 +33,78 @@ const MAX_PAGES = 30; // runaway guard — 9 pages as of 2026-07
 const MANIFEST = join(process.cwd(), "customers-manifest.json");
 const ENRICH_MODEL = "openai/gpt-5.4-mini";
 const ENRICH_CONCURRENCY = 6;
+/** bump when the prompt/schema/canonicalization changes — hash-cached
+ *  entries from older versions re-enrich */
+const ENRICH_VERSION = 2;
+
+/** the model free-texts product names ("Vercel Monitoring", "Content
+ *  Delivery", "previews") — collapse to one canonical vocabulary so chips
+ *  are consistent and the agent's VERCEL-list matching actually matches */
+const PRODUCT_CANON: Record<string, string> = {
+  "functions": "Vercel Functions",
+  "serverless functions": "Vercel Functions",
+  "edge functions": "Edge Functions",
+  "middleware": "Edge Middleware",
+  "edge middleware": "Edge Middleware",
+  "routing middleware": "Edge Middleware",
+  "preview deployments": "Preview Deployments",
+  "previews": "Preview Deployments",
+  "cdn": "CDN",
+  "content delivery": "CDN",
+  "edge network": "CDN",
+  "web analytics": "Web Analytics",
+  "analytics": "Web Analytics",
+  "observability": "Observability",
+  "monitoring": "Observability",
+  "logs": "Observability",
+  "log drains": "Observability",
+  "speed insights": "Speed Insights",
+  "feature flags": "Feature Flags",
+  "flags": "Feature Flags",
+  "firewall": "Firewall",
+  "waf": "Firewall",
+  "ddos mitigation": "Firewall",
+  "bot management": "Firewall",
+  "botid": "BotID",
+  "isr": "ISR",
+  "incremental static regeneration": "ISR",
+  "fluid": "Fluid compute",
+  "fluid compute": "Fluid compute",
+  "ai sdk": "AI SDK",
+  "ai gateway": "AI Gateway",
+  "sandbox": "Sandbox",
+  "blob": "Blob",
+  "queues": "Queues",
+  "edge config": "Edge Config",
+  "cron": "Cron Jobs",
+  "cron jobs": "Cron Jobs",
+  "workflow": "Workflow",
+  "workflows": "Workflow",
+  "workflow sdk": "Workflow",
+  "workflow devkit": "Workflow",
+  "nextjs": "Next.js",
+  "next.js": "Next.js",
+  "toolbar": "Vercel Toolbar",
+  "comments": "Vercel Toolbar",
+  "for platforms": "Vercel for Platforms",
+  "multi-tenant": "Vercel for Platforms",
+  "domains": "Domains",
+  "domains api": "Domains",
+  "data cache": "Data Cache",
+  "agent": "Vercel Agent",
+};
+
+function canonProducts(raw: string[]): string[] {
+  const out: string[] = [];
+  for (const r of raw) {
+    const k = r.trim().toLowerCase().replace(/^vercel\s+/, "");
+    // "Vercel" alone is the platform, not a product feature
+    if (!k || k === "platform" || k === "vercel") continue;
+    const c = PRODUCT_CANON[k] ?? r.trim();
+    if (!out.includes(c)) out.push(c);
+  }
+  return out;
+}
 
 const sha1 = (s: string) => createHash("sha1").update(s).digest("hex");
 
@@ -101,10 +174,14 @@ const StorySchema = z.object({
   vercelProducts: z
     .array(z.string())
     .describe(
-      "Vercel products/frameworks shown in use, canonical names: v0, Sandbox, " +
-        "AI SDK, AI Gateway, Fluid compute, Next.js, Turborepo, BotID, " +
-        "Vercel Functions, Edge Middleware, ISR, Preview Deployments, " +
-        "Workflow, Blob, Queues, Microfrontends",
+      "Vercel products/frameworks the story's PROSE shows in use — never " +
+        "products that merely appear in nav/footer menus. Use EXACTLY these " +
+        "names when applicable: v0, Sandbox, AI SDK, AI Gateway, " +
+        "Fluid compute, Next.js, Turborepo, BotID, Firewall, Observability, " +
+        "Web Analytics, Speed Insights, Vercel Functions, Edge Middleware, " +
+        "ISR, Preview Deployments, Feature Flags, Edge Config, Cron Jobs, " +
+        "Workflow, Blob, Queues, Microfrontends, Vercel for Platforms, " +
+        "Domains, CDN, Vercel Toolbar, Instant Rollbacks",
     ),
   otherTech: z
     .array(z.string())
@@ -144,10 +221,17 @@ async function enrichOne(p: string): Promise<CustomerStory | null> {
   }
   const hash = sha1(md);
   const prev = previous.get(p);
-  if (prev && prev.hash === hash && prev.customer) {
+  if (prev && prev.hash === hash && prev.v === ENRICH_VERSION && prev.customer) {
     reused++;
-    return prev;
+    // canon map fixes apply to reused entries too — no re-enrich needed
+    return { ...prev, vercelProducts: canonProducts(prev.vercelProducts) };
   }
+  // the chunker's nav-noise filter strips the product mega-nav that tops
+  // every cached blog page — raw markdown taught the model every product
+  // "appears" in every story, and chrome ate the prompt budget
+  const clean = chunkPage(`vercel-blog:${p}`, md)
+    .map((c) => c.text)
+    .join("\n\n");
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
       const { object } = await generateObject({
@@ -157,10 +241,16 @@ async function enrichOne(p: string): Promise<CustomerStory | null> {
           "Extract structured metadata from this Vercel customer-story " +
           `blog post (${p}). Only name products the story actually shows ` +
           "in use.\n\n" +
-          md.slice(0, 12000),
+          clean.slice(0, 16000),
       });
       enriched++;
-      return { path: p, ...object, hash };
+      return {
+        path: p,
+        ...object,
+        vercelProducts: canonProducts(object.vercelProducts),
+        hash,
+        v: ENRICH_VERSION,
+      };
     } catch (err) {
       if (attempt === 2) {
         failed++;
@@ -174,6 +264,7 @@ async function enrichOne(p: string): Promise<CustomerStory | null> {
           otherTech: [],
           outcome: "",
           hash,
+          v: ENRICH_VERSION,
         };
       }
     }
