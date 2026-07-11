@@ -15,6 +15,7 @@ import { promisify } from "util";
 import { embedMany } from "ai";
 import { chunkAll, type Chunk } from "./chunker.ts";
 import { embedLocal } from "./local-embedder.ts";
+import { loadCustomerStories } from "./customers.ts";
 import type { KbMode } from "./call-shared.ts";
 
 const decompress = promisify(brotliDecompress);
@@ -48,14 +49,15 @@ interface Index {
 /** Per-model calibration — score distributions differ (bge runs hot:
  *  controls peak ~0.56 vs te3 ~0.38); floors/penalties set empirically by
  *  scripts/eval-retriever.ts control/gold separation. Boost weights shared.
- *  customersFloor is lower on purpose: story prose scores cooler than docs
- *  (bge golds 0.61–0.72 vs docs ≥0.83; controls peak 0.545). */
+ *  customersFloor is 0: proof points always surface, k of them, whatever
+ *  the confidence — the agent prompt gates NONE, and scores still ride
+ *  the stories frame so weakness is visible, not hidden. */
 const TUNING: Record<
   Backend,
   { floor: number; blogPenalty: number; customersFloor: number }
 > = {
-  gateway: { floor: 0.45, blogPenalty: 0.03, customersFloor: 0.4 },
-  "in-process": { floor: 0.68, blogPenalty: 0.08, customersFloor: 0.6 },
+  gateway: { floor: 0.45, blogPenalty: 0.03, customersFloor: 0 },
+  "in-process": { floor: 0.68, blogPenalty: 0.08, customersFloor: 0 },
 };
 const PATH_BOOST = 0.1;
 const HEADING_BOOST = 0.05;
@@ -96,25 +98,6 @@ const FILES: Record<Backend, { bin: string; meta: string }> = {
 let corpus: Promise<string[]> | null = null;
 const indexes: Partial<Record<Backend, Promise<Index>>> = {};
 
-/** customers mode scans only these keys — membership comes from the
- *  category listing (committed manifest), posts carry no marker themselves */
-let customersKeys: Promise<Set<string>> | null = null;
-function loadCustomersKeys() {
-  customersKeys ??= readFile(join(process.cwd(), "customers-manifest.json"))
-    .then(
-      (raw) =>
-        new Set(
-          (JSON.parse(raw.toString()) as string[]).map(
-            (p) => `vercel-blog:${p}`,
-          ),
-        ),
-    )
-    .catch((err) => {
-      customersKeys = null;
-      throw err;
-    });
-  return customersKeys;
-}
 
 function loadCorpusTexts() {
   corpus ??= (async () => {
@@ -316,7 +299,10 @@ export async function retrieveWithInfo(
     : ["in-process", "gateway"];
   // missing manifest throws — a silent fall-open to the full KB would break
   // the mode's promise without anyone noticing
-  const allow = mode === "customers" ? await loadCustomersKeys() : null;
+  const allow =
+    mode === "customers"
+      ? new Set((await loadCustomerStories()).keys())
+      : null;
   let lastErr: unknown;
   for (const backend of order) {
     try {

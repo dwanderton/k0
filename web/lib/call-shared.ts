@@ -15,6 +15,18 @@ export interface Segment {
   sys?: boolean;
 }
 
+/** one customer story's build-time metadata — enriched offline into
+ *  customers-manifest.json, never inferred live on a call */
+export interface StoryRef {
+  customer: string;
+  industry: string;
+  vercelProducts: string[];
+  otherTech: string[];
+  outcome: string;
+  uri: string;
+  score: number;
+}
+
 /** agent response in the DOC/ANSWER/QUOTE/ANCHOR/SOURCE format */
 export interface Suggestion {
   id: number;
@@ -23,6 +35,9 @@ export interface Suggestion {
   text: string;
   /** reasoning + tool trace for the per-card dropdown */
   debug: string[];
+  /** customers mode: the 4 retrieved stories — primary gets the quote,
+   *  the rest render as alternate proof-point rows */
+  stories?: StoryRef[];
 }
 
 export interface TraceState {
@@ -112,12 +127,28 @@ export function tidyTranscript(text: string) {
   return TIDY_RULES.reduce((t, [re, sub]) => t.replace(re, sub), text);
 }
 
-/** stream interleaves NUL-prefixed \n-terminated debug lines with card
- *  text — peel apart */
+/** stream interleaves NUL-prefixed \n-terminated debug lines and one
+ *  SOH-prefixed stories frame with card text — peel apart */
 export const NUL = "\u0000";
+export const SOH = "\u0001";
 export function splitStream(raw: string) {
+  // stories frame: SOH + JSON + \n, sent once retrieval settles — before
+  // the model's first token, so story slots can paint immediately
+  let stories: StoryRef[] | undefined;
+  const framed = raw.split(SOH);
+  let rest = framed[0];
+  for (let k = 1; k < framed.length; k++) {
+    const nl = framed[k].indexOf("\n");
+    if (nl === -1) continue; // frame still streaming — hold it
+    try {
+      stories = JSON.parse(framed[k].slice(0, nl)) as StoryRef[];
+    } catch {
+      // torn frame — card and debug still render
+    }
+    rest += framed[k].slice(nl + 1);
+  }
   const debug: string[] = [];
-  const parts = raw.split(NUL);
+  const parts = rest.split(NUL);
   let card = parts[0];
   for (let k = 1; k < parts.length; k++) {
     const nl = parts[k].indexOf("\n");
@@ -125,7 +156,7 @@ export function splitStream(raw: string) {
     debug.push(parts[k].slice(0, nl));
     card += parts[k].slice(nl + 1);
   }
-  return { card, debug };
+  return { card, debug, stories };
 }
 
 // hoisted — parseCard runs per stream chunk and per card render

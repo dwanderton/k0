@@ -1,9 +1,24 @@
 "use client";
 
 /** One settled (or streaming) agent card: doc path, answer, quote with
- *  the highlight anchor marked, and the per-card trace dropdown. */
+ *  the highlight anchor marked, and the per-card trace dropdown. Customers
+ *  mode adds story chrome: customer + industry eyebrow, stack chips, and
+ *  the other retrieved stories as alternate proof-point rows. */
 import { memo } from "react";
-import { openDocs, parseCard, type Suggestion } from "@/lib/call-shared";
+import {
+  openDocs,
+  parseCard,
+  type StoryRef,
+  type Suggestion,
+} from "@/lib/call-shared";
+
+const samePost = (a: string, b: string) => {
+  try {
+    return new URL(a).pathname === new URL(b).pathname;
+  } catch {
+    return false;
+  }
+};
 
 export const SuggestionCard = memo(function SuggestionCard({
   s,
@@ -11,6 +26,13 @@ export const SuggestionCard = memo(function SuggestionCard({
   s: Suggestion;
 }) {
   const p = parseCard(s.text);
+  // primary = the story the model actually quoted, not retrieval's #1
+  const primary: StoryRef | undefined = s.stories?.length
+    ? (s.stories.find((st) => p.source && samePost(st.uri, p.source)) ??
+      s.stories[0])
+    : undefined;
+  const alternates =
+    primary && s.stories ? s.stories.filter((st) => st !== primary) : [];
   const quote = p.quote;
   const i = p.anchor ? quote.toLowerCase().indexOf(p.anchor.toLowerCase()) : -1;
   const marked =
@@ -33,7 +55,16 @@ export const SuggestionCard = memo(function SuggestionCard({
       </div>
       <div className="rounded-lg border border-accent bg-card px-3.5 py-3">
         <div className="mb-2 flex items-center justify-between gap-2 font-mono text-[11px] font-semibold text-muted">
-          <span className="truncate">{p.doc || "searching docs…"}</span>
+          {primary ? (
+            <span className="truncate">
+              <span className="uppercase tracking-wider text-ink">
+                {primary.customer}
+              </span>
+              {primary.industry ? ` · ${primary.industry}` : ""}
+            </span>
+          ) : (
+            <span className="truncate">{p.doc || "searching docs…"}</span>
+          )}
           <span className="tabular-nums">{s.at}</span>
         </div>
         {p.answer ? <div className="mb-2 text-[14px]">{p.answer}</div> : null}
@@ -54,6 +85,65 @@ export const SuggestionCard = memo(function SuggestionCard({
             ) : (
               marked
             )}
+          </div>
+        ) : null}
+        {primary &&
+        (primary.vercelProducts.length > 0 || primary.otherTech.length > 0) ? (
+          <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+            {primary.vercelProducts.map((t) => (
+              <span
+                key={t}
+                className="rounded-md border border-line bg-[#f4f4f5] px-1.5 py-0.5 font-mono text-[10px] font-semibold text-ink"
+              >
+                {t}
+              </span>
+            ))}
+            {primary.otherTech.map((t) => (
+              <span
+                key={t}
+                className="rounded-md border border-line px-1.5 py-0.5 font-mono text-[10px] text-muted"
+              >
+                {t}
+              </span>
+            ))}
+          </div>
+        ) : null}
+        {alternates.length > 0 ? (
+          <div
+            role="group"
+            aria-label="More proof points"
+            className="mt-3 border-t border-line pt-2"
+          >
+            <div className="mb-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-muted">
+              More proof points
+            </div>
+            {alternates.map((st) => (
+              <button
+                key={st.uri}
+                type="button"
+                onClick={() => openDocs(st.uri)}
+                title={`Open ${st.customer} story`}
+                className="group/alt flex w-full items-baseline gap-2 rounded-md px-1 py-1 text-left hover:bg-[#f4f4f5]"
+              >
+                <span className="shrink-0 text-[12px] font-semibold text-ink">
+                  {st.customer}
+                </span>
+                {st.industry ? (
+                  <span className="shrink-0 font-mono text-[10px] text-muted">
+                    {st.industry}
+                  </span>
+                ) : null}
+                <span className="min-w-0 flex-1 truncate text-[12px] text-muted">
+                  {st.outcome}
+                </span>
+                <span
+                  aria-hidden="true"
+                  className="shrink-0 text-[11px] text-muted group-hover/alt:text-accent"
+                >
+                  ↗
+                </span>
+              </button>
+            ))}
           </div>
         ) : null}
         {s.debug.length > 0 ? (

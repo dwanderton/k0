@@ -51,8 +51,11 @@ jobs:
         run: REFRESH=1 pnpm build:docs-cache
 
       # after the re-crawl, before the index builds: refreshes category
-      # membership and backfills customer posts the sitemap crawl missed
-      - name: Rebuild customers manifest (+ backfill)
+      # membership, backfills sitemap-missed posts, and re-enriches story
+      # metadata for new/changed posts (hash-cached — unchanged posts $0)
+      - name: Rebuild customers manifest (+ backfill + enrich)
+        env:
+          AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY }}
         run: pnpm build:customers-manifest
 
       - name: Rebuild gateway embedding index (additive)

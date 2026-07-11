@@ -98,17 +98,28 @@ for (const phrase of CONTROLS) {
   );
 }
 
-console.log("\n--- customers mode ---");
+console.log("\n--- customers mode (always 4 stories, no floor) ---");
 const manifest = new Set<string>(
-  JSON.parse(await readFile(join(process.cwd(), "customers-manifest.json"), "utf8")),
+  (
+    JSON.parse(
+      await readFile(join(process.cwd(), "customers-manifest.json"), "utf8"),
+    ) as { path: string }[]
+  ).map((e) => e.path),
 );
 let cHit1 = 0;
-let cHit3 = 0;
+let cHit4 = 0;
 let leaked = 0;
+let short = 0;
 for (const { phrase, gold } of CUSTOMER_CASES) {
   const t0 = performance.now();
-  const cands = await retrieve(phrase, 3, 1500, "customers");
+  const cands = await retrieve(phrase, 4, 1500, "customers");
   const ms = (performance.now() - t0).toFixed(0);
+  // always-4 invariant: no single returns, no empty — the SA always gets
+  // a menu of proof points
+  if (cands.length !== 4) {
+    short++;
+    console.error(`  ✗ ALWAYS-4 VIOLATED: got ${cands.length} stories`);
+  }
   const paths = cands.map((c) => path(c.documentUri));
   for (const p of paths) {
     if (!manifest.has(p)) {
@@ -117,10 +128,10 @@ for (const { phrase, gold } of CUSTOMER_CASES) {
     }
   }
   const h1 = gold.includes(paths[0]);
-  const h3 = paths.some((p) => gold.includes(p));
+  const h4 = paths.some((p) => gold.includes(p));
   cHit1 += h1 ? 1 : 0;
-  cHit3 += h3 ? 1 : 0;
-  console.log(`\n"${phrase.slice(0, 50)}…" (${ms}ms) hit@1=${h1} hit@3=${h3}`);
+  cHit4 += h4 ? 1 : 0;
+  console.log(`\n"${phrase.slice(0, 50)}…" (${ms}ms) hit@1=${h1} hit@4=${h4}`);
   for (const c of cands) {
     console.log(
       `  ${c.relevanceScore.toFixed(3)} (cos ${(1 - c.questionDistance).toFixed(3)}) ${path(c.documentUri)} · ${c.documentTitle.slice(0, 34)}`,
@@ -130,9 +141,9 @@ for (const { phrase, gold } of CUSTOMER_CASES) {
 
 console.log(`\nGATE: hit@1 ${hit1}/5 (need ≥4) · hit@3 ${hit3}/5 (need 5)`);
 console.log(
-  `GATE (customers): hit@1 ${cHit1}/3 (need ≥2) · hit@3 ${cHit3}/3 (need 3) · leaks ${leaked} (need 0)`,
+  `GATE (customers): hit@1 ${cHit1}/3 (need ≥2) · hit@4 ${cHit4}/3 (need 3) · leaks ${leaked} (need 0) · short returns ${short} (need 0)`,
 );
-if (hit3 < 5 || hit1 < 4 || cHit3 < 3 || cHit1 < 2 || leaked > 0) {
+if (hit3 < 5 || hit1 < 4 || cHit4 < 3 || cHit1 < 2 || leaked > 0 || short > 0) {
   console.error("✗ GATE FAILED — do not proceed to P004");
   process.exit(1);
 }

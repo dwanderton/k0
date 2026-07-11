@@ -6,7 +6,8 @@ import { checkBotId } from "botid/server";
 import { getCachedDoc, fetchPageAsMarkdown } from "@/lib/docs-cache";
 import { retrieveWithInfo, type Candidate, type Backend } from "@/lib/retriever";
 import { parkCard, isValidSessionId } from "@/lib/session-store";
-import type { KbMode } from "@/lib/call-shared";
+import { loadCustomerStories } from "@/lib/customers";
+import { SOH, type KbMode, type StoryRef } from "@/lib/call-shared";
 
 export const maxDuration = 60;
 
@@ -202,13 +203,15 @@ SOURCE: [full URL with #:~:text=ANCHOR]
 Or reply: NONE`;
 
 /** Customer Stories mode — same verbatim-quote-or-NONE contract, different
- *  trigger: a bare product mention counts (nobody asks questions about a
- *  reference), and evidence means a named customer using that product. */
+ *  trigger and shape: a bare product mention counts (nobody asks questions
+ *  about a reference), candidates arrive 4-wide with floor-less scores and
+ *  build-time metadata, and the model's whole job is to pick ONE story and
+ *  quote it — the other three render as alternate rows without it. */
 const SYSTEM_CUSTOMERS = `IDENTITY:
 You are a live customer-evidence assistant for Vercel Sales Engineers.
 The cockpit is in Customer Stories mode: when the conversation references
-a Vercel product or technology, surface the passage from a customer story
-that shows a real company using it.
+a Vercel product or technology, surface the ONE customer story that best
+proves a real company using it, with a verbatim quote.
 
 CORE PRINCIPLES:
 - All knowledge comes from CANDIDATES (pre-retrieved customer-story
@@ -217,10 +220,12 @@ CORE PRINCIPLES:
   certainty.
 
 RETRIEVAL:
-Each message carries CANDIDATES — customer-story excerpts from the Vercel
-blog retrieved for the newest line, best first, with relevanceScore.
-Candidate content IS real page text. They are context, NOT evidence a
-product was mentioned.
+Each message carries 4 CANDIDATES — customer stories from the Vercel blog,
+best first. Each carries CUSTOMER, INDUSTRY, VERCEL (products used), TECH
+(non-Vercel stack) and an excerpt. IMPORTANT: there is NO relevance floor —
+weak matches are padded in, so a candidate being present proves nothing.
+Candidates are context, NOT evidence a product was mentioned. The SA's UI
+already lists all 4 as proof-point rows; never describe the other stories.
 
 TOOLS:
 1. read_vercel_doc(path) → full page markdown. For a customer story pass
@@ -232,32 +237,33 @@ FLOW:
 1. Newest line references a Vercel product, feature, or technology (a
    bare mention like "v0" or "Sandbox" counts — no question needed), or
    asks for customer proof? → Continue. Else → NONE.
-2. Pick the candidate whose story best shows a customer USING that
-   product. Judge by content, not just score.
+2. Pick the ONE candidate whose story best shows a customer USING the
+   referenced product — prefer a VERCEL list naming it, then excerpt
+   content. Scores rank, they don't prove; judge by content.
 3. Exact quotable sentence in its excerpt? → answer directly, ZERO tool
    calls. DOC/SOURCE come from the candidate's documentUri.
-4. On-topic candidate but no exact sentence in its excerpt? → you MUST
+4. Best story on-topic but no exact sentence in its excerpt? → you MUST
    read_vercel_doc('blog/<slug>') and quote from the full story.
    An unread on-topic candidate is never grounds for NONE.
-5. No candidate's story involves the referenced product? → NONE. Never
-   quote a story that doesn't reference it, never invent.
+5. NO candidate's story involves the referenced product (check every
+   VERCEL/TECH list before deciding)? → NONE. Never quote a story that
+   doesn't reference it, never invent.
 6. Render QUOTE: exact words, no markdown syntax, no backticks.
 7. ANCHOR: word-for-word from QUOTE, plain prose only.
 
 CRITICAL RULES:
 - Candidate excerpts and read_vercel_doc output are the ONLY quote sources.
-- ANSWER names the customer and what they achieved with the product.
+- ANSWER = customer + what they achieved with the product, metric first
+  when the story gives one.
 - ANCHOR must appear on page as plain prose (no code punctuation).
-- Small talk stays NONE even when candidates are attached.
-- NONE is allowed only when no product/technology is referenced (step 1)
-  or no story evidences it (step 5) — never while an on-topic candidate
-  sits unread.
+- Small talk stays NONE even when 4 candidates are attached — they always
+  are.
 - NONE is a complete reply, never a field value. No quotable sentence →
   reply the single word NONE; never emit DOC/ANSWER/QUOTE lines around it.
 
 OUTPUT FORMAT (always):
 DOC: [path from Source]
-ANSWER: [1-2 sentences: which customer, what they did with the product]
+ANSWER: [1-2 sentences: which customer, what they achieved, metric first]
 QUOTE: [exact sentence from the story]
 ANCHOR: [substring inside QUOTE for browser highlight]
 SOURCE: [full URL with #:~:text=ANCHOR]
@@ -376,13 +382,24 @@ export async function POST(req: Request) {
   {
     const t0 = performance.now();
     try {
-      const r = await retrieveWithInfo(transcript, 2, 1500, mode);
+      // customers: always 4 stories, no confidence collapse — the SA picks
+      // the proof point that fits the prospect, not the cosine
+      const r = await retrieveWithInfo(
+        transcript,
+        mode === "customers" ? 4 : 2,
+        1500,
+        mode,
+      );
       candidates = r.candidates;
       retrieverBackend = r.backend;
       coldInitMs = r.coldInitMs ?? null;
       // >0.95 top score → send it alone. Gold run cited #1 almost
       // exclusively; second excerpt is ~900 tokens dead prefill.
-      if (candidates.length > 1 && candidates[0].relevanceScore > 0.95) {
+      if (
+        mode !== "customers" &&
+        candidates.length > 1 &&
+        candidates[0].relevanceScore > 0.95
+      ) {
         candidates = [candidates[0]];
       }
     } catch (err) {
@@ -390,6 +407,30 @@ export async function POST(req: Request) {
       console.error("retrieval failed (all backends):", err);
     }
     retrievalMs = Math.round(performance.now() - t0);
+  }
+
+  // customers: join build-time story metadata — ships to the client as one
+  // SOH frame the moment the stream opens, before the model writes a token
+  let storyRefs: StoryRef[] | null = null;
+  if (mode === "customers" && candidates.length) {
+    try {
+      const stories = await loadCustomerStories();
+      storyRefs = candidates.map((c) => {
+        const m = stories.get(`vercel-blog:${new URL(c.documentUri).pathname}`);
+        return {
+          customer: m?.customer || c.documentTitle,
+          industry: m?.industry ?? "",
+          vercelProducts: m?.vercelProducts ?? [],
+          otherTech: m?.otherTech ?? [],
+          outcome: m?.outcome ?? "",
+          uri: c.documentUri,
+          score: c.relevanceScore,
+        };
+      });
+    } catch (err) {
+      // cards still work quoteless-chipless — metadata is enhancement here
+      console.error("story metadata load failed:", err);
+    }
   }
 
   const tools: ToolSet = {
@@ -429,10 +470,15 @@ export async function POST(req: Request) {
         ? "CANDIDATES: no customer story above relevance floor — reply NONE (blog slugs cannot be guessed)."
         : "CANDIDATES: none above relevance floor — likely small talk (NONE) or use read_vercel_doc if it is a real Vercel question."
       : `CANDIDATES (best first):\n${candidates
-          .map(
-            (c, i) =>
-              `[${i + 1}] ${c.documentUri} · ${c.documentTitle} · relevanceScore ${c.relevanceScore}\n${c.content}`,
-          )
+          .map((c, i) => {
+            const m = storyRefs?.[i];
+            const meta = m
+              ? ` · CUSTOMER: ${m.customer} · INDUSTRY: ${m.industry} · VERCEL: ${
+                  m.vercelProducts.join(", ") || "—"
+                } · TECH: ${m.otherTech.join(", ") || "—"}`
+              : "";
+            return `[${i + 1}] ${c.documentUri} · ${c.documentTitle} · relevanceScore ${c.relevanceScore}${meta}\n${c.content}`;
+          })
           .join("\n\n")}`;
 
   const system = mode === "customers" ? SYSTEM_CUSTOMERS : SYSTEM;
@@ -498,6 +544,9 @@ export async function POST(req: Request) {
       traceLines.push(m);
       send(encoder.encode(`${DBG}${m}\n`));
     };
+    // stories frame precedes everything — the client paints proof-point
+    // rows off retrieval alone, long before the first model token
+    if (storyRefs) send(encoder.encode(`${SOH}${JSON.stringify(storyRefs)}\n`));
     dbg(
       `model: ${MODEL} · throughput · retriever: ${retrieverBackend ?? "unavailable"}${
         mode === "customers" ? " · mode: customer stories" : ""
@@ -656,6 +705,7 @@ export async function POST(req: Request) {
             heard,
             text: finalAnswer,
             debug: traceLines.slice(-40),
+            ...(storyRefs ? { stories: storyRefs } : {}),
           });
           console.log(`parked card session=${sessionId} turn=${turn}`);
         } catch (err) {
