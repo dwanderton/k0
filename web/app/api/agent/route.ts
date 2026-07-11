@@ -3,9 +3,10 @@ import { createMCPClient } from "@ai-sdk/mcp";
 import { z } from "zod";
 import { after } from "next/server";
 import { checkBotId } from "botid/server";
-import { getCachedDoc } from "@/lib/docs-cache";
+import { getCachedDoc, fetchPageAsMarkdown } from "@/lib/docs-cache";
 import { retrieveWithInfo, type Candidate, type Backend } from "@/lib/retriever";
 import { parkCard, isValidSessionId } from "@/lib/session-store";
+import type { KbMode } from "@/lib/call-shared";
 
 export const maxDuration = 60;
 
@@ -13,10 +14,12 @@ export const maxDuration = 60;
  *  in it never land the #:~:text= highlight. `<path>.md` IS the page. */
 const readVercelDoc = tool({
   description:
-    "Fetch the full verbatim markdown of a Vercel or Next.js docs page. For " +
-    "Vercel docs pass the path only (e.g. 'fluid-compute' or 'ai-gateway' — " +
-    "no domain, no /docs/, no .md). For Next.js docs pass the candidate's " +
-    "full documentUri (e.g. 'https://nextjs.org/docs/app/getting-started'). " +
+    "Fetch the full verbatim markdown of a Vercel or Next.js docs page, or a " +
+    "Vercel blog post. For Vercel docs pass the path only (e.g. " +
+    "'fluid-compute' or 'ai-gateway' — no domain, no /docs/, no .md). For " +
+    "blog posts (customer stories) pass 'blog/<slug>'. For Next.js docs pass " +
+    "the candidate's full documentUri (e.g. " +
+    "'https://nextjs.org/docs/app/getting-started'). " +
     "QUOTE and ANCHOR must be copied word-for-word from what this returns, " +
     "because only this is the real page text the browser highlight matches.",
   inputSchema: z.object({
@@ -39,6 +42,29 @@ const readVercelDoc = tool({
     // model-supplied path — reject traversal / non-slug before it hits a URL
     if (!/^[a-z0-9]([a-z0-9/-]*[a-z0-9])?$/i.test(clean) || clean.includes("..")) {
       return `Invalid docs path: ${clean}`;
+    }
+    if (/^blog\//i.test(clean)) {
+      const slug = clean.slice(5);
+      if (!/^[a-z0-9][a-z0-9-]*$/i.test(slug)) {
+        return `Invalid blog path: ${clean}`;
+      }
+      const cacheKey = `vercel-blog:/blog/${slug}`;
+      const cached = await getCachedDoc(cacheKey);
+      console.log(`docs-cache ${cached ? "HIT" : "MISS"}: ${cacheKey}`);
+      if (cached) {
+        const body =
+          cached.length > 16000
+            ? cached.slice(0, 16000) + "\n…[truncated]"
+            : cached;
+        return `[docs-cache HIT ${cacheKey}]\n\n${body}`;
+      }
+      // blog has no .md twin — a live miss converts HTML→md exactly like
+      // the crawler, so quotes still match rendered page text
+      const md = await fetchPageAsMarkdown(`https://vercel.com/blog/${slug}`);
+      if (!md) return `Could not fetch https://vercel.com/blog/${slug}.`;
+      const body =
+        md.length > 16000 ? md.slice(0, 16000) + "\n…[truncated]" : md;
+      return `[docs-cache MISS ${cacheKey} — fetched live]\n\n${body}`;
     }
     const site = isNext
       ? { origin: "https://nextjs.org", host: "nextjs.org", source: "nextjs-docs" }
@@ -175,6 +201,69 @@ SOURCE: [full URL with #:~:text=ANCHOR]
 
 Or reply: NONE`;
 
+/** Customer Stories mode — same verbatim-quote-or-NONE contract, different
+ *  trigger: a bare product mention counts (nobody asks questions about a
+ *  reference), and evidence means a named customer using that product. */
+const SYSTEM_CUSTOMERS = `IDENTITY:
+You are a live customer-evidence assistant for Vercel Sales Engineers.
+The cockpit is in Customer Stories mode: when the conversation references
+a Vercel product or technology, surface the passage from a customer story
+that shows a real company using it.
+
+CORE PRINCIPLES:
+- All knowledge comes from CANDIDATES (pre-retrieved customer-story
+  excerpts in the message) or tools. Never answer from memory.
+- Verbatim quotes from the story or NONE. Never paraphrase or fake
+  certainty.
+
+RETRIEVAL:
+Each message carries CANDIDATES — customer-story excerpts from the Vercel
+blog retrieved for the newest line, best first, with relevanceScore.
+Candidate content IS real page text. They are context, NOT evidence a
+product was mentioned.
+
+TOOLS:
+1. read_vercel_doc(path) → full page markdown. For a customer story pass
+   'blog/<slug>' (the slug from the candidate's documentUri). Use when
+   the winning candidate's excerpt doesn't contain the exact sentence to
+   quote.
+
+FLOW:
+1. Newest line references a Vercel product, feature, or technology (a
+   bare mention like "v0" or "Sandbox" counts — no question needed), or
+   asks for customer proof? → Continue. Else → NONE.
+2. Pick the candidate whose story best shows a customer USING that
+   product. Judge by content, not just score.
+3. Exact quotable sentence in its excerpt? → answer directly, ZERO tool
+   calls. DOC/SOURCE come from the candidate's documentUri.
+4. On-topic candidate but no exact sentence in its excerpt? → you MUST
+   read_vercel_doc('blog/<slug>') and quote from the full story.
+   An unread on-topic candidate is never grounds for NONE.
+5. No candidate's story involves the referenced product? → NONE. Never
+   quote a story that doesn't reference it, never invent.
+6. Render QUOTE: exact words, no markdown syntax, no backticks.
+7. ANCHOR: word-for-word from QUOTE, plain prose only.
+
+CRITICAL RULES:
+- Candidate excerpts and read_vercel_doc output are the ONLY quote sources.
+- ANSWER names the customer and what they achieved with the product.
+- ANCHOR must appear on page as plain prose (no code punctuation).
+- Small talk stays NONE even when candidates are attached.
+- NONE is allowed only when no product/technology is referenced (step 1)
+  or no story evidences it (step 5) — never while an on-topic candidate
+  sits unread.
+- NONE is a complete reply, never a field value. No quotable sentence →
+  reply the single word NONE; never emit DOC/ANSWER/QUOTE lines around it.
+
+OUTPUT FORMAT (always):
+DOC: [path from Source]
+ANSWER: [1-2 sentences: which customer, what they did with the product]
+QUOTE: [exact sentence from the story]
+ANCHOR: [substring inside QUOTE for browser highlight]
+SOURCE: [full URL with #:~:text=ANCHOR]
+
+Or reply: NONE`;
+
 /** injected at step-budget end — long tool transcript makes models forget
  *  the output contract and answer in prose */
 const FINAL_STEP = `${"\n\n"}TOOLS ARE DONE. Answer NOW from what you already read.
@@ -261,13 +350,21 @@ export async function POST(req: Request) {
   }
   // session parking: with a valid sessionId+turn the finished card is
   // written to the session store even if the client dropped mid-stream
-  const b = body as { sessionId?: unknown; turn?: unknown; heard?: unknown };
+  const b = body as {
+    sessionId?: unknown;
+    turn?: unknown;
+    heard?: unknown;
+    mode?: unknown;
+  };
   const sessionId = isValidSessionId(b.sessionId) ? b.sessionId : null;
   const turn =
     typeof b.turn === "number" && Number.isInteger(b.turn) && b.turn >= 0
       ? b.turn
       : null;
   const heard = typeof b.heard === "string" ? b.heard.slice(0, 500) : "";
+  // anything not exactly "customers" is the full KB — mode must fail closed
+  // to the default behavior, never to a broken filter
+  const mode: KbMode = b.mode === "customers" ? "customers" : "all";
 
   // pre-call retrieval — infrastructure, not a model decision. Top-k excerpts
   // ride the FIRST turn, so the fast path cards in one generation.
@@ -279,7 +376,7 @@ export async function POST(req: Request) {
   {
     const t0 = performance.now();
     try {
-      const r = await retrieveWithInfo(transcript, 2);
+      const r = await retrieveWithInfo(transcript, 2, 1500, mode);
       candidates = r.candidates;
       retrieverBackend = r.backend;
       coldInitMs = r.coldInitMs ?? null;
@@ -301,7 +398,10 @@ export async function POST(req: Request) {
     read_vercel_doc: readVercelDoc,
   };
   let fallbackNote = "";
-  if (retrievalFailed) {
+  // customers mode must NOT fall open to the full-KB MCP search — that would
+  // leak un-scoped docs into a story-only surface, the exact "silent
+  // fall-open" loadCustomersKeys() throws to prevent. Degrade to NONE instead.
+  if (retrievalFailed && mode !== "customers") {
     const token = process.env.VERCEL_MCP_TOKEN;
     if (token) {
       try {
@@ -316,12 +416,18 @@ export async function POST(req: Request) {
     } else {
       fallbackNote = "⚠ retrieval failed, no fallback (VERCEL_MCP_TOKEN unset)";
     }
+  } else if (retrievalFailed) {
+    fallbackNote = "⚠ retrieval failed, no fallback (customers mode → NONE)";
   }
 
   const candidatesBlock = retrievalFailed
-    ? "CANDIDATES: retrieval unavailable — fall back to search_vercel_documentation if present, then read_vercel_doc."
+    ? mode === "customers"
+      ? "CANDIDATES: retrieval unavailable — reply NONE (customer stories cannot be reached; do not use full docs)."
+      : "CANDIDATES: retrieval unavailable — fall back to search_vercel_documentation if present, then read_vercel_doc."
     : candidates.length === 0
-      ? "CANDIDATES: none above relevance floor — likely small talk (NONE) or use read_vercel_doc if it is a real Vercel question."
+      ? mode === "customers"
+        ? "CANDIDATES: no customer story above relevance floor — reply NONE (blog slugs cannot be guessed)."
+        : "CANDIDATES: none above relevance floor — likely small talk (NONE) or use read_vercel_doc if it is a real Vercel question."
       : `CANDIDATES (best first):\n${candidates
           .map(
             (c, i) =>
@@ -329,10 +435,11 @@ export async function POST(req: Request) {
           )
           .join("\n\n")}`;
 
+  const system = mode === "customers" ? SYSTEM_CUSTOMERS : SYSTEM;
   const makeAttempt = (model: string) => streamText({
     model,
     providerOptions: GATEWAY_OPTIONS,
-    system: SYSTEM,
+    system,
     prompt: `${transcript}\n\n${candidatesBlock}`,
     tools,
     // fast path is one turn, read_vercel_doc escape hatch 2-3; old cap of 8
@@ -340,7 +447,7 @@ export async function POST(req: Request) {
     stopWhen: stepCountIs(4),
     prepareStep: ({ stepNumber }) =>
       stepNumber >= 2
-        ? { toolChoice: "none" as const, instructions: SYSTEM + FINAL_STEP }
+        ? { toolChoice: "none" as const, instructions: system + FINAL_STEP }
         : undefined,
     onError: (event) => console.error("agent stream error:", event.error),
   });
@@ -391,7 +498,11 @@ export async function POST(req: Request) {
       traceLines.push(m);
       send(encoder.encode(`${DBG}${m}\n`));
     };
-    dbg(`model: ${MODEL} · throughput · retriever: ${retrieverBackend ?? "unavailable"}`);
+    dbg(
+      `model: ${MODEL} · throughput · retriever: ${retrieverBackend ?? "unavailable"}${
+        mode === "customers" ? " · mode: customer stories" : ""
+      }`,
+    );
       if (coldInitMs != null) dbg(`❄ cold init ${coldInitMs}ms`);
       dbg(
         retrievalFailed

@@ -50,6 +50,11 @@ jobs:
       - name: Re-crawl all doc sources
         run: REFRESH=1 pnpm build:docs-cache
 
+      # after the re-crawl, before the index builds: refreshes category
+      # membership and backfills customer posts the sitemap crawl missed
+      - name: Rebuild customers manifest (+ backfill)
+        run: pnpm build:customers-manifest
+
       - name: Rebuild gateway embedding index (additive)
         env:
           AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY }}
@@ -76,7 +81,7 @@ jobs:
         id: diff
         run: |
           git add -N .
-          if git diff --quiet -- docs-cache.br embeddings.bin.br embeddings-meta.json.br embeddings-local.bin embeddings-local-meta.json.br; then
+          if git diff --quiet -- docs-cache.br customers-manifest.json embeddings.bin.br embeddings-meta.json.br embeddings-local.bin embeddings-local-meta.json.br; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "No corpus changes this week — skipping PR."
           else
@@ -92,7 +97,7 @@ jobs:
           git config user.name "corpus-refresh[bot]"
           git config user.email "noreply@github.com"
           git checkout -b "$BRANCH"
-          git add docs-cache.br embeddings.bin.br embeddings-meta.json.br embeddings-local.bin embeddings-local-meta.json.br
+          git add docs-cache.br customers-manifest.json embeddings.bin.br embeddings-meta.json.br embeddings-local.bin embeddings-local-meta.json.br
           git commit -m "corpus refresh $(date -u +%Y-%m-%d) — weekly re-crawl + additive embeds"
           git push -u origin "$BRANCH"
           {

@@ -15,6 +15,7 @@ import { promisify } from "util";
 import { embedMany } from "ai";
 import { chunkAll, type Chunk } from "./chunker.ts";
 import { embedLocal } from "./local-embedder.ts";
+import type { KbMode } from "./call-shared.ts";
 
 const decompress = promisify(brotliDecompress);
 
@@ -46,10 +47,15 @@ interface Index {
 
 /** Per-model calibration — score distributions differ (bge runs hot:
  *  controls peak ~0.56 vs te3 ~0.38); floors/penalties set empirically by
- *  scripts/eval-retriever.ts control/gold separation. Boost weights shared. */
-const TUNING: Record<Backend, { floor: number; blogPenalty: number }> = {
-  gateway: { floor: 0.45, blogPenalty: 0.03 },
-  "in-process": { floor: 0.68, blogPenalty: 0.08 },
+ *  scripts/eval-retriever.ts control/gold separation. Boost weights shared.
+ *  customersFloor is lower on purpose: story prose scores cooler than docs
+ *  (bge golds 0.61–0.72 vs docs ≥0.83; controls peak 0.545). */
+const TUNING: Record<
+  Backend,
+  { floor: number; blogPenalty: number; customersFloor: number }
+> = {
+  gateway: { floor: 0.45, blogPenalty: 0.03, customersFloor: 0.4 },
+  "in-process": { floor: 0.68, blogPenalty: 0.08, customersFloor: 0.6 },
 };
 const PATH_BOOST = 0.1;
 const HEADING_BOOST = 0.05;
@@ -89,6 +95,26 @@ const FILES: Record<Backend, { bin: string; meta: string }> = {
 
 let corpus: Promise<string[]> | null = null;
 const indexes: Partial<Record<Backend, Promise<Index>>> = {};
+
+/** customers mode scans only these keys — membership comes from the
+ *  category listing (committed manifest), posts carry no marker themselves */
+let customersKeys: Promise<Set<string>> | null = null;
+function loadCustomersKeys() {
+  customersKeys ??= readFile(join(process.cwd(), "customers-manifest.json"))
+    .then(
+      (raw) =>
+        new Set(
+          (JSON.parse(raw.toString()) as string[]).map(
+            (p) => `vercel-blog:${p}`,
+          ),
+        ),
+    )
+    .catch((err) => {
+      customersKeys = null;
+      throw err;
+    });
+  return customersKeys;
+}
 
 function loadCorpusTexts() {
   corpus ??= (async () => {
@@ -154,8 +180,17 @@ function loadIndex(backend: Backend) {
   return indexes[backend]!;
 }
 
+/** product names shorter than the length filter — a mention of "v0" must
+ *  still hit path/heading boosts */
+const SHORT_PRODUCTS = new Set(["v0"]);
+
 const tokens = (s: string) =>
-  s.toLowerCase().split(/\W+/).filter((t) => t.length > 2 && !STOPWORDS.has(t));
+  s
+    .toLowerCase()
+    .split(/\W+/)
+    .filter(
+      (t) => (t.length > 2 || SHORT_PRODUCTS.has(t)) && !STOPWORDS.has(t),
+    );
 
 async function embedQuery(
   backend: Backend,
@@ -187,16 +222,18 @@ function scan(
   utterance: string,
   k: number,
   tuning: { floor: number; blogPenalty: number },
+  allow: Set<string> | null,
 ) {
   const { meta, matrix, texts } = index;
   const { dims } = meta;
   const qTokens = tokens(utterance);
   const scored: { i: number; rel: number; cos: number }[] = [];
   for (let i = 0; i < meta.rows; i++) {
+    const c = meta.chunks[i];
+    if (allow && !allow.has(c.key)) continue;
     let dot = 0;
     const off = i * dims;
     for (let d = 0; d < dims; d++) dot += q[d] * matrix[off + d];
-    const c = meta.chunks[i];
     // boosts match the PATHNAME, never the key — the key's source prefix
     // ("vercel-docs:…") makes the token "vercel" hit everything
     const pathname = c.key.slice(c.key.indexOf(":") + 1).toLowerCase();
@@ -229,7 +266,8 @@ function scan(
       if (!named) rel -= SCOPED_PENALTY;
       break;
     }
-    if (c.key.startsWith("vercel-blog:")) rel -= tuning.blogPenalty;
+    // no blog penalty under an allow-list — the whole scope IS blog posts
+    if (!allow && c.key.startsWith("vercel-blog:")) rel -= tuning.blogPenalty;
     scored.push({ i, rel, cos: dot });
   }
   scored.sort((a, b) => b.rel - a.rel);
@@ -271,10 +309,14 @@ export async function retrieveWithInfo(
   utterance: string,
   k = 3,
   embedTimeoutMs = 1500,
+  mode: KbMode = "all",
 ): Promise<RetrievalResult> {
   const order: Backend[] = FORCED
     ? [FORCED]
     : ["in-process", "gateway"];
+  // missing manifest throws — a silent fall-open to the full KB would break
+  // the mode's promise without anyone noticing
+  const allow = mode === "customers" ? await loadCustomersKeys() : null;
   let lastErr: unknown;
   for (const backend of order) {
     try {
@@ -287,8 +329,10 @@ export async function retrieveWithInfo(
       // Only the gateway network hop gets the deadline.
       const index = await loadIndex(backend);
       const q = await embedQuery(backend, utterance, index.meta.model, embedTimeoutMs);
+      const t = TUNING[backend];
+      const tuning = allow ? { ...t, floor: t.customersFloor } : t;
       const result: RetrievalResult = {
-        candidates: scan(index, q, utterance, k, TUNING[backend]),
+        candidates: scan(index, q, utterance, k, tuning, allow),
         backend,
       };
       if (cold) result.coldInitMs = Math.round(performance.now() - t0);
@@ -305,6 +349,7 @@ export async function retrieve(
   utterance: string,
   k = 3,
   embedTimeoutMs = 1500,
+  mode: KbMode = "all",
 ): Promise<Candidate[]> {
-  return (await retrieveWithInfo(utterance, k, embedTimeoutMs)).candidates;
+  return (await retrieveWithInfo(utterance, k, embedTimeoutMs, mode)).candidates;
 }

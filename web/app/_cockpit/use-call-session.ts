@@ -16,6 +16,7 @@ import {
   SNAP_LATEST,
   SNAP_PREFIX,
   SNAP_VERSION,
+  type KbMode,
   type Segment,
   type SessionSnapshot,
   type Suggestion,
@@ -32,6 +33,14 @@ export function useCallSession() {
   // no per-card dropdown) ever lands
   const [trace, setTrace] = useState<TraceState | null>(null);
   const [resumeOffer, setResumeOffer] = useState<SessionSnapshot | null>(null);
+  // state for the toggle UI, ref for the query loop — the loop reads the
+  // value at fetch time without re-firing the segments effect
+  const [mode, setModeState] = useState<KbMode>("all");
+  const modeRef = useRef<KbMode>("all");
+  const setMode = useCallback((m: KbMode) => {
+    modeRef.current = m;
+    setModeState(m);
+  }, []);
 
   // per-tab session id (sessionStorage) — two tabs write two snapshot keys
   // instead of fighting over one
@@ -86,8 +95,9 @@ export function useCallSession() {
       cards,
       consumed: consumedRef.current,
       lastCard: lastCardRef.current,
+      mode,
     });
-  }, [segments, cards, trace]);
+  }, [segments, cards, trace, mode]);
 
   const resumeSession = useCallback((snap: SessionSnapshot) => {
     sessionIdRef.current = snap.sessionId;
@@ -97,6 +107,7 @@ export function useCallSession() {
     queriedRef.current = snap.segments.length;
     consumedRef.current = snap.consumed;
     lastCardRef.current = snap.lastCard;
+    setMode(snap.mode ?? "all");
     setSegments(snap.segments);
     setCards(snap.cards);
     setResumeOffer(null);
@@ -130,7 +141,7 @@ export function useCallSession() {
         // backfill is best-effort; the local snapshot already restored
       }
     })();
-  }, []);
+  }, [setMode]);
 
   const startFresh = useCallback(() => {
     try {
@@ -192,6 +203,7 @@ export function useCallSession() {
             sessionId: sessionIdRef.current,
             turn: id,
             heard,
+            mode: modeRef.current,
           }),
           signal: ctrl.signal,
         });
@@ -281,6 +293,8 @@ export function useCallSession() {
     trace,
     agentError,
     resumeOffer,
+    mode,
+    setMode,
     sessionIdRef,
     appendSegment,
     logSystem,
