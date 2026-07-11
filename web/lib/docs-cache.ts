@@ -79,10 +79,10 @@ async function fetchSitemap(sitemapUrl: string): Promise<string[]> {
   }
 }
 
-/** Prefer the `<url>.md` twin (vercel.com, workflow-sdk.dev); else HTML→md
- *  (eve.dev has no twin), sliced to <main> so nav/footer chrome doesn't
- *  pollute quotes. */
-async function fetchPageAsMarkdown(url: string): Promise<string> {
+/** Prefer the `<url>.md` twin (vercel.com docs, workflow-sdk.dev); else
+ *  HTML→md (eve.dev and blog posts have no twin), sliced to <main> so
+ *  nav/footer chrome doesn't pollute quotes. */
+export async function fetchPageAsMarkdown(url: string): Promise<string> {
   try {
     const md = await fetch(`${url}.md`, { signal: AbortSignal.timeout(15000) });
     if (md.ok) {
@@ -226,6 +226,16 @@ export async function buildAndSaveCache(
 
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
   console.log(`\n✓ Cache complete: ${allPages.size} pages in ${elapsed}s`);
+}
+
+/** Merge pages into the on-disk cache (customers-manifest backfill —
+ *  category-listed posts the sitemap crawl missed). Chunk order shifts:
+ *  rebuild both embedding indexes after any upsert. */
+export async function upsertPages(pages: Map<string, string>): Promise<void> {
+  if (pages.size === 0) return;
+  const all = await loadCache();
+  for (const [k, v] of pages) all.set(k, v);
+  await saveCache(all);
 }
 
 async function loadCache(): Promise<Map<string, string>> {

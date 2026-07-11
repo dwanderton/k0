@@ -2,6 +2,10 @@
 
 export type Status = "idle" | "listening" | "denied" | "unsupported" | "unavailable";
 
+/** knowledge scope — "customers" restricts retrieval to the posts in
+ *  customers-manifest.json (vercel.com/blog/category/customers) */
+export type KbMode = "all" | "customers";
+
 /** finalized utterance — streams to the agent, except sys lines (mic
  *  errors), which render in the transcript only */
 export interface Segment {
@@ -42,6 +46,8 @@ export interface SessionSnapshot {
   cards: Suggestion[];
   consumed: number;
   lastCard: { id: number; start: number; doc: string } | null;
+  /** optional — pre-mode snapshots resume as "all" */
+  mode?: KbMode;
 }
 
 export const SNAP_VERSION = 1;

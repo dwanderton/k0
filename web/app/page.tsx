@@ -144,15 +144,43 @@ export default function Home() {
         </h1>
       </header>
 
-      <button
-        type="button"
-        onClick={toggleListening}
-        className={`mb-4.5 rounded-lg px-4 py-2.75 text-sm font-semibold text-white ${
-          listening ? "bg-live hover:opacity-90" : "bg-ink hover:bg-[#333]"
-        }`}
-      >
-        {listening ? "Stop Listening" : "Start Listening"}
-      </button>
+      <div className="mb-4.5 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={toggleListening}
+          className={`rounded-lg px-4 py-2.75 text-sm font-semibold text-white ${
+            listening ? "bg-live hover:opacity-90" : "bg-ink hover:bg-[#333]"
+          }`}
+        >
+          {listening ? "Stop Listening" : "Start Listening"}
+        </button>
+        <div
+          role="group"
+          aria-label="Knowledge scope"
+          className="flex overflow-hidden rounded-lg border border-line bg-card"
+        >
+          {(
+            [
+              ["all", "Full KB"],
+              ["customers", "Customer Stories"],
+            ] as const
+          ).map(([m, label]) => (
+            <button
+              key={m}
+              type="button"
+              aria-pressed={session.mode === m}
+              onClick={() => session.setMode(m)}
+              className={`px-3.5 py-2.75 text-sm font-semibold ${
+                session.mode === m
+                  ? "bg-ink text-white"
+                  : "text-muted hover:text-ink"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 gap-4.5 md:grid-cols-2">
         {/* dev visual aid — the transcript feeds the agent */}

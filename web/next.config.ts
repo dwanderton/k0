@@ -12,6 +12,7 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/api/agent": [
       "./docs-cache.br",
+      "./customers-manifest.json",
       "./embeddings.bin.br",
       "./embeddings-meta.json.br",
       "./embeddings-local.bin",
