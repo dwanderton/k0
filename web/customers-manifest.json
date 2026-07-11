@@ -8,6 +8,8 @@
       "Vercel Functions",
       "Fluid compute",
       "Turborepo",
+      "Edge Config",
+      "Vercel Toolbar",
       "AI SDK",
       "AI Gateway",
       "Workflow",
@@ -15,19 +17,25 @@
       "Domains",
       "Cron Jobs",
       "Firewall",
+      "BotID",
       "Sandbox",
       "Web Analytics",
       "Speed Insights",
       "Blob"
     ],
     "otherTech": [
-      "OpenTelemetry",
       "AWS",
       "iframe"
     ],
     "outcome": "3-4x lower infra cost and 1-day agent shipping",
+    "journey": {
+      "before": "Durable was self-hosting a multi-tenant AI platform and spending too much effort on infrastructure, security, domains, observability, and cost isolation.",
+      "goal": "They wanted to focus on building AI agents and ship new production features faster for millions of customer businesses.",
+      "change": "Their self-hosted stack made model orchestration, tenant isolation, and multi-tenant AI economics too hard for a six-engineer team.",
+      "solution": "Durable consolidated onto Vercel, using Next.js, Functions, Fluid compute, Turborepo, Edge Config, Toolbar, AI SDK, AI Gateway, Workflow, CDN, Domains, Cron Jobs, Firewall, BotID, Sandbox, Web Analytics, Speed Insights, and Blob."
+    },
     "hash": "cd6b89591062a962e0cf8c292167fd062ec2721d",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/a-better-developer-experience-makes-building-cruise-critic-more-efficient",
@@ -37,27 +45,40 @@
       "Next.js"
     ],
     "otherTech": [
-      "PHP"
+      "PHP",
+      "Tripadvisor"
     ],
-    "outcome": "30 min to under 8 min build times; 85% faster page downloads",
+    "outcome": "85% decrease in page download time; build times fell from 30 to under 8 minutes",
+    "journey": {
+      "before": "Cruise Critic was running a tightly coupled monolithic PHP application that made even small changes slow and complex.",
+      "goal": "The team wanted to scale a high-traffic travel site while shipping better experiences and features much faster.",
+      "change": "Their old stack and workflow were blocking iterative, agile development and hurting performance.",
+      "solution": "They adopted Next.js and Vercel to modernize the app, speed up builds, and improve site performance."
+    },
     "hash": "7d249fe54844fc01b7a464d3ca57b5a93e0c8f97",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/ai-agents-at-scale-roxs-vercel-powered-revenue-operating-system",
     "customer": "Rox",
-    "industry": "Revenue OS",
+    "industry": "Revenue operations",
     "vercelProducts": [
       "Next.js",
       "CDN",
       "Vercel Functions",
-      "Preview Deployments",
-      "AI SDK"
+      "AI SDK",
+      "Preview Deployments"
     ],
     "otherTech": [],
-    "outcome": "3-5 minute deploys and 2.5x faster P95 load speed",
+    "outcome": "2.5x reduction in P95 load speed",
+    "journey": {
+      "before": "Rox needed infrastructure that could support fast-moving web apps and AI agents at global scale without slowing engineers down.",
+      "goal": "They wanted to ship a next-generation revenue operating system with intelligent agents that research, prospect, and engage for sellers.",
+      "change": "The blocker was global performance and request handling for hundreds to thousands of concurrent AI agent calls, plus the need to iterate quickly on new features.",
+      "solution": "Vercel’s Next.js hosting, CDN, Vercel Functions, and Preview Deployments let Rox scale globally, batch agent requests, and ship faster."
+    },
     "hash": "40f2756d36f0fea3994036e5134e62b3da015e3f",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/architecting-reliability-stripes-black-friday-site",
@@ -72,8 +93,14 @@
       "SWR"
     ],
     "outcome": "17M+ edge requests at launch; 100% uptime",
+    "journey": {
+      "before": "Stripe wanted to create a public, real-time microsite for Black Friday/Cyber Monday in just 19 days without building a custom caching system from scratch.",
+      "goal": "They aimed to ship a live, publicly accessible experience that showcased core business metrics, reliability, and global activity during BFCM.",
+      "change": "The blocker was delivering fast initial loads and real-time updates at massive scale while preserving reliability and avoiding backend overload.",
+      "solution": "Vercel’s framework-defined infrastructure, Next.js, ISR, and edge caching via Content Delivery let Stripe serve static pages, revalidate data in the background, and handle viral traffic efficiently."
+    },
     "hash": "85f6c1691e19ef4d3132968918f3c4db145cf7b2",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/beyond-menu-scaling-with-hypertune-and-vercel",
@@ -86,9 +113,15 @@
     "otherTech": [
       "Hypertune"
     ],
-    "outcome": "Zero latency feature flag reads with no impact to conversion",
+    "outcome": "Zero-latency feature rollouts with no conversion impact",
+    "journey": {
+      "before": "Beyond Menu’s feature flags and A/B tests were adding latency and causing layout shift in its Next.js app.",
+      "goal": "It wanted safe gradual rollouts, instant rollbacks, and experimentation across server and client rendering modes.",
+      "change": "Traditional feature-flag tools didn’t work reliably in serverless and edge environments or support its App Router setup without flickers.",
+      "solution": "Hypertune plus Vercel Edge Config synced flag logic for ultra-low-latency reads, while Next.js enabled the app architecture they needed."
+    },
     "hash": "acfe27083ab6405dc37d2e7d42f97e52cd3d6adb",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/bnp-paribas-open-serving-up-scores-and-experiences-in-real-time-with-work",
@@ -97,6 +130,7 @@
     "vercelProducts": [
       "Next.js",
       "Vercel Functions",
+      "Edge Middleware",
       "CDN",
       "Preview Deployments",
       "Instant Rollbacks"
@@ -104,13 +138,19 @@
     "otherTech": [
       "Work & Co",
       "WordPress",
-      "AXS Ticketing",
       "Redis",
-      "Supabase"
+      "Supabase",
+      "AXS Ticketing"
     ],
-    "outcome": "83,000 new accounts and millions of users handled during tournament",
+    "outcome": "83,000 new accounts and real-time scores for millions",
+    "journey": {
+      "before": "The BNP Paribas Open’s website and mobile app ran on separate CMS platforms, with limited customization, weak SEO, and slow content publishing.",
+      "goal": "They wanted to launch a unified web and mobile experience with real-time scores, personalization, and better fan engagement before the tournament.",
+      "change": "The team needed a platform that could handle massive traffic spikes, support live updates, and allow fast deployment without infrastructure bottlenecks.",
+      "solution": "Work & Co chose Next.js on Vercel, using Vercel Functions, Edge Middleware, CDN, Preview Deployments, and Instant Rollbacks to deliver a scalable real-time experience."
+    },
     "hash": "42b25e36c1d5c4b6a310fc523b86c26aa890d59e",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/break-the-news-not-the-site",
@@ -126,9 +166,15 @@
       "PHP",
       "AWS"
     ],
-    "outcome": "30-50% of monthly new subscriber goal reached within 24 hours of launch",
+    "outcome": "30-50% of monthly new subscriber goal reached within 24 hours",
+    "journey": {
+      "before": "News sites were running on legacy PHP and AWS stacks with performance, deployment, and SEO issues under traffic spikes.",
+      "goal": "Modernize high-stakes news experiences ahead of major election traffic while improving speed, reliability, and content operations.",
+      "change": "They needed to replace brittle infrastructure and separate codebases without sacrificing fast updates or handling surges.",
+      "solution": "Code and Theory used Next.js on Vercel, with Preview Deployments and ISR shown in the story to improve iteration and dynamic caching."
+    },
     "hash": "85664e54c30df44fc815a5dad1f8791561299d3f",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/bridging-the-gap-between-design-and-code-with-v0",
@@ -140,12 +186,18 @@
     "otherTech": [
       "Figma",
       "Tailwind CSS",
-      "AWS Bedrock",
-      "Loom"
+      "Loom",
+      "AWS Bedrock"
     ],
-    "outcome": "Single-day prototype creation for Terminal Preview",
+    "outcome": "Faster prototyping and reduced implementation time",
+    "journey": {
+      "before": "Speakeasy used Figma for initial design explorations, but static mockups didn’t capture behavior well enough to drive buy-in or implementation.",
+      "goal": "The team wanted to bridge design and code so they could iterate quickly on interactive developer experiences.",
+      "change": "They needed a way to share dynamic prototypes and avoid repeated translation from Figma into code.",
+      "solution": "They adopted v0 to create interactive prototypes, import Figma designs when helpful, and apply custom Tailwind config for their design system."
+    },
     "hash": "d30835c7d7b1022746ad25b4bc998594fad767e4",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/commerceui-headless-shopify-nextjs",
@@ -155,17 +207,25 @@
       "Next.js",
       "Edge Middleware",
       "ISR",
-      "Preview Deployments"
+      "Preview Deployments",
+      "Observability"
     ],
     "otherTech": [
       "Shopify",
       "GitHub",
       "Slack",
-      "Figma"
+      "Figma",
+      "Liquid"
     ],
-    "outcome": "200% traffic spikes handled with static-like performance",
+    "outcome": "200% traffic spikes handled with static-like speed and no redeploys",
+    "journey": {
+      "before": "Commerce-UI was constrained by traditional templated ecommerce stacks and a platform ceiling on customization and performance tuning.",
+      "goal": "They wanted to deliver highly branded, localized ecommerce experiences for designer clients at scale.",
+      "change": "They needed more frontend control, faster iteration, and better handling of dynamic content without sacrificing speed.",
+      "solution": "Next.js, Edge Middleware, ISR, Preview Deployments, and Observability on Vercel gave them flexible rendering, localization, previewing, and performance insight."
+    },
     "hash": "85b9eea7ba18869b44a29d88ccc3f2daab3521e0",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/core-construction",
@@ -178,9 +238,15 @@
     "otherTech": [
       "AWS"
     ],
-    "outcome": "Builds cut from 30 minutes to 14 minutes",
+    "outcome": "30-minute builds cut to 14 minutes",
+    "journey": {
+      "before": "CORE’s internal BI tool started on AWS and needed a more stable, reliable pipeline as it grew in importance.",
+      "goal": "Build a mission-critical BI tool that could support data-driven decisions across the company at growth scale.",
+      "change": "They needed faster builds, reliable up-to-date data, and a simpler feedback loop for stakeholders.",
+      "solution": "Vercel provided a stable deployment pipeline, Preview Deployments for collaboration, and Next.js for faster builds and flexible rendering."
+    },
     "hash": "1281872ca5839873505a029a5fd2dc9c5ad547b2",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/creating-a-robust-platform-for-documentation-with-next-js-and-vercel",
@@ -192,19 +258,25 @@
       "Firewall"
     ],
     "otherTech": [
+      "GitHub",
       "MkDocs",
       "Hugo",
-      "GitHub",
       "React",
       "CMS",
+      "SSR",
+      "next/image",
       "Mermaid.js",
-      "Okta",
-      "GDPR",
-      "SOC 2 Type II"
+      "Okta"
     ],
-    "outcome": "60% decrease in build times; 3x more concurrent builds",
+    "outcome": "60% decrease in build times, with 3x more concurrent builds",
+    "journey": {
+      "before": "Teleport’s docs and website were split across MkDocs and Hugo, making dynamic content, versioning, and deployments difficult.",
+      "goal": "They wanted a unified, robust documentation platform that could support dynamic pages and a better developer experience.",
+      "change": "Their existing setup couldn’t easily integrate with a CMS, handle complex dynamic pages, or automate deployments through GitHub.",
+      "solution": "Teleport migrated to Next.js on Vercel, using Preview Deployments and Firewall to streamline releases, collaboration, and security."
+    },
     "hash": "313ee27c74161098e2c6e6384fb81e186419ef5d",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/cutting-delivery-times-in-half-with-v0",
@@ -215,8 +287,14 @@
     ],
     "otherTech": [],
     "outcome": "50% faster demo request to code delivery",
+    "journey": {
+      "before": "Ready.net had limited design resources and long back-and-forth between vague requests, validation, and delivery.",
+      "goal": "Speed up the loop from ideation to validation to production while supporting three teams.",
+      "change": "The team needed a way to quickly turn unclear PRDs into reviewable prototypes without wasting engineering time.",
+      "solution": "They used v0 to validate requirements, spin up working prototypes in minutes, and move approved flows into production faster."
+    },
     "hash": "f67b293027143e99ce2bb73bd3118035e1aebdd5",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/datocms-builds-60-faster-with-a-streamlined-workflow",
@@ -226,10 +304,20 @@
       "Next.js",
       "Preview Deployments"
     ],
-    "otherTech": [],
-    "outcome": "60% faster build times from 10 to 4 minutes",
+    "otherTech": [
+      "Static CDN",
+      "Server Side Rendering",
+      "Static Generation"
+    ],
+    "outcome": "60% faster builds; 10 to 4 minute build times",
+    "journey": {
+      "before": "DatoCMS had growing build times and complexity on its static CDN, with previews on one platform and deploys on another.",
+      "goal": "They wanted a faster, simpler workflow that still let them choose the right rendering approach per page.",
+      "change": "The team needed to remove friction from build, preview, and deploy steps while supporting both static and dynamic pages.",
+      "solution": "By switching to Next.js on Vercel, they used Next.js capabilities and preview workflows on one platform to streamline development."
+    },
     "hash": "f3710831d5e64b22dd7e17afcbcab35597509970",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/delivering-ai-analysis-faster-with-the-vercel-workflow",
@@ -239,13 +327,16 @@
       "Next.js",
       "Preview Deployments"
     ],
-    "otherTech": [
-      "Slack",
-      "Zoom"
-    ],
-    "outcome": "80% less back and forth on feedback",
+    "otherTech": [],
+    "outcome": "80% less back-and-forth on feedback",
+    "journey": {
+      "before": "Viable’s AI product was built with Next.js and deployed on Vercel, but feedback on changes was getting scattered across Slack, email, and Zoom.",
+      "goal": "They wanted to scale their AI analysis business and ship customer insights faster without a custom staging workflow.",
+      "change": "Slow feedback cycles and lost review context were creating a bottleneck to growth.",
+      "solution": "Vercel Preview Deployments with comments centralized pre-production review, while Next.js powered the product itself."
+    },
     "hash": "58fb0361540ab11feaeb7d89a9492246f4666a33",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/demant-achieves-global-scalability-and-30x-faster-response-times-with-vercel",
@@ -257,13 +348,19 @@
       "Preview Deployments"
     ],
     "otherTech": [
-      "Sitecore",
       "Azure",
+      "Sitecore",
       "JSS SDK"
     ],
-    "outcome": "30x faster response times and 10x lower hosting costs",
+    "outcome": "30x faster response times and 10x lower hosting cost",
+    "journey": {
+      "before": "Demant relied on a traditional CMS setup hosted in Azure that required complex regional data centers and still delivered poor response times globally.",
+      "goal": "They wanted a scalable, performant frontend that could serve a worldwide customer base with better UX and lower cost.",
+      "change": "Their existing architecture could not scale efficiently or deliver the speed needed for a global audience.",
+      "solution": "Demant migrated to Next.js on Vercel, using Edge Middleware and Preview Deployments to improve performance and collaboration."
+    },
     "hash": "43ed261d49fb86125b51da9483908f250e1c9d0e",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/deploying-at-the-speed-of-on-demand-streaming",
@@ -274,46 +371,68 @@
       "Preview Deployments"
     ],
     "otherTech": [],
-    "outcome": "47% better First Contentful Paint; 17% faster Time to First Byte",
+    "outcome": "47% improvement in First Contentful Paint",
+    "journey": {
+      "before": "Joyn needed a new platform to host its Next.js app and improve deployment speed and developer experience.",
+      "goal": "The team wanted to move faster while keeping on-demand video and live-channel playback highly available and responsive.",
+      "change": "Their existing deployment workflow was too slow to give instant feedback on feature branches and support rapid iteration.",
+      "solution": "Vercel provided faster deployments and live feature branch environments through Preview Deployments for the Next.js app."
+    },
     "hash": "9ae2495b9e26cb953e10223fb46603584cda3437",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/devolver-ships-game-websites-73-faster-with-vercel",
     "customer": "Devolver",
     "industry": "Gaming",
     "vercelProducts": [
-      "CI/CD",
       "Preview Deployments",
-      "Vercel CLI"
+      "Vercel Functions"
     ],
     "otherTech": [
-      "AWS"
+      "CI/CD",
+      "Vercel CLI"
     ],
-    "outcome": "73% faster game website shipping",
+    "outcome": "73% faster shipping game websites",
+    "journey": {
+      "before": "Devolver’s small engineering team was constrained by clunky infrastructure, unpredictable deployments, and too much time spent on system management.",
+      "goal": "They wanted to ship game websites quickly while keeping the workflow simple and supporting frequent launches.",
+      "change": "Their old setup made traffic spikes, errors, and redeployments hard to manage, slowing feedback and scaling.",
+      "solution": "Vercel’s built-in CI/CD and Preview Deployments improved their deployment workflow, while Vercel Functions supported local API route testing."
+    },
     "hash": "405c60cd8dba6c68c1c695aa01c39deb1cffb7ce",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/edge-functions-enable-read-cv-to-deliver-profiles-globally-with-near-zero",
     "customer": "Read.cv",
     "industry": "Professional networking",
     "vercelProducts": [
-      "Edge Middleware",
+      "Edge Functions",
+      "Next.js",
+      "ISR",
+      "Domains",
       "CDN",
-      "Next.js"
+      "Vercel Functions",
+      "Edge Middleware"
     ],
     "otherTech": [
       "Create React App"
     ],
-    "outcome": "Near-zero latency for global profile delivery",
+    "outcome": "Near-zero latency globally and improved TTFB",
+    "journey": {
+      "before": "Read.cv was scaling a multi-tenant profile platform while juggling custom domains and frequent infrastructure changes on a previous stack.",
+      "goal": "Deliver personalized profiles globally with strong performance, while letting users bring their own domains.",
+      "change": "They needed a way to avoid unsustainable per-domain deploys and serve dynamic content close to users worldwide.",
+      "solution": "Vercel’s Edge Functions, Next.js, Domains, CDN, and related routing capabilities let Read.cv personalize at the edge and support wildcard, SSL, and DNS-managed custom domains."
+    },
     "hash": "3f0d88722a2b3fb792d3a29ed1dd3e2b62c26e04",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/elkjops-digital-transformation-with-next-js-and-vercel",
     "customer": "Elkjøp",
-    "industry": "Retail",
+    "industry": "Ecommerce",
     "vercelProducts": [
       "Next.js",
       "Preview Deployments",
@@ -324,25 +443,37 @@
       "Angular",
       "Kubernetes"
     ],
-    "outcome": "7 weeks to 1 day release cycles; 93% CLS improvement",
+    "outcome": "93% CLS improvement; release cycles cut from 7 weeks to 1 day",
+    "journey": {
+      "before": "Elkjøp’s ecommerce platform was built on Angular and self-hosted on Kubernetes, with slow builds, SEO issues, and a cumbersome deployment process.",
+      "goal": "They wanted a faster, more reliable digital experience that could support innovation and keep pace with customer expectations.",
+      "change": "Small updates were taking too long to reach customers, and the team needed a way to own releases and validate changes faster.",
+      "solution": "Elkjøp moved to Next.js on Vercel, using Preview Deployments and feature flags in the Vercel Toolbar to speed iteration and gradual rollouts."
+    },
     "hash": "b89ee79866e1b2a4edfba967b5b6d7f74a8a5248",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/examine",
     "customer": "Examine",
     "industry": "Healthcare",
     "vercelProducts": [
-      "Preview Deployments",
       "Next.js",
+      "Preview Deployments",
       "ISR"
     ],
     "otherTech": [
       "Sentry"
     ],
     "outcome": "284% increase in free trial signups",
+    "journey": {
+      "before": "Examine’s five-person team was stuck with monolithic tech debt, slow releases, and a manual deploy process.",
+      "goal": "They wanted a faster, more maintainable frontend that improved page speed and developer workflow.",
+      "change": "The biggest blocker was a tightly coupled architecture that made even small changes slow, brittle, and resource-intensive.",
+      "solution": "Vercel’s Next.js, ISR, and Preview Deployments helped decouple the frontend, speed builds, improve page loads, and streamline collaboration."
+    },
     "hash": "2ab1073196fbdc5faa839a5bb99924263893b570",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/extra-space-storages-build-times-became-17x-faster-with-vercel",
@@ -350,17 +481,23 @@
     "industry": "Self-storage",
     "vercelProducts": [
       "Next.js",
-      "Edge Middleware",
       "ISR",
+      "Edge Middleware",
       "Preview Deployments",
+      "CDN",
+      "Vercel Functions",
       "Domains"
     ],
-    "otherTech": [
-      "AWS"
-    ],
-    "outcome": "95% decrease in build times; 17x faster builds",
+    "otherTech": [],
+    "outcome": "95% decrease in build times",
+    "journey": {
+      "before": "Their legacy architecture had unreliable pre-production environments and long build times, slowing feature delivery.",
+      "goal": "They wanted faster iteration, more stable customer-facing sites, and better DevOps for web and kiosk experiences.",
+      "change": "They needed to eliminate deployment bottlenecks and avoid shared environments that made testing and releases slow and risky.",
+      "solution": "They moved their Next.js site to Vercel, using ISR, Edge Middleware, preview deployments, DNS routing, CDN, and Vercel Functions to speed delivery and improve stability."
+    },
     "hash": "d472d822eb7ab1d68b0bab8ce3f1533f2cc48cf6",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/frameio-never-drop-the-illusion",
@@ -369,16 +506,21 @@
     "vercelProducts": [
       "Next.js",
       "Preview Deployments",
-      "ISR",
-      "CDN",
+      "Edge Config",
       "Speed Insights"
     ],
     "otherTech": [
       "React"
     ],
     "outcome": "6x faster preview builds & deployments",
+    "journey": {
+      "before": "Frame.io needed web app interactions and previews to feel as responsive as desktop software, but previews could take up to 40 minutes.",
+      "goal": "They wanted to deliver a fluid, high-performing video collaboration experience for millions of expected v4 users.",
+      "change": "Slow preview cycles, performance regressions, and the need to keep UI motion and load times seamless were blocking iteration.",
+      "solution": "Frame.io adopted Next.js App Router, Preview Deployments, Edge Network-based caching/static revalidation, and Speed Insights to monitor and optimize performance."
+    },
     "hash": "112c8ed95e902737b9bae4a188f7b5e31190300d",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/from-idea-to-acqusition-how-potion-shipped-4k-sites-on-vercel",
@@ -386,15 +528,21 @@
     "industry": "Website builder",
     "vercelProducts": [
       "Next.js",
-      "Platforms Starter Kit",
+      "Domains",
       "ISR"
     ],
     "otherTech": [
       "Notion"
     ],
-    "outcome": "$300k acquisition after scaling to 4,000 custom domains",
+    "outcome": "$300,000 acquisition after scaling to 4,000+ custom domains",
+    "journey": {
+      "before": "Potion was a one-person Notion-to-website builder needing a way to serve many user sites and custom domains without wrestling with infrastructure.",
+      "goal": "Noah Bragg wanted to quickly launch and scale a multi-tenant website builder that could monetize custom domains and grow efficiently.",
+      "change": "The blocker was setting up wildcard subdomains, custom domains, and scalable delivery without spending time on NGINX proxies or database strain.",
+      "solution": "Potion used Next.js, the Platforms Starter Kit, Vercel Domains, Vercel's edge network, and ISR to ship fast, manage custom domains at scale, and cache content efficiently."
+    },
     "hash": "6bc22393799c920c9ac35aef712cf0833ce69781",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/from-minutes-to-seconds-how-meter-accelerates-delivery-with-vercel-and-next",
@@ -411,8 +559,14 @@
       "Vite"
     ],
     "outcome": "98.33% reduction in build times",
+    "journey": {
+      "before": "Meter’s Dashboard ran on various AWS solutions with long build times and limited visibility into changes.",
+      "goal": "They wanted faster iteration and deployment as they migrated Dashboard and expanded Command.",
+      "change": "They needed a way to manage a growing monorepo, remote caching, and safer release workflows without slowing the team down.",
+      "solution": "Vercel, along with Next.js, Preview Deployments, and Instant Rollbacks, streamlined builds, previews, and deployment reliability."
+    },
     "hash": "ee0c0edeeaed4f121dc4a747db398baadd072196",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/from-monolith-to-composable-equipping-a-financial-services-ipo",
@@ -420,16 +574,21 @@
     "industry": "Financial services",
     "vercelProducts": [
       "Next.js",
-      "Vercel API",
       "Web Analytics"
     ],
     "otherTech": [
       "WordPress",
       "Strapi"
     ],
-    "outcome": "One-developer team launched a composable Next.js frontend for IPO rebrand",
+    "outcome": "One-developer team shipped a composable frontend for IPO/rebrand",
+    "journey": {
+      "before": "Plenti was running a monolithic WordPress-based website stack as it prepared to rebrand and go public.",
+      "goal": "They wanted to modernize the site into a trustworthy, composable frontend that could support the rebrand and IPO.",
+      "change": "The old WordPress setup was too rigid and hard to manage during a full redesign and rewrite.",
+      "solution": "Plenti migrated to a composable Next.js frontend on Vercel and used Vercel Analytics plus the Vercel API to automate deployments and optimize performance."
+    },
     "hash": "a11bdb5e3d9e40628e471e74ca939f3ccf767033",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/from-newsletter-to-global-media-brand-with-a-headless-frontend",
@@ -445,8 +604,14 @@
       "Sanity"
     ],
     "outcome": "2.5x revenue after frontend cloud adoption",
+    "journey": {
+      "before": "Morning Brew was scaling a rigid headless stack with HTML stored in SQL, slowing collaboration and launches.",
+      "goal": "They wanted a flexible frontend that could support new brands and lines of business quickly.",
+      "change": "Their monolith and content model made it hard to iterate, collaborate, and ship without redeploying.",
+      "solution": "They migrated to Sanity and Vercel, using Next.js, ISR, Vercel Functions, and Preview Deployments to speed delivery and collaboration."
+    },
     "hash": "526a8cb58f943adf9c84caefdeebefef454809b0",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/from-wordpress-monolith-to-vercel-personio-elevates-site-performance",
@@ -454,20 +619,27 @@
     "industry": "HR tech",
     "vercelProducts": [
       "Next.js",
+      "CDN",
       "Preview Deployments"
     ],
     "otherTech": [
       "WordPress",
       "Contentful"
     ],
-    "outcome": "90%+ better Core Web Vitals; 99.99% uptime",
+    "outcome": "90%+ improvement in Core Web Vitals scores",
+    "journey": {
+      "before": "Personio’s site ran on a monolithic WordPress implementation that had accumulated tech debt and was hard to evolve.",
+      "goal": "They wanted a more flexible, composable web stack that improved performance, uptime, and developer efficiency.",
+      "change": "Persistent speed issues, especially on mobile, and limited resources were blocking innovation on the site.",
+      "solution": "They moved to Vercel with Next.js and Contentful, and used Preview Deployments to streamline review and shipping."
+    },
     "hash": "61083eb168ca2266ce0cee6e91e6ab8f82da1006",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/gamma-builds-design-first-agents-with-vercel",
     "customer": "Gamma",
-    "industry": "AI design",
+    "industry": "AI Apps",
     "vercelProducts": [
       "AI SDK",
       "Preview Deployments",
@@ -482,13 +654,19 @@
       "Tiptap"
     ],
     "outcome": "250+ deployments/day with 99% success rate",
+    "journey": {
+      "before": "Gamma’s AI agent and image pipeline needed more control, persistence, and model flexibility than a simple request-response architecture could provide.",
+      "goal": "The team wanted to ship design-first conversational editing and new image capabilities quickly without rebuilding infrastructure.",
+      "change": "They needed a way to manage complex agent state, support rapid model swaps, and keep deploys safe as the product evolved.",
+      "solution": "Gamma built on the AI SDK for agent and image workflows, used Preview Deployments and Instant Rollbacks for release safety, and ran its translation layer on Vercel Functions with automatic Observability."
+    },
     "hash": "9d81e3a8b697dde640bd23a94ea327c3f1fe95a6",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/hashnode-runs-faster-blogs-on-the-web-with-vercel",
     "customer": "Hashnode",
-    "industry": "Blogging platform",
+    "industry": "Media",
     "vercelProducts": [
       "Next.js",
       "Preview Deployments",
@@ -498,14 +676,20 @@
     "otherTech": [
       "AWS Amplify"
     ],
-    "outcome": "Custom domains at scale with faster deploy previews and perfect Lighthouse scores",
+    "outcome": "Faster blogs on the web with perfect Lighthouse scores",
+    "journey": {
+      "before": "Hashnode was manually monitoring and maintaining custom domains for its developer blogs while looking for a better platform.",
+      "goal": "The team wanted to publish blogs on custom domains at scale with a smoother developer experience.",
+      "change": "Managing domains and testing changes without a staging setup was slowing the engineering team down.",
+      "solution": "Hashnode moved to Vercel, using Next.js, Preview Deployments, Domains, and the CDN/Edge Network to scale custom domains and ship faster."
+    },
     "hash": "e80f4b6d20ac8efb259542da7f5cab682e0a4117",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/hashnode-runs-the-fastest-blogs-on-the-web-with-vercel",
     "customer": "Hashnode",
-    "industry": "Blogging platform",
+    "industry": "Developer platform",
     "vercelProducts": [
       "Next.js",
       "Preview Deployments",
@@ -515,9 +699,15 @@
     "otherTech": [
       "AWS Amplify"
     ],
-    "outcome": "Faster blogging with custom domains at scale and perfect Lighthouse scores",
+    "outcome": "Faster blogs with perfect Lighthouse scores",
+    "journey": {
+      "before": "Hashnode was manually monitoring and maintaining custom-domain publishing for its developer blogging platform.",
+      "goal": "It wanted to scale custom-domain publishing while keeping the developer experience smooth.",
+      "change": "The team needed to remove the operational burden of staging, infrastructure management, and performance optimization.",
+      "solution": "Hashnode moved to Vercel, using Next.js, Preview Deployments, custom Domains, and the CDN/Edge Network to simplify delivery and speed up blogs."
+    },
     "hash": "1c4772b17871b138f5dd07285c49ddc5327f110b",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/helping-swells-merchants-provide-unparalleled-ecommerce-experiences",
@@ -527,10 +717,19 @@
       "Next.js",
       "ISR"
     ],
-    "otherTech": [],
-    "outcome": "1 month to build a new ecommerce site",
+    "otherTech": [
+      "API-first backend",
+      "Next.js Commerce"
+    ],
+    "outcome": "1 month site launch vs. 4-12 months on legacy platforms",
+    "journey": {
+      "before": "Swell served merchants migrating from legacy ecommerce platforms that were slower and harder to manage.",
+      "goal": "They wanted merchants to launch fast, customizable storefronts that could scale without sacrificing site speed.",
+      "change": "Unlimited SKUs and growing storefront complexity risked slowing sites down during marketing and expansion.",
+      "solution": "Vercel and Next.js, plus on-demand ISR and hybrid rendering, let Swell deliver fast, flexible ecommerce experiences."
+    },
     "hash": "3f2dacde4014ff20b6e926255039c3c24d1dc9c0",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-a-global-agency-built-a-web-innovation-engine-in-two-months",
@@ -538,15 +737,18 @@
     "industry": "Digital agency",
     "vercelProducts": [
       "Next.js",
-      "Preview Deployments",
-      "CDN"
+      "Preview Deployments"
     ],
-    "otherTech": [
-      "Git"
-    ],
+    "otherTech": [],
     "outcome": "Built a web innovation engine in 2 months",
+    "journey": {
+      "before": "Globacore was an in-person experiential agency whose pipeline of physical events vanished during the pandemic.",
+      "goal": "They needed to rapidly pivot into delivering interactive digital experiences for global brands.",
+      "change": "They had to launch and iterate on high-performance web experiences fast, while meeting global scale and 99.99% uptime expectations.",
+      "solution": "Next.js enabled fast development and iteration, and Preview Deployments helped them review changes with clients before shipping."
+    },
     "hash": "aa665639b3eebb2f27028ca9f31696c454dc9b83",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/How-avalara-turns-pipedreams-into-patent-pending-with-v0",
@@ -560,9 +762,15 @@
       "Slack",
       "Figma"
     ],
-    "outcome": "2 patent-pending products in ~60 days",
+    "outcome": "Two patent-pending products in roughly 60 days",
+    "journey": {
+      "before": "Avalara’s ideas moved through long PRD, design, and engineering handoffs before anyone saw a working concept.",
+      "goal": "Modernize how Avalara builds and ship AI-native customer workflows and new products faster.",
+      "change": "They needed a way to turn plain-language product ideas into something stakeholders could see and react to immediately.",
+      "solution": "v0 let teams describe ideas in plain language and quickly generate working prototypes, replacing slow interpretation loops."
+    },
     "hash": "4b2743cee8a3d0066ab91979b5ad3719ce154542",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-chatbase-scaled-rapidly-with-vercels-developer-experience-and-ai-sdk",
@@ -577,20 +785,32 @@
     ],
     "otherTech": [],
     "outcome": "500K monthly visitors and $4M ARR in 1.5 years",
+    "journey": {
+      "before": "Chatbase needed a fast-moving stack for its app and marketing site in a highly competitive AI market.",
+      "goal": "They wanted to ship AI-driven features quickly while scaling their chatbot platform and website.",
+      "change": "They needed to iterate rapidly on model-driven experiences without sacrificing performance, security, or deployment reliability.",
+      "solution": "Vercel plus Next.js, AI SDK, Firewall, Preview Deployments, and Instant Rollbacks removed the blockers and supported rapid scaling."
+    },
     "hash": "f5ca4ad10099a0a2f9aa595d2599ad4a1dd88a08",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-code-and-theory-cut-time-to-prototype-75-with-v0",
     "customer": "Code and Theory",
-    "industry": "Agency",
+    "industry": "Digital agency",
     "vercelProducts": [
       "v0"
     ],
     "otherTech": [],
-    "outcome": "75% cut in time-to-prototype",
+    "outcome": "75% faster time-to-prototype",
+    "journey": {
+      "before": "The agency relied on wireframes and requirement documents to start client work.",
+      "goal": "They wanted to turn client briefs into working prototypes in real time.",
+      "change": "The slow, document-heavy prototype process was blocking faster collaboration across product, engineering, and go-to-market teams.",
+      "solution": "They used v0 prompt-to-code workflows to replace wireframes and PRDs with live prototypes."
+    },
     "hash": "3c61683697b17a376ad113239c2fd5c79e33e750",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-conductor-moved-parallel-coding-agents-from-the-laptop-to-the-cloud-with-vercel-sandbox",
@@ -603,9 +823,15 @@
       "Claude Code",
       "Codex"
     ],
-    "outcome": "Remote cloud workspaces let agents run in parallel without laptop limits",
+    "outcome": "Multiple parallel coding agents now run in the cloud",
+    "journey": {
+      "before": "Conductor’s agents ran on developers’ laptops, creating CPU heat and stopping when the laptop closed.",
+      "goal": "Move its multi-agent coding experience from local machines to a cloud execution layer without changing the interface.",
+      "change": "The team needed remote execution that was fast, reliable, and trusted enough to replace local hardware constraints.",
+      "solution": "Conductor built Cloud Workspaces on Vercel Sandboxes to run agents remotely with the same local-like experience."
+    },
     "hash": "0957e1e430e3d0a5bbbe37ed2ccaebf32a786e55",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-consensys-rebuilt-metamask-io-with-vercel-and-next-js",
@@ -616,20 +842,28 @@
       "Vercel Functions",
       "ISR",
       "Preview Deployments",
+      "Observability",
       "Speed Insights"
     ],
     "otherTech": [
+      "MetaMask.io",
       "GitHub Pages",
       "Contentful"
     ],
-    "outcome": "4 hours to scale rollout from 1% to 100%, with no rollback",
+    "outcome": "100% traffic cutover in 4 hours with no rollback",
+    "journey": {
+      "before": "MetaMask.io was on static site generation and GitHub Pages, which slowed deployments and made dynamic content hard to support.",
+      "goal": "Consensys wanted MetaMask.io to scale safely and iterate faster as the product and ecosystem grew.",
+      "change": "The site needed a way to support dynamic content, faster updates, and more reliable deployments without manual workarounds.",
+      "solution": "They rebuilt on Next.js and Vercel, using Vercel Functions, ISR, Preview Deployments, Observability, and Speed Insights to ship and monitor globally."
+    },
     "hash": "d325055a7db9191bffab08dd365e1f57bd6ca1cb",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-coxwave-delivers-genai-value-faster-with-vercel",
     "customer": "Coxwave",
-    "industry": "GenAI",
+    "industry": "GenAI analytics",
     "vercelProducts": [
       "Next.js",
       "Preview Deployments",
@@ -641,9 +875,15 @@
       "CloudFront",
       "S3"
     ],
-    "outcome": "85% faster deployment times",
+    "outcome": "85% faster deployment times, with production deploys up to 2x/day",
+    "journey": {
+      "before": "Coxwave’s Next.js apps ran on CloudFront + S3, which was fine for static sites but brittle for dynamic GenAI apps.",
+      "goal": "They wanted to ship AI-native product changes quickly while keeping production stable as the market evolved.",
+      "change": "Monthly-style release cycles, slow fixes, and heavy environment overhead were blocking fast iteration and validation.",
+      "solution": "By moving to Next.js on Vercel and using Preview Deployments, CDN, Instant Rollbacks, and the AI SDK, Coxwave sped up deploys and AI feature delivery."
+    },
     "hash": "de982a6148499f23f2ec89bf506d551f4c55816c",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-dub-grew-to-3000-active-domains-with-vercels-multi-tenant-saas-toolkit",
@@ -657,23 +897,35 @@
     ],
     "otherTech": [],
     "outcome": "3,000 active domains and 5M redirects/month",
+    "journey": {
+      "before": "Dub needed to manage custom domains, SSL certificates, and reverse proxies while scaling a multi-tenant link platform.",
+      "goal": "They wanted to grow a link management platform that could serve many customers across different domains.",
+      "change": "The blocker was the complexity and cost of provisioning domains and SSL at scale.",
+      "solution": "Vercel’s Domains API and managed infrastructure, along with Next.js, Preview Deployments, and Web Analytics, removed the domain-management bottleneck."
+    },
     "hash": "a9547074227193ecdbb6bb79851cce8902ff78b1",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-emburse-increased-site-performance-by-4x-with-vercel",
     "customer": "Emburse",
-    "industry": "Fintech",
+    "industry": "Travel & expense",
     "vercelProducts": [
-      "Next.js"
+      "Next.js",
+      "Speed Insights"
     ],
     "otherTech": [
-      "Sanity",
-      "Rangle"
+      "Sanity"
     ],
-    "outcome": "4x faster site performance; INP below 200ms",
+    "outcome": "4x faster site performance and INP under 200ms",
+    "journey": {
+      "before": "Emburse was on a legacy platform that was costly, complex, and too slow for marketing needs.",
+      "goal": "They wanted to modernize the site and support faster campaign launches across multiple locales.",
+      "change": "Their existing stack couldn’t deliver the performance, localization, or content agility the marketing team needed.",
+      "solution": "Rangle helped Emburse move to Next.js and Sanity on Vercel, enabling fast builds, secure deployments, and a scalable site."
+    },
     "hash": "fb29b19312506c97c7d6d567aab3cd5019b22452",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-fern-delivers-6m-monthly-views-and-80-faster-docs-with-vercel",
@@ -685,18 +937,25 @@
       "Vercel Functions",
       "CDN",
       "ISR",
-      "Instant Rollbacks",
       "Preview Deployments",
+      "Instant Rollbacks",
       "Domains"
     ],
     "otherTech": [
       "AWS Fargate",
       "AWS CDK",
-      "Algolia"
+      "Algolia",
+      "React Suspense"
     ],
-    "outcome": "83% reduction in deploy times; 80% faster docs and 3x faster TTFB",
+    "outcome": "83% reduction in deploy times; 3x faster time to first byte",
+    "journey": {
+      "before": "Fern ran backend services on AWS Fargate with deployments managed through AWS CDK, creating a 30-minute feedback loop.",
+      "goal": "Fern wanted to scale a multi-tenant documentation platform across many customer domains while improving performance and iteration speed.",
+      "change": "The team needed to eliminate slow deploy cycles and simplify multi-tenant routing without separate infrastructure per customer.",
+      "solution": "Fern used Next.js on Vercel with Edge Middleware, Vercel Functions, CDN, ISR, Preview Deployments, Instant Rollbacks, and Domains to speed releases and serve fast, custom docs."
+    },
     "hash": "30d00a2ac5bdbd7b6b9ff9c34343947883dee8ab",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-fern-runs-multi-tenant-docs-for-webflow-and-elevenlabs-on-vercel",
@@ -704,16 +963,18 @@
     "industry": "Developer tools",
     "vercelProducts": [
       "Next.js",
-      "Preview Deployments",
-      "ISR"
+      "Preview Deployments"
     ],
-    "otherTech": [
-      "Webflow",
-      "ElevenLabs"
-    ],
-    "outcome": "3x faster TTFB; page load times cut 80%",
+    "otherTech": [],
+    "outcome": "80% faster page loads; 3x faster TTFB",
+    "journey": {
+      "before": "Fern was operating a multi-tenant documentation platform for customers like Webflow and ElevenLabs on a single Next.js app while mid-migration from the Pages Router to the App Router.",
+      "goal": "They wanted to migrate a large share of the platform quickly without turning it into a months-long engineering project, while keeping docs deploys fast across custom domains.",
+      "change": "The blocker was that the migration and deployment workflow needed to stay fast and scalable across many customer docs sites.",
+      "solution": "On Vercel, Fern ran a single Next.js app with Preview Deployments supporting rapid iteration, letting the team move 65% of the platform to the App Router in seven days and ship multiple times a day."
+    },
     "hash": "a079cde84c4d1e59140f4319460e6c9851a236bc",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-flora-shipped-a-creative-agent-on-vercels-ai-stack",
@@ -729,8 +990,14 @@
       "Temporal"
     ],
     "outcome": "2x faster to production with their generation system",
+    "journey": {
+      "before": "FLORA’s visual creation canvas required users to think like workflow designers and forced the team to manage too much AI plumbing.",
+      "goal": "They wanted to ship FAUNA, a creative agent that lets designers start from ideas and explore visual directions end to end.",
+      "change": "Their agent had to handle long-running, parallel image generation without losing state or adding infrastructure overhead.",
+      "solution": "FLORA moved to AI SDK for agent primitives, Workflow SDK’s DurableAgent for durable orchestration, and Fluid compute for concurrent long-running jobs."
+    },
     "hash": "f718c9e34fc5495bc4e0632d1020e2e925e80de7",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-general-intelligence-used-agents-to-build-an-agent-platform-on-vercel",
@@ -743,38 +1010,53 @@
       "Vercel Functions",
       "Vercel for Platforms",
       "Domains",
-      "CDN"
+      "CDN",
+      "Observability"
     ],
     "otherTech": [
-      "Render",
       "Python",
+      "CLI",
       "GitHub",
-      "CLI"
+      "Render"
     ],
-    "outcome": "90% of SRE work automated through Vercel and Cofounder",
+    "outcome": "90% of SRE work automated with 4,000+ preview branches",
+    "journey": {
+      "before": "General Intelligence started on Render, but provisioning preview environments for a full-stack, multi-tenant app was painful and the platform couldn’t fully support agent-driven infrastructure.",
+      "goal": "They wanted to build Cofounder, a platform where agents could run the whole company and ship changes end-to-end across the stack.",
+      "change": "Their coding agents needed programmatic control over deployments, DNS, billing, configs, compute, and observability—beyond what their previous cloud setup exposed.",
+      "solution": "They migrated to Vercel, using Preview Deployments, Fluid compute, Vercel Functions, Vercel for Platforms, Domains, CDN, and Observability to let agents drive the full infrastructure."
+    },
     "hash": "6e4ded81c45e4ec33b71b570f19dc8afcdf26528",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-gitbook-serves-30000-sites-with-sub-second-content-updates",
     "customer": "GitBook",
-    "industry": "Documentation",
+    "industry": "Developer tools",
     "vercelProducts": [
-      "Next.js"
+      "Next.js",
+      "ISR",
+      "CDN"
     ],
     "otherTech": [
       "GitHub",
       "GitLab",
-      "LLM"
+      "LLMs"
     ],
-    "outcome": "40,000 invalidations/day resolved in under 300ms",
+    "outcome": "40,000 cache invalidations daily resolved in under 300ms",
+    "journey": {
+      "before": "GitBook ran 30,000 docs sites, but published changes could lag behind merges and editors often saw stale content after release.",
+      "goal": "They needed documentation updates to appear globally as quickly and reliably as the code they described.",
+      "change": "A broad cache purge would be too costly in a multi-tenant setup, because one site’s change should not revalidate the other 29,999.",
+      "solution": "GitBook used Next.js with Vercel’s cache-based rendering and tag-based invalidation to keep only affected content fresh."
+    },
     "hash": "cd4d3b90a8aee5d3f149bb5179397b5d2775cfdf",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-global-retail-brands-cut-development-time-from-months-to-1-week",
-    "customer": "Global Retail Brands",
-    "industry": "Retail",
+    "customer": "Global Retail Brands (GRB)",
+    "industry": "Ecommerce",
     "vercelProducts": [
       "Next.js",
       "Preview Deployments",
@@ -784,12 +1066,17 @@
     "otherTech": [
       "Shopify Plus",
       "Prismic",
-      "AWS Amplify",
-      "Convert Digital"
+      "AWS Amplify"
     ],
-    "outcome": "75% decrease in development time; deploys under 10 minutes",
+    "outcome": "75% decrease in development time; deployments under 10 min",
+    "journey": {
+      "before": "GRB’s web stack was fragmented across bespoke local systems and a Shopify Plus storefront, slowing updates and creating IT silos.",
+      "goal": "They wanted a unified, scalable digital platform to improve uptime, customer experience, and growth readiness.",
+      "change": "They needed to remove the complexity of maintaining multiple platforms and the slow, platform-specific release process.",
+      "solution": "GRB migrated to Vercel with Next.js, Preview Deployments, Speed Insights, and Domain Hosting to unify development, testing, and performance monitoring."
+    },
     "hash": "416c1429fc1b2de4dc99b94068a9fb57c39db0f9",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-helly-hansen-migrated-to-vercel-and-drove-80-black-friday-growth",
@@ -808,8 +1095,14 @@
       "Constructor.io"
     ],
     "outcome": "80% YoY Black Friday growth with zero downtime",
+    "journey": {
+      "before": "Helly Hansen’s Adobe Commerce PWA relied on client-side rendering, causing slow loads, layout shifts, and unreliable peak-season performance.",
+      "goal": "They wanted a fast, scalable ecommerce foundation that could improve conversion and handle Black Friday traffic without outages.",
+      "change": "The old stack limited performance, experimentation, and deployment safety, making it hard to optimize critical pages and peak events.",
+      "solution": "They incrementally migrated to Next.js on Vercel, using Vercel CDN, Vercel Functions, Web Analytics, ISR, and feature flags to improve speed, reliability, and testing."
+    },
     "hash": "1563bf827533c8ce4115ea599393f790504c83be",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-indent-delivers-secure-access-with-next.js-and-vercel",
@@ -820,27 +1113,38 @@
       "Preview Deployments"
     ],
     "otherTech": [
-      "Sanity",
-      "Slack"
+      "Slack",
+      "Sanity"
     ],
-    "outcome": "80% faster time-to-feedback with previews",
+    "outcome": "80% faster time-to-feedback with Preview Deployments",
+    "journey": {
+      "before": "Indent needed a fast, secure way for teams to request, approve, and revoke access across its app and marketing site.",
+      "goal": "They wanted to deliver a smooth, mission-critical user experience while enabling rapid feedback and content iteration.",
+      "change": "The team needed to avoid slow production-only review cycles and reduce engineering overhead for content and configuration changes.",
+      "solution": "Indent built on Next.js and used Preview Deployments on Vercel, alongside Sanity for content updates, to speed feedback and iteration."
+    },
     "hash": "ccbfcd169eb96d125ed1ff7b8a43fb0f40604752",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-kiko-milano-scales-for-black-friday",
     "customer": "KIKO Milano",
     "industry": "Ecommerce",
     "vercelProducts": [
-      "Next.js",
-      "Preview Deployments"
+      "Next.js"
     ],
     "otherTech": [
       "AWS EC2"
     ],
     "outcome": "75% decrease in app build times",
+    "journey": {
+      "before": "KIKO Milano’s ecommerce team manually scaled AWS EC2 and adjusted app configs weeks before Black Friday, with stressful war-room prep and limited releases.",
+      "goal": "They wanted to handle peak Black Friday traffic smoothly while shipping campaigns and tests more frequently.",
+      "change": "Their old setup required hands-on infrastructure provisioning and slow builds, which created operational overhead and risk during traffic spikes.",
+      "solution": "Vercel provided automatic scaling, on-demand environments, faster builds, and a Next.js runtime that let the team deploy multiple times per day."
+    },
     "hash": "558bfb2e57f5d56bdd23c3833239e8c3e6804302",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-makeswift-improved-ci-speed-by-65-with-turborepo",
@@ -858,30 +1162,42 @@
       "GitHub Actions",
       "Docker"
     ],
-    "outcome": "65% faster CI pipeline time",
+    "outcome": "65% faster CI pipeline time; commit-to-deploy under 1 minute",
+    "journey": {
+      "before": "Makeswift used a custom multi-monorepo build setup with Kubernetes, Bazel, GitHub Actions, and Docker, but build times and maintenance burden were hurting developer experience.",
+      "goal": "The team wanted faster iteration, smoother collaboration, and a better local and CI development workflow as they scaled deployments.",
+      "change": "Their CI was taking around 20 minutes and the original setup required too much configuration for the small team to sustain.",
+      "solution": "They adopted Turborepo to schedule tasks across local and CI workflows, and used Vercel Preview Deployments to speed pull-request iteration; the story also mentions planned use of Vercel Edge Middleware."
+    },
     "hash": "15b034422be15a337d613300ee62bb9e54cbe68a",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-notion-powers-rapid-and-performant-experimentation",
     "customer": "Notion",
-    "industry": "Productivity",
+    "industry": "Productivity software",
     "vercelProducts": [
       "Next.js",
       "Edge Config",
       "Edge Middleware",
-      "Preview Deployments",
+      "Feature Flags",
       "Vercel Toolbar",
-      "Observability",
-      "Instant Rollbacks"
+      "Preview Deployments",
+      "Observability"
     ],
     "otherTech": [
       "Statsig",
       "ECS"
     ],
-    "outcome": "300% faster to deploy hotfixes",
+    "outcome": "300% faster hotfix deploys; 0.09 CLS",
+    "journey": {
+      "before": "Notion’s marketing site ran on ECS, with a small team facing traffic spikes, autoscaling issues, and long deployment times.",
+      "goal": "The team wanted a fast, performant marketing site that could support rapid iteration and hundreds of experiments per year.",
+      "change": "They needed to remove infrastructure overhead while preserving Core Web Vitals and enabling safe experimentation.",
+      "solution": "They moved to Vercel with Next.js, Edge Config, Edge Middleware, Preview Deployments, Feature Flags, Vercel Toolbar, Instant Rollbacks, and Observability to speed deploys and run experiments at the edge."
+    },
     "hash": "e4a262367eaa10f0ecd88b20ff6ade0e8030bbbd",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-nous-research-used-botid-to-block-automated-abuse-at-scale",
@@ -894,9 +1210,15 @@
       "Cloudflare Turnstile",
       "tRPC"
     ],
-    "outcome": "3,000% traffic spike blocked with stable inference availability",
+    "outcome": "3,000% traffic spike blocked without inference disruption",
+    "journey": {
+      "before": "Nous Research’s free Hermes promotion was overwhelmed by automated signups and inference abuse, driving wasted compute and higher identity costs.",
+      "goal": "They wanted to relaunch a free tier for their hosted chat and inference API while keeping access open to legitimate users.",
+      "change": "Their existing signup captcha was not stopping coordinated bots that spread activity across thousands of accounts and bypassed rate limits.",
+      "solution": "They adopted Vercel BotID Deep Analysis across sign-up/sign-in and chat checks to verify humans invisibly and block abusive traffic at scale."
+    },
     "hash": "ee4f3aa227c86167a1a14bad4e204c4b7cd05b8d",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-okara-runs-cmo-agents-for-120000-companies-on-vercel",
@@ -907,9 +1229,15 @@
       "Sandbox"
     ],
     "otherTech": [],
-    "outcome": "120,000 companies served with same-day model launches",
+    "outcome": "4 billion tokens/day across 120,000+ companies",
+    "journey": {
+      "before": "Okara was integrating eight model providers through separate SDKs, with key management, retries, fallbacks, and monitoring handled manually.",
+      "goal": "Deliver an AI CMO that could rapidly add new models and serve thousands of companies without adding infrastructure overhead.",
+      "change": "They needed to remove provider integration friction and isolate agentic code execution for SEO fixes.",
+      "solution": "Vercel AI Gateway unified provider access behind one endpoint, and Vercel Sandbox powered isolated analysis and coding workflows."
+    },
     "hash": "18c0538cfa03ff5addbb1883d08f966a81d44260",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-openevidence-built-a-healthcare-ai-that-physicians-can-trust",
@@ -918,16 +1246,22 @@
     "vercelProducts": [
       "Next.js",
       "Preview Deployments",
-      "Fluid compute",
-      "Domains"
+      "Custom Domains",
+      "Fluid compute"
     ],
     "otherTech": [
       "Python",
       "Google Cloud Platform"
     ],
-    "outcome": "90% lower serverless spend while scaling to 1000x growth",
+    "outcome": "90% lower serverless spend while maintaining performance",
+    "journey": {
+      "before": "OpenEvidence’s frontend was small, while most of the team worked in Python and machine learning and needed infrastructure that required little babysitting.",
+      "goal": "They wanted to move at startup speed while delivering a clinical decision support product doctors could trust at hospital-grade reliability.",
+      "change": "They needed deployments, scaling, and demos to stay fast and reliable even as usage and traffic surged.",
+      "solution": "They built the frontend with Next.js on Vercel, using Preview Deployments, custom domains, and Fluid compute to ship quickly and keep performance high."
+    },
     "hash": "8595422fbfd6bc0b5e4cf254998c72c2581fd450",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-paige-grew-revenue-by-22-with-shopify-next-js-and-vercel",
@@ -935,8 +1269,8 @@
     "industry": "Ecommerce",
     "vercelProducts": [
       "Next.js",
-      "CDN",
       "Preview Deployments",
+      "CDN",
       "Instant Rollbacks"
     ],
     "otherTech": [
@@ -945,30 +1279,41 @@
       "Angular",
       "Bloomreach"
     ],
-    "outcome": "22% revenue increase during Black Friday Cyber Monday",
+    "outcome": "22% revenue increase on Black Friday Cyber Monday",
+    "journey": {
+      "before": "PAIGE was running a complex headless stack built on Commercetools, Angular, and Bloomreach, which caused integration and syncing issues.",
+      "goal": "The team wanted a simpler, faster, and more reliable ecommerce experience that could scale through peak traffic and support omnichannel growth.",
+      "change": "Their existing architecture was slowing innovation, delaying development, and creating operational friction across teams.",
+      "solution": "PAIGE re-architected around Shopify and Next.js, with Vercel providing automated deployments, global CDN delivery, preview deployments, and instant rollbacks."
+    },
     "hash": "adaaebc48ee003aa19144b59aaaf4c82da24765c",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-plex-6x-their-impressions-deploying-next-js-on-vercel",
     "customer": "Plex",
-    "industry": "Streaming media",
+    "industry": "Media",
     "vercelProducts": [
       "Next.js",
-      "Edge Middleware",
       "ISR",
+      "Edge Middleware",
       "Web Analytics"
     ],
     "otherTech": [
-      "GitHub",
       "Kubernetes",
+      "GitHub",
       "Checkly",
-      "Axiom",
-      "Google Search"
+      "Axiom"
     ],
-    "outcome": "6x impressions and 40% less code",
+    "outcome": "6x impressions and 79→90 Real Experience Score",
+    "journey": {
+      "before": "Plex’s watch.plex.tv site ran on Kubernetes auto-scaling clusters and had a dense build setup that created developer headaches.",
+      "goal": "They wanted a unified foundation for their web experiences that would improve UX, SEO, and long-term development velocity.",
+      "change": "They needed faster page loads, better crawlability, and simpler deployment workflows without sacrificing personalization or performance.",
+      "solution": "They refactored to Next.js on Vercel, using ISR, Edge Middleware, and Web Analytics to power performance, personalization, and measurement."
+    },
     "hash": "9177809eaad9fa05b7fe587a2aa3f93c4fff9346",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-ramp-kept-100-uptime-through-100x-traffic-surges-on-vercel",
@@ -980,8 +1325,14 @@
     ],
     "otherTech": [],
     "outcome": "100% uptime through 100x traffic surges",
+    "journey": {
+      "before": "Ramp’s marketing site needed a modern rebuild to support its highest-traffic, highest-conversion pages.",
+      "goal": "Migrate the full site to a faster, more resilient stack and validate each critical page with A/B tests.",
+      "change": "The team needed a way to handle massive stunt-marketing traffic spikes without downtime or errors.",
+      "solution": "Ramp rebuilt on Next.js on Vercel and later used the AI SDK to add semantic search across internal assets."
+    },
     "hash": "e26ec330d3e4a5c373a696043baf6921cbd1217e",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-ruggable-saw-more-organic-clicks-by-optimizing-their-frontend",
@@ -995,32 +1346,43 @@
       "Shopify",
       "Contentful"
     ],
-    "outcome": "300% more organic clicks; 75% higher search rankings",
+    "outcome": "300% more unbranded search clicks",
+    "journey": {
+      "before": "Ruggable’s frontend was slow to load, hard to change, and tied marketing to developers while hurting SEO.",
+      "goal": "They wanted a headless frontend that could improve performance, SEO, and team agility without disrupting commerce.",
+      "change": "The coupled theme-based architecture was blocking faster iteration, better UX, and easier content updates.",
+      "solution": "They rebuilt the frontend with Next.js on Vercel and used Preview Deployments to review changes before shipping."
+    },
     "hash": "62324b0fafe4295f406651c4d52cc2ea5c8954a4",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-sensay-went-from-zero-to-product-in-six-weeks",
     "customer": "Sensay",
-    "industry": "AI",
+    "industry": "AI Apps",
     "vercelProducts": [
       "Preview Deployments",
       "Feature Flags",
+      "Vercel Toolbar",
       "Instant Rollbacks",
       "Domains",
       "Firewall",
-      "BotID",
       "Observability",
       "Next.js",
-      "AI SDK",
-      "Vercel Toolbar"
+      "AI SDK"
     ],
     "otherTech": [
       "Hono"
     ],
-    "outcome": "6 weeks from zero to MVP launch",
+    "outcome": "6 weeks from concept to MVP launch at Web Summit",
+    "journey": {
+      "before": "Sensay was iterating through multiple ideas while avoiding the cost and complexity of building internal deployment infrastructure.",
+      "goal": "The team wanted to find a viable product fast and launch a working MVP at Web Summit.",
+      "change": "They needed a way to ship, test pivots, and go live without a DevOps team or long-lived branch overhead.",
+      "solution": "Vercel previews, feature flags, instant rollbacks, Domains, Firewall, Observability, Next.js, and the AI SDK let them keep one codebase and launch quickly."
+    },
     "hash": "ac2f53cb614dec0d15613eaea593b0efc53f6b2b",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-sonos-amplified-their-devex",
@@ -1028,46 +1390,54 @@
     "industry": "Consumer Electronics",
     "vercelProducts": [
       "Next.js",
-      "Edge Middleware",
-      "ISR",
       "Preview Deployments",
-      "Web Analytics",
-      "Observability"
+      "Web Analytics"
     ],
     "otherTech": [
       "Salesforce Commerce Cloud",
       "Sanity",
       "AWS",
-      "CloudFront",
-      "GitHub",
-      "Lighthouse"
+      "AWS CloudFront",
+      "GitHub"
     ],
-    "outcome": "75% faster builds; 10% lift in performance",
+    "outcome": "75% faster builds and 10% better performance",
+    "journey": {
+      "before": "Sonos had a slow, costly web infrastructure with 20-minute builds, fragmented observability, and limited support for newer Next.js features.",
+      "goal": "The team wanted a headless, composable frontend that could better express the brand while improving SEO, performance, and developer velocity.",
+      "change": "Their self-hosted AWS-based setup created too much maintenance overhead, cache issues, and tooling friction across preview and production environments.",
+      "solution": "Sonos migrated to Next.js on Vercel, using Preview Deployments and Web Analytics to streamline releases, validate changes, and improve performance."
+    },
     "hash": "f4f55f7c6098f26d59fa1646cce12a95c178d289",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-stably-ships-ai-testing-agents-in-hours-not-weeks",
     "customer": "Stably",
     "industry": "AI testing",
     "vercelProducts": [
-      "AI Gateway",
-      "Sandbox",
       "Next.js",
-      "Turborepo"
+      "Turborepo",
+      "AI Gateway",
+      "Sandbox"
     ],
     "otherTech": [
       "Claude Code",
       "Google Chrome",
       "Uber",
-      "Slack",
-      "LinkedIn",
       "MongoDB",
-      "HubSpot"
+      "HubSpot",
+      "Slack",
+      "LinkedIn"
     ],
-    "outcome": "Hours instead of weeks to launch new product lines",
+    "outcome": "Launch new product lines in hours instead of weeks",
+    "journey": {
+      "before": "A 6-person team was bogged down by infrastructure decisions and DevOps anxiety while building AI testing agents.",
+      "goal": "Ship AI-powered end-to-end testing agents that fit directly into developer workflows and scale to enterprise use.",
+      "change": "They needed to remove deployment uncertainty and agent execution complexity so the team could move fast without adding DevOps overhead.",
+      "solution": "Vercel provided the frontend/backend platform plus AI Gateway and Sandbox for scalable AI and agentic code execution, with Next.js and Turborepo supporting their stack."
+    },
     "hash": "8b85ef9f5a05ba25c942410e5b271a37fad19a2e",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-stripe-built-a-game-changing-app-in-a-single-flight-with-v0",
@@ -1079,28 +1449,39 @@
     "otherTech": [
       "Google Sheets"
     ],
-    "outcome": "288% increase in weekly internal users",
+    "outcome": "288% increase in weekly internal users for the value app",
+    "journey": {
+      "before": "Stripe’s value models lived in spreadsheets, creating friction and bottlenecking the team.",
+      "goal": "Make value tooling faster, smarter, and fully self-serve for GTM teams.",
+      "change": "They needed a way to turn complex financial models into a simple, customer-facing web app without months of engineering work.",
+      "solution": "Mario Braz used v0 to prototype and deploy a production-ready, mobile-friendly app in a single flight."
+    },
     "hash": "231142ad3cc36c276cfa68ce7754e1b6a135305f",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-supabase-elevated-their-developer-experience-with-turborepo",
     "customer": "Supabase",
     "industry": "Developer tools",
     "vercelProducts": [
-      "Next.js",
       "Turborepo",
+      "Next.js",
       "Preview Deployments"
     ],
     "otherTech": [
-      "Firebase",
       "Tailwind",
       "TypeScript",
       "npm"
     ],
-    "outcome": "One PR can now ship UI changes end to end",
+    "outcome": "Faster UI changes and one-pass production-ready contributions",
+    "journey": {
+      "before": "Supabase’s 60-person team shipped docs, marketing, and dashboard with Next.js, but UI changes required repo edits, npm releases, and re-importing code before deploy.",
+      "goal": "They wanted to ship faster as the product and user base grew, while making it easy for distributed contributors to work on the codebase.",
+      "change": "A simple UI change took too many steps and created too much overhead for internal and external developers.",
+      "solution": "Turborepo centralized UI and shared config so one developer could change code once, while Next.js and Vercel Preview Deployments supported fast PR-to-live collaboration."
+    },
     "hash": "5a1df013c0ff1a0b1f283dcf1eff5cef283b051e",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-superset-built-the-ide-for-ai-agents-on-vercel",
@@ -1118,12 +1499,18 @@
       "Instant Rollbacks"
     ],
     "otherTech": [
-      "AI Elements",
-      "GitHub"
+      "GitHub",
+      "Hacker News"
     ],
-    "outcome": "1,000–1,400 deployments/week with ~30s builds",
+    "outcome": "57–64% week-over-week DAU growth with ~30s builds",
+    "journey": {
+      "before": "Superset needed to run many AI agents in parallel without platform bottlenecks or a dedicated platform team.",
+      "goal": "Build the IDE for multi-agent development with isolated workspaces, live branch URLs, and fast ship cycles.",
+      "change": "Parallel agent workflows were breaking down when environments, deploys, and routing became serialized or required manual ops.",
+      "solution": "Vercel provided Next.js, Preview Deployments, AI SDK, AI Gateway, Blob, Fluid compute, Cron Jobs, BotID, and Instant Rollbacks to keep the stack parallel and low-ops."
+    },
     "hash": "bb773bdc15bb0a1e57c78e763c429317a61bb5db",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-the-weather-company-serves-real-time-forecasts-to-350-million-daily-active-users-on-vercel",
@@ -1134,8 +1521,14 @@
     ],
     "otherTech": [],
     "outcome": "80% increase in velocity from design to live web page",
+    "journey": {
+      "before": "They were rebuilding their web serving stack and CMS, with work that once took years.",
+      "goal": "Serve real-time forecasts and publish weather content faster for 350M daily active users.",
+      "change": "The team needed to shorten the path from design to a live website from days to hours.",
+      "solution": "They rebuilt on Vercel and v0, which let them move from design to published page much faster."
+    },
     "hash": "98cc0dc913f481ed0564f9fc8e9e2fc412ccdf72",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-vercel-and-next-js-keep-rippling-on-their-rising-path-to-success",
@@ -1148,9 +1541,15 @@
     "otherTech": [
       "WordPress"
     ],
-    "outcome": "90% of site changes deployed immediately",
+    "outcome": "90% of site changes are deployed immediately",
+    "journey": {
+      "before": "Rippling had outgrown a fullstack WordPress setup that couldn’t keep up with rapid iteration or performance needs as the site scaled past 600 pages.",
+      "goal": "They wanted a frontend stack fast and flexible enough to support stakeholder-driven updates while keeping the site performant.",
+      "change": "The blocker was slow, build-heavy content updates and a CI/CD workflow that would have to be built from scratch.",
+      "solution": "Rippling used Next.js and on-demand ISR on Vercel with their headless WordPress CMS to publish updates live in as little as 300ms."
+    },
     "hash": "c638c18ad53ae2f7fc71d3b726d845c45a919a49",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-vercel-enables-wunderman-thompson-to-launch-global-brands",
@@ -1159,7 +1558,6 @@
     "vercelProducts": [
       "Turborepo",
       "Preview Deployments",
-      "Vercel Toolbar",
       "Web Analytics",
       "Vercel Checks",
       "Domains"
@@ -1170,9 +1568,15 @@
       "PHP",
       "CMS"
     ],
-    "outcome": "Same-day launches and week-long feedback cycles cut to same-day deploys",
+    "outcome": "Same-day live site launches and week-long feedback cycles reduced to same-day deploys",
+    "journey": {
+      "before": "The agency was building global client sites on WordPress and PHP with rented servers and long build times.",
+      "goal": "They wanted a fast, repeatable foundation for launching many international brand sites without starting from scratch.",
+      "change": "They needed a way to ship sites quickly, collaborate on live previews, and avoid managing their own servers.",
+      "solution": "Vercel plus Turborepo, Preview Deployments, Vercel Analytics, Vercel Checks, and Domains streamlined builds, feedback, and safe launches."
+    },
     "hash": "18569515c6f22b9d8ad59cc23be08a96054bb2d3",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-vercel-helped-desenio-future-proof-their-business",
@@ -1184,9 +1588,15 @@
       "Next.js"
     ],
     "otherTech": [],
-    "outcome": "37% lower bounce rate and 34% higher site conversions",
+    "outcome": "37% lower bounce rate and 34% higher conversions",
+    "journey": {
+      "before": "Desenio and The Poster Store were running duplicate pipelines and a monolithic setup that made changes slow to test and slow to reach customers.",
+      "goal": "They wanted to modernize their architecture so the merged business could scale and launch new markets faster.",
+      "change": "Their existing backend and deployment process couldn't handle the doubled workload, long build times, and limited previewing across multiple languages.",
+      "solution": "Vercel provided Preview Deployments, ISR, and Next.js redirects to speed iteration, reduce build time, and simplify managing legacy URLs."
+    },
     "hash": "b000ef7ee89304ecc978878806d533580b853ab0",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-vercel-helped-justincase-technologies-cut-their-build-time-in-half",
@@ -1194,15 +1604,21 @@
     "industry": "Insurance",
     "vercelProducts": [
       "Preview Deployments",
-      "Next.js",
-      "Web Analytics"
+      "Next.js"
     ],
     "otherTech": [
-      "GitHub Actions"
+      "GitHub Actions",
+      "PageSpeed Insights"
     ],
-    "outcome": "50% faster builds; 72 hours saved per developer per month",
+    "outcome": "50% faster builds and 72 hours saved per developer per month",
+    "journey": {
+      "before": "Their cloud platform had unreliable infrastructure, with GitHub previews getting stuck in queues and failing.",
+      "goal": "They wanted to deliver a faster user experience without sacrificing developer experience.",
+      "change": "Slow, unreliable builds and preview failures were blocking frequent small repo changes and multiple CD pipelines.",
+      "solution": "Vercel Preview Deployments removed preview failures and, alongside Next.js, helped speed builds and streamline delivery."
+    },
     "hash": "a687a6072ac8dd4d83dd51f67381ee7c9c8cf6f7",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-vercel-helped-tonies-expand-into-new-markets",
@@ -1216,57 +1632,71 @@
     ],
     "otherTech": [
       "Contentful",
-      "Commercetools",
       "PHP",
+      "Commercetools",
       "React",
       "AWS"
     ],
     "outcome": "Expanded from 2 to 4 markets with improved conversion rates",
+    "journey": {
+      "before": "Tonies was split across a custom PHP CMS with Commercetools and a React SPA on AWS, which limited growth.",
+      "goal": "They wanted to expand into new markets while unifying the web experience around a modern headless stack.",
+      "change": "Their existing platform couldn't support faster scaling, tighter collaboration, or reliable release workflows.",
+      "solution": "Tonies moved to Vercel with Next.js, Preview Deployments, CDN delivery, and Observability, alongside Contentful."
+    },
     "hash": "f0803da90d56d0cd68d85160e95d0e4ef330f6ff",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-vercel-helps-mmm-page-manage-over-30-000-custom-domains",
     "customer": "mmm.page",
-    "industry": "Website builder",
+    "industry": "Platforms",
     "vercelProducts": [
       "Next.js",
-      "SSR",
-      "Preview Deployments",
-      "Domains",
-      "CDN"
-    ],
-    "otherTech": [
-      "Amazon S3",
-      "Amazon Simple Storage Service (Amazon S3)"
-    ],
-    "outcome": "30,000+ sites managed with faster custom-domain setup",
-    "hash": "04dccef009429120d15a7b54045aeb42f78101b2",
-    "v": 2
-  },
-  {
-    "path": "/blog/how-waldium-made-a-blog-platform-work-for-humans-and-ai-alike",
-    "customer": "Waldium",
-    "industry": "AI CMS",
-    "vercelProducts": [
-      "Next.js",
-      "Vercel for Platforms",
-      "Edge Middleware",
       "Domains",
       "Preview Deployments"
     ],
     "otherTech": [
-      "MCP",
+      "Amazon S3"
+    ],
+    "outcome": "30,000+ sites managed with faster scaling and custom domains",
+    "journey": {
+      "before": "mmm.page launched as a single-page app on Amazon S3, but SEO, scaling, custom domains, and preview URLs became painful as usage grew.",
+      "goal": "They wanted to let anyone build a site easily while scaling the platform and monetizing faster.",
+      "change": "They needed a better way to support SEO-friendly rendering, custom domains, and faster deployment workflows without months of setup friction.",
+      "solution": "They moved the viewer experience to a server-side Next.js bundle on Vercel and used Vercel’s Domains support and Preview Deployments to reduce friction and scale."
+    },
+    "hash": "04dccef009429120d15a7b54045aeb42f78101b2",
+    "v": 3
+  },
+  {
+    "path": "/blog/how-waldium-made-a-blog-platform-work-for-humans-and-ai-alike",
+    "customer": "Waldium",
+    "industry": "Content platform",
+    "vercelProducts": [
+      "Next.js",
+      "Vercel for Platforms",
+      "Edge Middleware",
+      "Domains"
+    ],
+    "otherTech": [
       "AWS Amplify",
       "GitHub Actions",
       "Neon",
       "Upstash",
       "Claude Desktop",
-      "ChatGPT"
+      "ChatGPT",
+      "MCP"
     ],
-    "outcome": "500+ customer blogs from one deployment; MCP live in under 5 minutes",
+    "outcome": "500+ blogs served from one deployment; MCP endpoints live in under 5 minutes",
+    "journey": {
+      "before": "Waldium was cobbling together a multi-tenant blogging stack on AWS Amplify with GitHub Actions and manual SSL, spending more time on infrastructure than product.",
+      "goal": "They wanted to run hundreds of customer blogs and branded MCP endpoints from a single system while keeping setup fast and scalable.",
+      "change": "The team needed to eliminate per-tenant deployment, routing, and domain-management complexity as customer count grew.",
+      "solution": "They moved to Vercel, using Next.js, Vercel for Platforms, Edge Middleware, and Domains to serve all tenants from one deployment with automated routing and domain provisioning."
+    },
     "hash": "3bfe089031be7c44cec3252043b0d0aeb0ff7b15",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-whop-improved-their-real-experience-score-by-200-with-the-next-js-app",
@@ -1274,18 +1704,24 @@
     "industry": "Marketplace",
     "vercelProducts": [
       "Next.js",
+      "Edge Middleware",
       "ISR",
-      "Edge Middleware"
+      "Preview Deployments"
     ],
     "otherTech": [
       "Ruby on Rails",
       "React",
-      "App Router",
       "React Server Components"
     ],
     "outcome": "200% improvement in Real Experience Score, from 30s to high 90s",
+    "journey": {
+      "before": "Whop was running a monolithic Ruby on Rails application and wanted better developer experience, speed, and SEO.",
+      "goal": "They wanted to modernize their platform with a faster frontend stack that could scale while improving user experience.",
+      "change": "They needed a way to migrate incrementally without breaking existing pages or backend workflows.",
+      "solution": "They moved to Next.js, used ISR for fast updates, and Edge Middleware to route between App Router and existing pages during the migration."
+    },
     "hash": "72b64a52793a4467f946248887c5a10a279a14d0",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-zapier-scales-product-partnerships-with-v0",
@@ -1295,12 +1731,17 @@
       "v0"
     ],
     "otherTech": [
-      "Zapier Developer Platform",
-      "Workflow API"
+      "Zapier Workflow API"
     ],
-    "outcome": "12+ hours saved per prototype and 100x more partner demos delivered",
+    "outcome": "100x more partner demos delivered; 12+ hours saved per prototype",
+    "journey": {
+      "before": "Powered by Zapier needed weeks and heavy design/frontend help to build a clickable partner prototype.",
+      "goal": "Show partners what an embedded Zapier experience could look like and scale those demos across thousands of integrations.",
+      "change": "The team lacked a fast way to create high-fidelity, interactive mockups without scarce design and frontend resources.",
+      "solution": "Using v0, the team generates multi-view prototypes in hours and is exploring v0’s Platform API to programmatically create partner mockups."
+    },
     "hash": "fa4d59a4049785ba8cfbb0b760fdd6c58cafeb16",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/how-zo-computer-improved-ai-reliability-20x-on-vercel",
@@ -1315,11 +1756,19 @@
       "Anthropic",
       "MiniMax",
       "GLM",
-      "Fireworks"
+      "Fireworks",
+      "Stripe",
+      "iMessage"
     ],
-    "outcome": "20x lower retry rate (7.5% → 0.34%)",
+    "outcome": "20x lower retry rate and 38% lower P99 latency",
+    "journey": {
+      "before": "Zo was wiring custom adapters and managing retries, routing, fallbacks, and edge cases across many model providers.",
+      "goal": "They wanted an always-on personal AI cloud that could scale to a million users while supporting every major model.",
+      "change": "New model releases were slowing the team down and reliability issues were hurting user experience.",
+      "solution": "Zo moved to AI SDK for unified model integration and AI Gateway for retries, fallback routing, and provider health handling."
+    },
     "hash": "f435eb0fbf072c03c2a2becf40fcaf1f7f2ba488",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/hydrow",
@@ -1332,20 +1781,24 @@
       "Edge Middleware"
     ],
     "otherTech": [
-      "Contentful",
       "WordPress",
       "Shopify",
-      "AWS S3",
-      "AWS Lambda"
+      "Contentful"
     ],
-    "outcome": "3000% faster website updates; authoring cut from weeks to minutes",
+    "outcome": "3000% faster website updates; 50% better Core Web Vitals",
+    "journey": {
+      "before": "Hydrow’s WordPress and Shopify setup made content updates slow and dependent on developers.",
+      "goal": "They wanted a headless ecommerce experience that let teams move faster without sacrificing SEO, brand consistency, or performance.",
+      "change": "They needed a way to give authors and marketers real-time publishing and preview capabilities without breaking the site or adding developer overhead.",
+      "solution": "Hydrow moved to Contentful with Next.js on Vercel, using ISR for realtime updates, Preview Deployments for author workflows, and Edge Middleware for personalized experiences."
+    },
     "hash": "8f599fd40e840d866be9cdde83e479a9e3cfab96",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/incremental-migration-from-wordpress-for-a-dev-first-approach",
     "customer": "Gearbox",
-    "industry": "Dev tools",
+    "industry": "Agency",
     "vercelProducts": [
       "Next.js",
       "Edge Middleware",
@@ -1353,13 +1806,19 @@
     ],
     "otherTech": [
       "WordPress",
+      "Gatsby",
       "GitHub",
-      "Sanity CMS",
-      "Gatsby"
+      "Sanity CMS"
     ],
-    "outcome": "<5 min to onboard a new developer",
+    "outcome": "Less than 5 minutes to clone, connect, and launch a new project",
+    "journey": {
+      "before": "Gearbox built client sites on WordPress and struggled with security, maintenance, and performance issues.",
+      "goal": "They wanted to move toward a headless stack that fit their dev-first approach and let clients retain control.",
+      "change": "Their existing WordPress and Gatsby setup was too restrictive for incremental migration and fast onboarding.",
+      "solution": "Gearbox adopted Next.js with Edge Middleware for phased migration and Preview Deployments for faster review and production workflows."
+    },
     "hash": "1a4f4087936773354d6041da23f32e4c15d7cc07",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/incrementally-adopting-next-js-at-one-of-europes-fastest-growing-brands",
@@ -1371,13 +1830,19 @@
       "ISR"
     ],
     "otherTech": [
-      "Sanity",
       "Gatsby",
+      "Sanity",
       "Figma"
     ],
     "outcome": "87% decrease in build times",
+    "journey": {
+      "before": "reMarkable’s website and workflows were constrained by a slower Gatsby-based stack and heavy dependence on developers for content changes.",
+      "goal": "They wanted a composable, headless architecture that would let developers ship faster while giving content teams more autonomy.",
+      "change": "They needed to reduce build times and make stakeholder/content review cycles faster without resorting to long-lived branches or new repos.",
+      "solution": "They migrated incrementally to Next.js on Vercel, using Preview Deployments and ISR alongside Sanity to speed builds, streamline reviews, and enable self-serve content updates."
+    },
     "hash": "4da5f448627e83f4b0be43b49746284858ded1db",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/integrating-vercel-and-sitecore-for-2x-faster-development-times-and-111",
@@ -1386,17 +1851,23 @@
     "vercelProducts": [
       "Next.js",
       "ISR",
-      "Preview Deployments",
-      "Vercel Functions"
+      "Vercel Functions",
+      "Preview Deployments"
     ],
     "otherTech": [
       "Sitecore XM Cloud",
-      "Content Hub",
+      "Sitecore Content Hub",
       "Azure DevOps"
     ],
-    "outcome": "111% higher conversions; 2x faster site development time",
+    "outcome": "111% higher conversions, plus 2x faster development times",
+    "journey": {
+      "before": "Avanade was constrained by monolithic systems, tightly coupled components, and manual deployments that slowed performance and feature rollouts.",
+      "goal": "The team wanted a modern, composable web stack that could deliver highly responsive experiences to global clients.",
+      "change": "They needed to remove deployment friction and dependency bottlenecks while keeping content and frontend workflows connected.",
+      "solution": "Avanade adopted Next.js with Vercel, using ISR, Vercel Functions, and Preview Deployments alongside Sitecore XM Cloud and Content Hub."
+    },
     "hash": "43c093297581fd032eb7b072c5136dddd98b61ee",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/konobos-empowers-industry-giant-to-deploy-50-faster",
@@ -1411,14 +1882,20 @@
       "Azure",
       "Octopus"
     ],
-    "outcome": "50% faster deployments; build times cut from 30 hours to 3 minutes",
+    "outcome": "50% faster deployments and time to market",
+    "journey": {
+      "before": "American Bath Group was stuck in a monolithic setup with inefficient collaboration, slow dev cycles, and infrastructure issues.",
+      "goal": "Konabos needed to help American Bath Group modernize its digital stack and ship faster at scale.",
+      "change": "They needed to remove infrastructure and review-cycle bottlenecks that were slowing deployment velocity.",
+      "solution": "Konabos moved the stack to Vercel with Next.js and used Preview Deployments to speed feedback and delivery."
+    },
     "hash": "1882f6a80165dea40cb16023deea8c36877a5024",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/ledgers-solution-to-traffic-spike-stability-with-vercel",
     "customer": "Ledger",
-    "industry": "Ecommerce",
+    "industry": "Web3 ecommerce",
     "vercelProducts": [
       "Next.js",
       "Preview Deployments"
@@ -1427,19 +1904,25 @@
       "Shopify",
       "Liquid",
       "AWS Lambda",
+      "NextAuth.js",
       "Terraform",
       "GitHub Actions",
-      "NextAuth.js",
-      "SSR"
+      "AWS"
     ],
-    "outcome": "67% reduction in load time",
+    "outcome": "100x more releases and 67% faster load times",
+    "journey": {
+      "before": "Ledger’s store ran on a heavily customized Shopify/Liquid stack with fragmented microservices and hard-to-manage releases.",
+      "goal": "They wanted a resilient, fast platform that could handle volatile Web3 traffic and ship changes much more quickly.",
+      "change": "Their existing setup made it difficult to reuse components, run isolated PR testing, and synchronize production releases.",
+      "solution": "Ledger moved to Next.js on Vercel, using Preview Deployments to improve collaboration and a serverless-first deployment model to simplify shipping."
+    },
     "hash": "e32122d4a53c65653dfe2b2579738c06037aeee5",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/leonardo-ai-performantly-generates-4-5-million-images-daily-with-next-js-and-vercel",
     "customer": "Leonardo.Ai",
-    "industry": "AI creative platform",
+    "industry": "AI image generation",
     "vercelProducts": [
       "Next.js",
       "Preview Deployments",
@@ -1449,9 +1932,15 @@
     "otherTech": [
       "AWS Bedrock"
     ],
-    "outcome": "95% reduction in page load times; build times cut from 10 to 2 minutes",
+    "outcome": "95% reduction in page load times",
+    "journey": {
+      "before": "Leonardo.Ai was seeing long outages, 60-second load times, and 10+ minute builds on its original setup as usage scaled rapidly.",
+      "goal": "The team wanted a faster, more reliable web app that could keep up with rapid growth and frequent product launches.",
+      "change": "Their existing platform wasn’t caching pages well and was slowing development, stability, and iteration.",
+      "solution": "Moving to Vercel with Next.js, Preview Deployments, Observability, and CDN improved collaboration, caching, and performance."
+    },
     "hash": "13fe9354d6e0ef735fe93219627f793afa1952b5",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/leveraging-vercel-and-the-ai-sdk-to-deliver-a-seamless-ai-powered-experience",
@@ -1462,11 +1951,19 @@
     ],
     "otherTech": [
       "GPT-4 Omni",
-      "OpenAI"
+      "PDF/document parsing",
+      "LLM",
+      "JSON"
     ],
     "outcome": "20,000 users in 9 months from MVP to market",
+    "journey": {
+      "before": "As a solo founder, ChatPRD needed to build an AI copilot quickly without getting buried in infrastructure, latency, or model-integration complexity.",
+      "goal": "Claire Vo wanted to launch and scale an AI product for product managers while preserving developer velocity and a strong user experience.",
+      "change": "The key blocker was implementing streaming AI interactions and generative UI without building extra infrastructure.",
+      "solution": "ChatPRD used Vercel for hosting and monitoring, and the AI SDK to simplify streaming responses and generative UI."
+    },
     "hash": "ed37066a637fdc03aed2a519bb754d359aa63ca1",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/making-commerce-ui-a-trusted-partner-for-global-ecommerce-brands",
@@ -1483,14 +1980,20 @@
       "PHP",
       "Shopify"
     ],
-    "outcome": "200% traffic spikes handled with fast, localized experiences",
+    "outcome": "200% traffic spikes handled while keeping CLS at zero",
+    "journey": {
+      "before": "Commerce-UI’s clients were on WordPress or custom PHP, with heavy maintenance and DevOps burden.",
+      "goal": "They wanted a sustainable, performant commerce stack that could support personalized experiences and rapid regional expansion.",
+      "change": "The blocker was scaling fast, localized shopping experiences without losing performance or forcing redeploys.",
+      "solution": "Next.js, Edge Middleware, ISR, and Preview Deployments let Commerce-UI build fast, localized, maintainable commerce sites on Vercel."
+    },
     "hash": "f6340d64c08e182027516714d0dfeae375507ae9",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/managing-275-thousand-pages-and-8-million-assets-with-isr",
     "customer": "Mecum Auctions",
-    "industry": "Ecommerce",
+    "industry": "Automotive Auctions",
     "vercelProducts": [
       "ISR"
     ],
@@ -1499,9 +2002,15 @@
       "WordPress",
       "Algolia"
     ],
-    "outcome": "120M+ annual page views across 275k pages and 8M assets",
+    "outcome": "275,000 pages served with ISR for 120M+ annual views",
+    "journey": {
+      "before": "Mecum’s platform had grown to 275,000 lot pages and 8 million assets, but the old setup was hitting its limits and slowing listing creation.",
+      "goal": "They wanted a fast, reliable, composable site that let teams generate pages automatically and update content without IT.",
+      "change": "Pre-generating every lot page would have been too slow and resource-intensive at Mecum’s scale.",
+      "solution": "Vercel’s Frontend Cloud with ISR generated lot pages on demand, cached them, and revalidated them in the background."
+    },
     "hash": "80c8c34dbe837634af80bebb39469bfdfe8dcea3",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/managing-major-traffic-spikes-during-ticket-drops-with-vercel",
@@ -1522,9 +2031,15 @@
       "Firebase",
       "React 18"
     ],
-    "outcome": "200x traffic spikes handled with Vercel autoscaling",
+    "outcome": "200x traffic spikes handled without manual scaling",
+    "journey": {
+      "before": "Shotgun relied on Heroku and had to manually scale before ticket drops to avoid crashes during extreme traffic spikes.",
+      "goal": "They wanted a seamless ticketing platform that could launch major drops without DevOps stress and support growth in new markets.",
+      "change": "Their deployment and traffic management workflow needed to stop depending on manual server provisioning and one-off releases.",
+      "solution": "Vercel and Next.js gave them serverless autoscaling, Preview Deployments, Edge Config, Instant Rollbacks, Vercel Functions, Cron Jobs, and Edge Middleware to launch and iterate safely at scale."
+    },
     "hash": "320591d4ff35d2e0825f9923fea51bd811a84c77",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/mintlify-scaling-a-powerful-documentation-platform-with-vercel",
@@ -1538,8 +2053,14 @@
     ],
     "otherTech": [],
     "outcome": "2,500 active domains on a single Vercel project",
+    "journey": {
+      "before": "Mintlify had a single static Next.js app cloned repeatedly and lacked multitenancy.",
+      "goal": "Scale a documentation platform for thousands of users and custom domains.",
+      "change": "They needed one codebase that could handle multi-tenant docs, custom domains, SSL, and fast updates.",
+      "solution": "Vercel with Next.js, Domains, Preview Deployments, and ISR let Mintlify serve many customers from one unified platform."
+    },
     "hash": "1aadab8d67545a820c81ef5ed5c29a019f9591b3",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/motortrend-shifting-into-overdrive-with-vercel",
@@ -1549,17 +2070,22 @@
       "Preview Deployments",
       "Vercel Toolbar",
       "Next.js",
-      "Speed Insights",
-      "CDN"
+      "Speed Insights"
     ],
     "otherTech": [
       "GitHub",
       "Jenkins",
       "AWS"
     ],
-    "outcome": "7x faster build times; feature release time cut from 18.9 days to 10 minutes",
+    "outcome": "7x faster build times; feature release timeline cut from 18.9 days to 10 minutes",
+    "journey": {
+      "before": "MotorTrend was constrained by a legacy stack and self-managed CI/CD across GitHub, Jenkins, and AWS, leading to long builds and slow releases.",
+      "goal": "They wanted to upgrade the platform and ship feature changes much faster without a full redesign.",
+      "change": "Their single-release-candidate process and environment mismatches were blocking rapid iteration and delaying deployments.",
+      "solution": "Vercel’s Preview Deployments, Vercel Toolbar, Next.js, and Speed Insights streamlined previews, approvals, builds, and performance optimization."
+    },
     "hash": "792994c91bf7a347fb0be04d30f863e8d7a4be0c",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/neo-financial",
@@ -1569,6 +2095,7 @@
       "Next.js",
       "Edge Middleware",
       "Preview Deployments",
+      "ISR",
       "CDN"
     ],
     "otherTech": [
@@ -1576,9 +2103,15 @@
       "S3",
       "Contentful"
     ],
-    "outcome": "50% less infrastructure admin; 77% faster page loads",
+    "outcome": "77% faster page loads and 50% less infrastructure admin",
+    "journey": {
+      "before": "Neo Financial used Next.js on a custom AWS Fargate-based setup with static hosting and S3, which was time- and resource-intensive.",
+      "goal": "They wanted a fast, secure, scalable web experience for a hypergrowth banking app.",
+      "change": "Their existing setup created tech debt and consumed engineering resources that should have gone into product features.",
+      "solution": "They moved to Vercel and used Next.js, Edge Middleware, Preview Deployments, ISR, and CDN to improve performance and collaboration."
+    },
     "hash": "4f1a2fccbff16875805aeb579b5f5a9ccb2100ff",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/notion-workers-vercel-sandbox",
@@ -1588,27 +2121,41 @@
       "Sandbox"
     ],
     "otherTech": [
-      "Firecracker microVM"
+      "Firecracker",
+      "CRM",
+      "Slack"
     ],
-    "outcome": "Runs untrusted code securely at scale",
+    "outcome": "Millions of concurrent executions with secure untrusted code at scale",
+    "journey": {
+      "before": "Notion wanted to let anyone extend its platform with custom code, but arbitrary third-party code created major isolation and security risks.",
+      "goal": "Build Notion Workers as a developer platform for syncing data, automations, and AI agent tools.",
+      "change": "They needed strong isolation, secret protection, network controls, snapshots, and scale without building all the infrastructure themselves.",
+      "solution": "Vercel Sandbox provided ephemeral microVM isolation, credential injection, dynamic network policies, and filesystem snapshots for running untrusted code safely."
+    },
     "hash": "8a0e45110e2e022f0e2f19cfc18c1c48615a0b96",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/retailer-sees-10m-increase-in-sales-on-vercel",
     "customer": "Global sportswear retailer",
     "industry": "Ecommerce",
     "vercelProducts": [
+      "Next.js",
       "Vercel Functions",
-      "Edge Middleware",
-      "Next.js"
+      "Edge Middleware"
     ],
     "otherTech": [
       "Salesforce Commerce Cloud"
     ],
-    "outcome": "$10M revenue increase; 33% more orders per minute",
+    "outcome": "$10M revenue increase and 33% more orders per minute",
+    "journey": {
+      "before": "The retailer was running a monolithic Salesforce Commerce Cloud storefront that struggled with performance, personalization, and scalability during peak traffic.",
+      "goal": "They wanted a modern headless ecommerce experience that could support Black Friday scale while improving speed and conversions.",
+      "change": "Client-side personalization, redirects, and traffic spikes were causing slow loads, downtime, and limited ability to ship improvements quickly.",
+      "solution": "Vercel, with Next.js plus Vercel Functions and Edge Middleware, enabled a headless frontend with personalized delivery, better performance, and resilient scaling."
+    },
     "hash": "35fcff86d96e8bbbdcdfdaf794d8bb6891e17cff",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/rethinking-prototyping-requirements-and-project-delivery-at-code-and-theory",
@@ -1622,8 +2169,14 @@
       "GitHub"
     ],
     "outcome": "75% faster time-to-prototype; 4x delivery speed",
+    "journey": {
+      "before": "The agency relied on traditional strategy docs, wireframes, and static mockups to move from idea to software.",
+      "goal": "They wanted to turn concepts into working software faster for internal and client-facing web apps.",
+      "change": "The bottleneck was slow handoffs and long delivery horizons that stretched web app development to months.",
+      "solution": "Code and Theory used v0 to go from prompt to code, then versioned projects through GitHub and deployed them on Vercel, with Next.js underpinning the quality of output."
+    },
     "hash": "6aaa03e32bdad978a67be875a6f873caf30f3114",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/revolutionizing-video-editing-on-the-web-with-next-js-and-vercel",
@@ -1642,13 +2195,19 @@
       "ElevenLabs"
     ],
     "outcome": "5x faster development and 85% shorter build times",
+    "journey": {
+      "before": "Ozone was hosted on Heroku and struggled with slow deployments, frequent outages, and heavy browser-based video editing workloads.",
+      "goal": "They wanted to deliver a reliable, collaborative web video editor with fast iteration and better performance.",
+      "change": "Slow deploys and cross-team dependencies were blocking rapid experimentation and feature shipping.",
+      "solution": "They moved to Vercel, used Next.js, enabled branch-based collaboration and previews, and added AI SDK-powered AI integrations."
+    },
     "hash": "39cd257e51770b540d8c78552d3ea7e166de1ad3",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/runway-enables-next-generation-content-creation-with-ai-and-vercel",
     "customer": "Runway",
-    "industry": "AI",
+    "industry": "AI content creation",
     "vercelProducts": [
       "Preview Deployments",
       "Web Analytics"
@@ -1656,23 +2215,28 @@
     "otherTech": [
       "Netlify",
       "GitHub Pages",
-      "AWS Bedrock",
-      "Figma"
+      "Figma",
+      "AWS Bedrock"
     ],
-    "outcome": "Build times cut from 5–8 min to 40s",
+    "outcome": "Build times dropped from 5–8 minutes to 40s",
+    "journey": {
+      "before": "Runway ran six sites on Netlify, GitHub Pages, and a custom build process, but growth made builds slow and DNS propagation painful.",
+      "goal": "The team needed a faster platform that could support six sites and scale with their growth.",
+      "change": "Long build times and slow feedback loops were slowing review, iteration, and shipping.",
+      "solution": "Runway migrated to Vercel, using Preview Deployments for inline browser review and Analytics to monitor site health and performance."
+    },
     "hash": "fd5a3f7441f76435e0b57590ea403c7e502c4de7",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/sanity-edge-middleware",
     "customer": "Sanity",
-    "industry": "Content platform",
+    "industry": "Content Cloud",
     "vercelProducts": [
       "Next.js",
       "Edge Middleware",
-      "Vercel Functions",
       "Preview Deployments",
-      "CDN"
+      "Vercel Functions"
     ],
     "otherTech": [
       "Google Cloud Platform",
@@ -1683,9 +2247,15 @@
       "Checkly",
       "AT&T"
     ],
-    "outcome": "8+ A/B tests run while improving performance and onboarding",
+    "outcome": "8 A/B tests run in one summer without hurting UX",
+    "journey": {
+      "before": "Sanity’s marketing site ran on a custom SSR React stack with Docker and Google Cloud Platform, creating operational overhead and SRE dependency.",
+      "goal": "They wanted a faster, more collaborative marketing site that could support experiments and personalized experiences.",
+      "change": "They needed to reduce infrastructure complexity while preserving performance and enabling safe experimentation.",
+      "solution": "Vercel with Next.js, Edge Middleware, Preview Deployments, and Serverless Functions removed the hosting and experimentation bottlenecks."
+    },
     "hash": "594c0a267cdf6ce9ccd2b10ee6ded76a0a3b0851",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/scale-unifies-design-and-performance-with-next-js-and-vercel",
@@ -1694,18 +2264,24 @@
     "vercelProducts": [
       "Next.js",
       "Preview Deployments",
-      "Web Analytics",
-      "Vercel CLI"
+      "Web Analytics"
     ],
     "otherTech": [
       "AWS Bedrock",
+      "Vercel CLI",
       "Okta",
       "GitHub",
       "Slack"
     ],
-    "outcome": "Products up and running in under 5 minutes",
+    "outcome": "Under five minutes from idea to shareable preview links",
+    "journey": {
+      "before": "Scale needed to deliver fast, polished internal dashboards and customer tools with a very small design team.",
+      "goal": "They wanted to scale product design and iteration speed while keeping experiences visually strong and performant.",
+      "change": "The team was blocked by the need for faster builds, easier feedback loops, and less infrastructure overhead.",
+      "solution": "Vercel and Next.js, especially Preview Deployments and Web Analytics, gave them fast iteration, performance insight, and simple sharing."
+    },
     "hash": "551c7ddc8c0017bb94c4097339794ebc59c11f84",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/serhants-playbook-for-rapid-ai-iteration",
@@ -1719,25 +2295,32 @@
     ],
     "otherTech": [
       "React Native",
+      "iOS",
       "OpenAI",
       "Claude",
       "Gemini"
     ],
-    "outcome": "900+ users without replatforming",
+    "outcome": "900+ users without rebuilding the stack",
+    "journey": {
+      "before": "SERHANT.'s AI product S.MPLE was a small pilot and the team needed to move fast without tying itself to one model or constant backend rewrites.",
+      "goal": "They wanted to scale S.MPLE into a production-ready AI platform that could keep adapting as models and workflows changed.",
+      "change": "The blocker was AI infrastructure that could not support rapid model swapping, broad usage visibility, or growth without replatforming.",
+      "solution": "Next.js on Vercel provided the base app, AI SDK abstracted model providers, AI Gateway centralized usage visibility, and Fluid compute absorbed growth automatically."
+    },
     "hash": "1060fd92b741fa967297f32fd2ddd9b60eabe9d8",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/super-serves-thousands-of-domains-on-one-project-with-next-js-and-vercel",
     "customer": "Super",
-    "industry": "Website platforms",
+    "industry": "Platforms",
     "vercelProducts": [
       "Next.js",
       "Domains",
-      "Vercel API",
+      "Vercel for GitHub",
+      "Preview Deployments",
       "ISR",
-      "Edge Middleware",
-      "Preview Deployments"
+      "Edge Middleware"
     ],
     "otherTech": [
       "Notion",
@@ -1746,8 +2329,14 @@
       "GitHub"
     ],
     "outcome": "15,000+ custom domains served from one codebase",
+    "journey": {
+      "before": "Super started on Gatsby and Netlify, with a need to manage custom domains and fast site updates at scale.",
+      "goal": "Build an easy website platform on Notion with instant page loads, SEO, and zero-code management.",
+      "change": "They needed a way to handle thousands of customer domains, rapid content updates, and GitHub-driven deploys without redeploy bottlenecks.",
+      "solution": "Super moved to Next.js and Vercel, using Domains, Vercel for GitHub, Preview Deployments, ISR, and Edge Middleware to power scale and flexibility."
+    },
     "hash": "382cf5188d3f8fb7d5b70f34739fbb6542f81991",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/teklas-ecommerce-evolution-harnessing-flexibility-with-vercel-and-medusa",
@@ -1756,9 +2345,7 @@
     "vercelProducts": [
       "Next.js",
       "Web Analytics",
-      "Observability",
-      "Edge Middleware",
-      "Vercel Functions"
+      "Observability"
     ],
     "otherTech": [
       "Medusa",
@@ -1766,9 +2353,15 @@
       "WooCommerce",
       "GatsbyJS"
     ],
-    "outcome": "Greater site performance and reliability on a faster ecommerce stack",
+    "outcome": "Faster deployments and better performance for high-traffic ecommerce",
+    "journey": {
+      "before": "Tekla was on a buggy, slow Gatsby Cloud setup with WooCommerce, limiting performance and flexibility.",
+      "goal": "They wanted a composable ecommerce stack that could handle growth and deliver personalized experiences globally.",
+      "change": "They needed to solve slow builds, unreliable performance, and limited control over checkout and customer journeys.",
+      "solution": "Agilo migrated Tekla to Vercel and Medusa, with Next.js plus Web Analytics and Observability to support performance and faster iteration."
+    },
     "hash": "956643b3f1d0784d53cbadc64c0b2ab54038da67",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/tray-ai-cut-build-times-from-a-day-to-minutes-with-vercel",
@@ -1779,22 +2372,28 @@
       "Turborepo",
       "Preview Deployments",
       "Vercel Functions",
-      "Web Analytics",
+      "Observability",
       "Speed Insights",
       "Firewall"
     ],
     "otherTech": [
       "Serverless",
-      "reCAPTCHA"
+      "recaptcha"
     ],
     "outcome": "99.86% decrease in build times, from a day to 2 minutes",
+    "journey": {
+      "before": "Tray.ai’s marketing site ran on an older Next.js version with Serverless, siloed repos, and a rigid dev-stage-prod pipeline that made previews slow and builds unreliable.",
+      "goal": "They wanted to modernize the site architecture, consolidate content and form management, and ship changes faster across a massive page surface.",
+      "change": "Previewing changes required full deploys, builds failed often, and the team lacked unified visibility into performance and errors across the workflow.",
+      "solution": "Roboto Studio rebuilt the site on Next.js with Turborepo, used Preview Deployments and Vercel Functions, and added Observability, Speed Insights, and Firewall for faster iteration and edge protection."
+    },
     "hash": "97be8e375b0cbcb4decc2156a083eef3a3c7260b",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/using-the-ai-sdk-to-build-sitecore-streams-ai-powered-brand-aware-assistant",
     "customer": "Sitecore",
-    "industry": "Digital experience",
+    "industry": "Digital experience platform",
     "vercelProducts": [
       "AI SDK",
       "Next.js"
@@ -1803,14 +2402,20 @@
       "Python",
       "Azure"
     ],
-    "outcome": "Faster AI app delivery with real-time brand-aware chat",
+    "outcome": "Faster AI-powered brand assistant with real-time streaming",
+    "journey": {
+      "before": "Sitecore wanted an AI tool to help marketers work more deeply with brand assets while keeping the experience highly interactive.",
+      "goal": "Build a brand-aware assistant that could support brainstorming, content creation, and asset discovery in real time.",
+      "change": "They needed a frontend-first AI experience, not just backend AI capabilities, and had to stream responses smoothly between backend and UI.",
+      "solution": "Sitecore used the AI SDK with Next.js to connect its Python backend and deliver real-time streaming, chat UI, and object generation."
+    },
     "hash": "f695f193f8320d59e24426c79eefe3b6da2cb292",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/vapi-mcp-server-on-vercel",
     "customer": "Vapi",
-    "industry": "Voice AI",
+    "industry": "AI voice",
     "vercelProducts": [
       "Next.js",
       "Fluid compute",
@@ -1819,13 +2424,19 @@
     ],
     "otherTech": [
       "MCP",
+      "Node.js",
       "SSE",
-      "Streamable HTTP",
-      "Node.js"
+      "Streamable HTTP"
     ],
-    "outcome": "Faster MCP server deployment with SSE + Streamable HTTP support",
+    "outcome": "Faster MCP server setup with reliable scaling and observability",
+    "journey": {
+      "before": "Vapi’s MCP server was previously deployed with only SSE transport support.",
+      "goal": "They wanted a model-agnostic MCP server that could power agents, testing, transcript analysis, and workflows.",
+      "change": "They needed a simpler way to rebuild the server and support both SSE and Streamable HTTP transports.",
+      "solution": "Vapi rebuilt on Vercel using the MCP adapter, then used Fluid Compute, Observability, and Firewall to run and scale the server."
+    },
     "hash": "40bfbd2c6cd978bb672a3338c416589df9fb9ccb",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/washington-post-next.js-vercel-engineering-at-the-speed-of-breaking-news",
@@ -1845,9 +2456,15 @@
       "Figma",
       "websocket"
     ],
-    "outcome": "1000+ elections on 52 results pages, with smoother election-night deployment",
+    "outcome": "Smoothest election night anyone could remember",
+    "journey": {
+      "before": "The Washington Post’s election results rendering layer ran on AWS with an ECS cluster and a complex revalidation setup using SQS and EC2, making updates expensive and hard to onboard.",
+      "goal": "The team needed to modernize between primary season and the 2022 US midterm elections so it could ship fast, collaborate closely, and handle constant data and traffic spikes.",
+      "change": "The blocker was a brittle, costly infrastructure stack that made rapid iteration and stakeholder review difficult under an immovable election deadline.",
+      "solution": "They moved to Next.js and Vercel, using ISR and Preview Deployments to simplify revalidation, speed collaboration, and support fast-changing election pages."
+    },
     "hash": "72de8032eb655e61eb8be6617c9ea899ba617031",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/why-vercel-and-next-js-are-the-perfect-fit-for-this-global-fashion-media",
@@ -1862,9 +2479,15 @@
     "otherTech": [
       "Ruby on Rails"
     ],
-    "outcome": "60% increase in web traffic",
+    "outcome": "60% increase in web traffic after a zero-downtime migration",
+    "journey": {
+      "before": "L’Officiel ran a Ruby on Rails monolith on a physical server, with reliability issues and heavy infra overhead for a small team.",
+      "goal": "They wanted better SEO-driven traffic growth and less infrastructure management across 30 web properties.",
+      "change": "Their old stack was hard to manage, could go offline during maintenance or traffic spikes, and made domain/SSL upkeep time-consuming.",
+      "solution": "They migrated to Next.js on Vercel, using ISR for fast content updates plus Vercel’s analytics and deployment workflow to support the new headless stack."
+    },
     "hash": "77cc49be64059f17facf5dc6e883155be7af35ad",
-    "v": 2
+    "v": 3
   },
   {
     "path": "/blog/wunderman-thompson-composable-workflow",
@@ -1876,11 +2499,19 @@
       "ISR"
     ],
     "otherTech": [
-      "SvelteKit",
-      "DatoCMS"
+      "DatoCMS",
+      "PHP",
+      "WordPress",
+      "SvelteKit"
     ],
     "outcome": "10x faster development and 25x lower costs",
+    "journey": {
+      "before": "They managed separate client sites with PHP servers and WordPress monoliths, creating repetitive infrastructure and slow onboarding.",
+      "goal": "They wanted a scalable multi-site workflow where many branded sites could be built from shared components and a single source of truth.",
+      "change": "The blocker was duplicated code, duplicated infrastructure, and hard-to-maintain client-specific setups across countries and brands.",
+      "solution": "They used Next.js with ISR for the app layer and Turborepo to share components across a monorepo, while a headless CMS handled content."
+    },
     "hash": "50181d18549646c2b5c32d5a8015454953a7a81e",
-    "v": 2
+    "v": 3
   }
 ]

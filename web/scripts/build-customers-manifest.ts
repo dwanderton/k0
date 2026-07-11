@@ -35,7 +35,7 @@ const ENRICH_MODEL = "openai/gpt-5.4-mini";
 const ENRICH_CONCURRENCY = 6;
 /** bump when the prompt/schema/canonicalization changes — hash-cached
  *  entries from older versions re-enrich */
-const ENRICH_VERSION = 2;
+const ENRICH_VERSION = 3;
 
 /** the model free-texts product names ("Vercel Monitoring", "Content
  *  Delivery", "previews") — collapse to one canonical vocabulary so chips
@@ -195,6 +195,22 @@ const StorySchema = z.object({
       "One line, ≤90 chars, lead with the strongest metric, " +
         "e.g. '50% faster from demo request to code delivery'",
     ),
+  journey: z
+    .object({
+      before: z
+        .string()
+        .describe("Where they were: situation/stack/pain before Vercel, one sentence"),
+      goal: z
+        .string()
+        .describe("Where they were going: the ambition or milestone they were driving toward, one sentence"),
+      change: z
+        .string()
+        .describe("What needed to change: the specific blocker standing in the way, one sentence"),
+      solution: z
+        .string()
+        .describe("How Vercel satisfied that need: name the products that removed the blocker, one sentence"),
+    })
+    .describe("The story as a four-beat arc an SA can retell"),
 });
 
 // legacy manifest was a plain string[] of paths — nothing reusable in it
@@ -263,6 +279,7 @@ async function enrichOne(p: string): Promise<CustomerStory | null> {
           vercelProducts: [],
           otherTech: [],
           outcome: "",
+          journey: { before: "", goal: "", change: "", solution: "" },
           hash,
           v: ENRICH_VERSION,
         };

@@ -8,6 +8,18 @@ import "server-only";
 import { readFile } from "fs/promises";
 import { join } from "path";
 
+/** the story as a four-beat arc — the pitch skeleton an SA retells */
+export interface StoryJourney {
+  /** where they were */
+  before: string;
+  /** where they were going */
+  goal: string;
+  /** what needed to change */
+  change: string;
+  /** how Vercel satisfied that need */
+  solution: string;
+}
+
 export interface CustomerStory {
   path: string;
   customer: string;
@@ -15,6 +27,7 @@ export interface CustomerStory {
   vercelProducts: string[];
   otherTech: string[];
   outcome: string;
+  journey: StoryJourney;
   /** sha1 of the cached post markdown — enrichment reuse key */
   hash: string;
   /** enrichment schema/prompt version — bumping forces re-enrichment */

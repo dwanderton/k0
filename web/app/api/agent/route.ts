@@ -423,6 +423,7 @@ export async function POST(req: Request) {
           vercelProducts: m?.vercelProducts ?? [],
           otherTech: m?.otherTech ?? [],
           outcome: m?.outcome ?? "",
+          journey: m?.journey,
           uri: c.documentUri,
           score: c.relevanceScore,
         };

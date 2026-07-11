@@ -108,6 +108,35 @@ export const SuggestionCard = memo(function SuggestionCard({
             ))}
           </div>
         ) : null}
+        {primary?.journey?.solution ? (
+          <details open className="group/arc mt-3 border-t border-line pt-2">
+            <summary className="flex cursor-pointer list-none items-center gap-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-ink">
+              <span className="inline-block transition-transform group-open/arc:rotate-90">
+                ▸
+              </span>
+              Story arc
+            </summary>
+            <dl className="mt-2 flex flex-col gap-2">
+              {(
+                [
+                  ["Where they were", primary.journey.before],
+                  ["Where they were going", primary.journey.goal],
+                  ["What needed to change", primary.journey.change],
+                  ["How Vercel satisfied it", primary.journey.solution],
+                ] as const
+              ).map(([h, v]) =>
+                v ? (
+                  <div key={h}>
+                    <dt className="font-mono text-[10px] font-semibold uppercase tracking-wider text-muted">
+                      {h}
+                    </dt>
+                    <dd className="text-[12px] leading-snug">{v}</dd>
+                  </div>
+                ) : null,
+              )}
+            </dl>
+          </details>
+        ) : null}
         {alternates.length > 0 ? (
           <div
             role="group"

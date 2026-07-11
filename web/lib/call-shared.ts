@@ -23,6 +23,14 @@ export interface StoryRef {
   vercelProducts: string[];
   otherTech: string[];
   outcome: string;
+  /** four-beat arc: where they were / going / what had to change / how
+   *  Vercel satisfied it */
+  journey?: {
+    before: string;
+    goal: string;
+    change: string;
+    solution: string;
+  };
   uri: string;
   score: number;
 }
