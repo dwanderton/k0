@@ -398,7 +398,10 @@ export async function POST(req: Request) {
     read_vercel_doc: readVercelDoc,
   };
   let fallbackNote = "";
-  if (retrievalFailed) {
+  // customers mode must NOT fall open to the full-KB MCP search — that would
+  // leak un-scoped docs into a story-only surface, the exact "silent
+  // fall-open" loadCustomersKeys() throws to prevent. Degrade to NONE instead.
+  if (retrievalFailed && mode !== "customers") {
     const token = process.env.VERCEL_MCP_TOKEN;
     if (token) {
       try {
@@ -413,10 +416,14 @@ export async function POST(req: Request) {
     } else {
       fallbackNote = "⚠ retrieval failed, no fallback (VERCEL_MCP_TOKEN unset)";
     }
+  } else if (retrievalFailed) {
+    fallbackNote = "⚠ retrieval failed, no fallback (customers mode → NONE)";
   }
 
   const candidatesBlock = retrievalFailed
-    ? "CANDIDATES: retrieval unavailable — fall back to search_vercel_documentation if present, then read_vercel_doc."
+    ? mode === "customers"
+      ? "CANDIDATES: retrieval unavailable — reply NONE (customer stories cannot be reached; do not use full docs)."
+      : "CANDIDATES: retrieval unavailable — fall back to search_vercel_documentation if present, then read_vercel_doc."
     : candidates.length === 0
       ? mode === "customers"
         ? "CANDIDATES: no customer story above relevance floor — reply NONE (blog slugs cannot be guessed)."
