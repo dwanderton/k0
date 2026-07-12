@@ -36,6 +36,21 @@ export interface StoryRef {
   score: number;
 }
 
+/** one KB guide's build-time metadata — the fine print an SA must not
+ *  overpromise past: what it unlocks, at what cost, against what limits */
+export interface KbGuideRef {
+  title: string;
+  products: string[];
+  /** what this capability delivers, one line */
+  value: string;
+  tradeoffs: string[];
+  limitations: string[];
+  /** explicit comparisons to non-Vercel alternatives, when the guide makes them */
+  comparisons: string[];
+  uri: string;
+  score: number;
+}
+
 /** agent response in the DOC/ANSWER/QUOTE/ANCHOR/SOURCE format */
 export interface Suggestion {
   id: number;
@@ -47,6 +62,9 @@ export interface Suggestion {
   /** customers mode: the 4 retrieved stories — primary gets the quote,
    *  the rest render as alternate proof-point rows */
   stories?: StoryRef[];
+  /** kb mode: retrieved guides — primary gets the quote + fine print,
+   *  the rest render as related-guide rows */
+  guides?: KbGuideRef[];
 }
 
 export interface TraceState {
@@ -141,16 +159,25 @@ export function tidyTranscript(text: string) {
 export const NUL = "\u0000";
 export const SOH = "\u0001";
 export function splitStream(raw: string) {
-  // stories frame: SOH + JSON + \n, sent once retrieval settles — before
-  // the model's first token, so story slots can paint immediately
+  // metadata frame: SOH + JSON + \n, sent once retrieval settles — before
+  // the model's first token, so card chrome can paint immediately
   let stories: StoryRef[] | undefined;
+  let guides: KbGuideRef[] | undefined;
   const framed = raw.split(SOH);
   let rest = framed[0];
   for (let k = 1; k < framed.length; k++) {
     const nl = framed[k].indexOf("\n");
     if (nl === -1) continue; // frame still streaming — hold it
     try {
-      stories = JSON.parse(framed[k].slice(0, nl)) as StoryRef[];
+      const parsed = JSON.parse(framed[k].slice(0, nl)) as
+        | StoryRef[]
+        | { stories?: StoryRef[]; guides?: KbGuideRef[] };
+      // bare array = the original stories-only frame shape
+      if (Array.isArray(parsed)) stories = parsed;
+      else {
+        stories = parsed.stories ?? stories;
+        guides = parsed.guides ?? guides;
+      }
     } catch {
       // torn frame — card and debug still render
     }
@@ -165,7 +192,7 @@ export function splitStream(raw: string) {
     debug.push(parts[k].slice(0, nl));
     card += parts[k].slice(nl + 1);
   }
-  return { card, debug, stories };
+  return { card, debug, stories, guides };
 }
 
 // hoisted — parseCard runs per stream chunk and per card render

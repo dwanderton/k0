@@ -3,11 +3,14 @@
 /** One settled (or streaming) agent card: doc path, answer, quote with
  *  the highlight anchor marked, and the per-card trace dropdown. Customers
  *  mode adds story chrome: customer + industry eyebrow, stack chips, and
- *  the other retrieved stories as alternate proof-point rows. */
+ *  the other retrieved stories as alternate proof-point rows. KB mode adds
+ *  fine-print chrome: value, trade-offs, limitations, comparisons — the
+ *  caveats an SA must not overpromise past. */
 import { memo } from "react";
 import {
   openDocs,
   parseCard,
+  type KbGuideRef,
   type StoryRef,
   type Suggestion,
 } from "@/lib/call-shared";
@@ -33,6 +36,23 @@ export const SuggestionCard = memo(function SuggestionCard({
     : undefined;
   const alternates =
     primary && s.stories ? s.stories.filter((st) => st !== primary) : [];
+  // kb mode: same pick rule — the guide the model quoted leads the card
+  const guide: KbGuideRef | undefined = s.guides?.length
+    ? (s.guides.find((g) => p.source && samePost(g.uri, p.source)) ??
+      s.guides[0])
+    : undefined;
+  const relatedGuides =
+    guide && s.guides ? s.guides.filter((g) => g !== guide) : [];
+  const finePrint: [string, string[]][] = guide
+    ? (
+        [
+          ["Value", guide.value ? [guide.value] : []],
+          ["Trade-offs", guide.tradeoffs],
+          ["Limitations", guide.limitations],
+          ["Vs Alternatives", guide.comparisons],
+        ] as [string, string[]][]
+      ).filter(([, lines]) => lines.length > 0)
+    : [];
   const quote = p.quote;
   const i = p.anchor ? quote.toLowerCase().indexOf(p.anchor.toLowerCase()) : -1;
   const marked =
@@ -62,6 +82,8 @@ export const SuggestionCard = memo(function SuggestionCard({
               </span>
               {primary.industry ? ` · ${primary.industry}` : ""}
             </span>
+          ) : guide ? (
+            <span className="truncate text-ink">{guide.title}</span>
           ) : (
             <span className="truncate">{p.doc || "searching docs…"}</span>
           )}
@@ -85,6 +107,76 @@ export const SuggestionCard = memo(function SuggestionCard({
             ) : (
               marked
             )}
+          </div>
+        ) : null}
+        {guide && guide.products.length > 0 ? (
+          <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+            {guide.products.map((t) => (
+              <span
+                key={t}
+                className="rounded-md border border-line bg-[#f4f4f5] px-1.5 py-0.5 font-mono text-[10px] font-semibold text-ink"
+              >
+                {t}
+              </span>
+            ))}
+          </div>
+        ) : null}
+        {finePrint.length > 0 ? (
+          <details open className="group/fp mt-3 border-t border-line pt-2">
+            <summary className="flex cursor-pointer list-none items-center gap-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-ink">
+              <span className="inline-block transition-transform group-open/fp:rotate-90">
+                ▸
+              </span>
+              Fine Print
+            </summary>
+            <dl className="mt-2 flex flex-col gap-2">
+              {finePrint.map(([h, lines]) => (
+                <div key={h}>
+                  <dt className="font-mono text-[10px] font-semibold uppercase tracking-wider text-muted">
+                    {h}
+                  </dt>
+                  {lines.map((line, i) => (
+                    <dd key={i} className="text-[12px] leading-snug">
+                      {lines.length > 1 ? "· " : ""}
+                      {line}
+                    </dd>
+                  ))}
+                </div>
+              ))}
+            </dl>
+          </details>
+        ) : null}
+        {relatedGuides.length > 0 ? (
+          <div
+            role="group"
+            aria-label="Related guides"
+            className="mt-3 border-t border-line pt-2"
+          >
+            <div className="mb-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-muted">
+              Related Guides
+            </div>
+            {relatedGuides.map((g) => (
+              <button
+                key={g.uri}
+                type="button"
+                onClick={() => openDocs(g.uri)}
+                title={`Open ${g.title}`}
+                className="group/rel flex w-full items-baseline gap-2 rounded-md px-1 py-1 text-left hover:bg-[#f4f4f5]"
+              >
+                <span className="min-w-0 shrink-0 max-w-[55%] truncate text-[12px] font-semibold text-ink">
+                  {g.title}
+                </span>
+                <span className="min-w-0 flex-1 truncate text-[12px] text-muted">
+                  {g.value}
+                </span>
+                <span
+                  aria-hidden="true"
+                  className="shrink-0 text-[11px] text-muted group-hover/rel:text-accent"
+                >
+                  ↗
+                </span>
+              </button>
+            ))}
           </div>
         ) : null}
         {primary &&

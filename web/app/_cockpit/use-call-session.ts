@@ -124,6 +124,7 @@ export function useCallSession() {
             text: string;
             debug: string[];
             stories?: Suggestion["stories"];
+            guides?: Suggestion["guides"];
           }[];
         };
         if (!parked?.length) return;
@@ -138,6 +139,7 @@ export function useCallSession() {
               text: p.text,
               debug: p.debug ?? [],
               stories: p.stories,
+              guides: p.guides,
             }));
           if (add.length === 0) return cs;
           for (const a of add) {
@@ -223,19 +225,25 @@ export function useCallSession() {
           const { done, value } = await reader.read();
           if (done) break;
           raw += decoder.decode(value, { stream: true });
-          const { card, debug, stories } = splitStream(raw);
+          const { card, debug, stories, guides } = splitStream(raw);
           // per-chunk paints are non-urgent — never block input on them
           startTransition(() => {
             setCurrent((c) =>
               c && c.id === id
-                ? { ...c, text: card, debug, stories: stories ?? c.stories }
+                ? {
+                    ...c,
+                    text: card,
+                    debug,
+                    stories: stories ?? c.stories,
+                    guides: guides ?? c.guides,
+                  }
                 : c,
             );
             setTrace((t) => (t && t.turn === id ? { ...t, lines: debug } : t));
           });
         }
         raw += decoder.decode(); // flush any trailing multi-byte remainder
-        const { card, debug, stories } = splitStream(raw);
+        const { card, debug, stories, guides } = splitStream(raw);
         const p = parseCard(card);
         setCurrent((c) => (c && c.id === id ? null : c));
         if (!card.trim()) {
@@ -260,9 +268,10 @@ export function useCallSession() {
           if (!dup) {
             lastCardRef.current = { id, start, doc: p.doc };
             setCards((cs) =>
-              [...cs, { id, heard, at: clock(), text: card, debug, stories }].sort(
-                (a, b) => a.id - b.id,
-              ),
+              [
+                ...cs,
+                { id, heard, at: clock(), text: card, debug, stories, guides },
+              ].sort((a, b) => a.id - b.id),
             );
           }
           setTrace((t) =>

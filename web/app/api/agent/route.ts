@@ -7,7 +7,13 @@ import { getCachedDoc, fetchPageAsMarkdown } from "@/lib/docs-cache";
 import { retrieveWithInfo, type Candidate, type Backend } from "@/lib/retriever";
 import { parkCard, isValidSessionId } from "@/lib/session-store";
 import { loadCustomerStories } from "@/lib/customers";
-import { SOH, type KbMode, type StoryRef } from "@/lib/call-shared";
+import { loadKbGuides } from "@/lib/kb-guides";
+import {
+  SOH,
+  type KbGuideRef,
+  type KbMode,
+  type StoryRef,
+} from "@/lib/call-shared";
 
 export const maxDuration = 60;
 
@@ -457,6 +463,29 @@ export async function POST(req: Request) {
     }
   }
 
+  // kb: join build-time fine print — same frame, different card chrome
+  let guideRefs: KbGuideRef[] | null = null;
+  if (mode === "kb" && candidates.length) {
+    try {
+      const kb = await loadKbGuides();
+      guideRefs = candidates.map((c) => {
+        const g = kb.get(`vercel-kb:${new URL(c.documentUri).pathname}`);
+        return {
+          title: g?.title || c.documentTitle,
+          products: g?.products ?? [],
+          value: g?.value ?? "",
+          tradeoffs: g?.tradeoffs ?? [],
+          limitations: g?.limitations ?? [],
+          comparisons: g?.comparisons ?? [],
+          uri: c.documentUri,
+          score: c.relevanceScore,
+        };
+      });
+    } catch (err) {
+      console.error("kb metadata load failed:", err);
+    }
+  }
+
   const tools: ToolSet = {
     // MCP search retired from the fast path (pre-call retrieval replaced it);
     // a FAILED retriever — not an empty result — re-enables it below.
@@ -568,9 +597,10 @@ export async function POST(req: Request) {
       traceLines.push(m);
       send(encoder.encode(`${DBG}${m}\n`));
     };
-    // stories frame precedes everything — the client paints proof-point
-    // rows off retrieval alone, long before the first model token
-    if (storyRefs) send(encoder.encode(`${SOH}${JSON.stringify(storyRefs)}\n`));
+    // metadata frame precedes everything — the client paints card chrome
+    // off retrieval alone, long before the first model token
+    if (storyRefs) send(encoder.encode(`${SOH}${JSON.stringify({ stories: storyRefs })}\n`));
+    if (guideRefs) send(encoder.encode(`${SOH}${JSON.stringify({ guides: guideRefs })}\n`));
     dbg(
       `model: ${MODEL} · throughput · retriever: ${retrieverBackend ?? "unavailable"}${
         mode === "customers"
@@ -734,6 +764,7 @@ export async function POST(req: Request) {
             text: finalAnswer,
             debug: traceLines.slice(-40),
             ...(storyRefs ? { stories: storyRefs } : {}),
+            ...(guideRefs ? { guides: guideRefs } : {}),
           });
           console.log(`parked card session=${sessionId} turn=${turn}`);
         } catch (err) {

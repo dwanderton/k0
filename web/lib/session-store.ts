@@ -9,7 +9,7 @@
 // blob token must never reach a client bundle — poison client imports at build time
 import "server-only";
 import { put, list } from "@vercel/blob";
-import type { StoryRef } from "./call-shared";
+import type { KbGuideRef, StoryRef } from "./call-shared";
 
 export interface ParkedCard {
   turn: number;
@@ -19,6 +19,8 @@ export interface ParkedCard {
   debug: string[];
   /** customers mode: the 4 retrieved stories behind this card */
   stories?: StoryRef[];
+  /** kb mode: the retrieved guides behind this card */
+  guides?: KbGuideRef[];
 }
 
 const SESSION_ID_RE = /^[a-z0-9-]{8,64}$/i;
