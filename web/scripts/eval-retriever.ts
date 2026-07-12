@@ -38,6 +38,25 @@ const CONTROLS = [
   "Give me one second, someone is at the door",
 ];
 
+/** kb-mode gate: docs-shaped questions, results must all be vercel-kb: */
+const KB_CASES: { phrase: string; gold: string[] }[] = [
+  {
+    phrase: "They are asking whether Vercel supports Docker deployments",
+    gold: ["/kb/guide/does-vercel-support-docker-deployments", "/kb/guide/docker"],
+  },
+  {
+    phrase: "You want to know if serverless functions support WebSocket connections",
+    gold: [
+      "/kb/guide/do-vercel-serverless-functions-support-websocket-connections",
+      "/kb/guide/real-time-chat-websockets",
+    ],
+  },
+  {
+    phrase: "So you are asking how to enable CORS on your API",
+    gold: ["/kb/guide/how-to-enable-cors"],
+  },
+];
+
 /** customers-mode gate: gold posts by product mention, plus the isolation
  *  invariant — every result must come from customers-manifest.json */
 const CUSTOMER_CASES: { phrase: string; gold: string[] }[] = [
@@ -139,11 +158,45 @@ for (const { phrase, gold } of CUSTOMER_CASES) {
   }
 }
 
+console.log("\n--- kb mode ---");
+let kHit1 = 0;
+let kHit3 = 0;
+let kLeaked = 0;
+for (const { phrase, gold } of KB_CASES) {
+  const t0 = performance.now();
+  const cands = await retrieve(phrase, 3, 1500, "kb");
+  const ms = (performance.now() - t0).toFixed(0);
+  const paths = cands.map((c) => path(c.documentUri));
+  for (const p of paths) {
+    if (!p.startsWith("/kb/guide/")) {
+      kLeaked++;
+      console.error(`  ✗ MODE LEAK: ${p} is not a KB guide`);
+    }
+  }
+  const h1 = gold.includes(paths[0]);
+  const h3 = paths.some((p) => gold.includes(p));
+  kHit1 += h1 ? 1 : 0;
+  kHit3 += h3 ? 1 : 0;
+  console.log(`\n"${phrase.slice(0, 50)}…" (${ms}ms) hit@1=${h1} hit@3=${h3}`);
+  for (const c of cands) {
+    console.log(
+      `  ${c.relevanceScore.toFixed(3)} (cos ${(1 - c.questionDistance).toFixed(3)}) ${path(c.documentUri)} · ${c.documentTitle.slice(0, 34)}`,
+    );
+  }
+}
+
 console.log(`\nGATE: hit@1 ${hit1}/5 (need ≥4) · hit@3 ${hit3}/5 (need 5)`);
 console.log(
   `GATE (customers): hit@1 ${cHit1}/3 (need ≥2) · hit@4 ${cHit4}/3 (need 3) · leaks ${leaked} (need 0) · short returns ${short} (need 0)`,
 );
-if (hit3 < 5 || hit1 < 4 || cHit4 < 3 || cHit1 < 2 || leaked > 0 || short > 0) {
+console.log(
+  `GATE (kb): hit@1 ${kHit1}/3 (need ≥2) · hit@3 ${kHit3}/3 (need 3) · leaks ${kLeaked} (need 0)`,
+);
+if (
+  hit3 < 5 || hit1 < 4 ||
+  cHit4 < 3 || cHit1 < 2 || leaked > 0 || short > 0 ||
+  kHit3 < 3 || kHit1 < 2 || kLeaked > 0
+) {
   console.error("✗ GATE FAILED — do not proceed to P004");
   process.exit(1);
 }

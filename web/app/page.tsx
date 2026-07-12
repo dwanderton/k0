@@ -161,8 +161,9 @@ export default function Home() {
         >
           {(
             [
-              ["all", "Full KB"],
+              ["all", "All Sources"],
               ["customers", "Customer Stories"],
+              ["kb", "KB Guides"],
             ] as const
           ).map(([m, label]) => (
             <button

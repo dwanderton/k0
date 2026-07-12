@@ -30,6 +30,14 @@ const DOCUMENTATION_SOURCES = [
     sitemapUrl: 'https://vercel.com/sitemap.xml',
   },
   {
+    // /kb is absent from the root sitemap (sitemap-kb.xml is login-gated);
+    // kb-feed is the public Atom feed of every guide. baseUrl pins to
+    // /kb/guide/ so topic listing pages never ingest as content.
+    name: "vercel-kb",
+    baseUrl: "https://vercel.com/kb/guide",
+    sitemapUrl: "https://vercel.com/kb/kb-feed",
+  },
+  {
     name: 'ai-sdk-docs',
     baseUrl: 'https://ai-sdk.dev/docs',
     sitemapUrl: 'https://ai-sdk.dev/sitemap.xml',
@@ -72,7 +80,10 @@ async function fetchSitemap(sitemapUrl: string): Promise<string[]> {
     });
     const xml = await response.text();
     const urls = xml.match(/<loc>(.*?)<\/loc>/g) || [];
-    return urls.map((loc) => loc.replace(/<\/?loc>/g, ""));
+    if (urls.length > 0) return urls.map((loc) => loc.replace(/<\/?loc>/g, ""));
+    // no <loc> = Atom feed, not a sitemap (vercel-kb) — entry links carry
+    // the same role
+    return [...xml.matchAll(/<link href="([^"]+)"/g)].map((m) => m[1]);
   } catch (error) {
     console.error(`Failed to fetch sitemap ${sitemapUrl}:`, error);
     return [];

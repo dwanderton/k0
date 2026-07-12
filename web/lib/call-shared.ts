@@ -3,8 +3,9 @@
 export type Status = "idle" | "listening" | "denied" | "unsupported" | "unavailable";
 
 /** knowledge scope — "customers" restricts retrieval to the posts in
- *  customers-manifest.json (vercel.com/blog/category/customers) */
-export type KbMode = "all" | "customers";
+ *  customers-manifest.json (vercel.com/blog/category/customers); "kb"
+ *  restricts to vercel.com/kb guides */
+export type KbMode = "all" | "customers" | "kb";
 
 /** finalized utterance — streams to the agent, except sys lines (mic
  *  errors), which render in the transcript only */

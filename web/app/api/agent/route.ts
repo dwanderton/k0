@@ -15,12 +15,12 @@ export const maxDuration = 60;
  *  in it never land the #:~:text= highlight. `<path>.md` IS the page. */
 const readVercelDoc = tool({
   description:
-    "Fetch the full verbatim markdown of a Vercel or Next.js docs page, or a " +
-    "Vercel blog post. For Vercel docs pass the path only (e.g. " +
-    "'fluid-compute' or 'ai-gateway' — no domain, no /docs/, no .md). For " +
-    "blog posts (customer stories) pass 'blog/<slug>'. For Next.js docs pass " +
-    "the candidate's full documentUri (e.g. " +
-    "'https://nextjs.org/docs/app/getting-started'). " +
+    "Fetch the full verbatim markdown of a Vercel or Next.js docs page, a " +
+    "Vercel blog post, or a Vercel KB guide. For Vercel docs pass the path " +
+    "only (e.g. 'fluid-compute' or 'ai-gateway' — no domain, no /docs/, no " +
+    ".md). For blog posts (customer stories) pass 'blog/<slug>'. For KB " +
+    "guides pass 'kb/guide/<slug>'. For Next.js docs pass the candidate's " +
+    "full documentUri (e.g. 'https://nextjs.org/docs/app/getting-started'). " +
     "QUOTE and ANCHOR must be copied word-for-word from what this returns, " +
     "because only this is the real page text the browser highlight matches.",
   inputSchema: z.object({
@@ -43,6 +43,29 @@ const readVercelDoc = tool({
     // model-supplied path — reject traversal / non-slug before it hits a URL
     if (!/^[a-z0-9]([a-z0-9/-]*[a-z0-9])?$/i.test(clean) || clean.includes("..")) {
       return `Invalid docs path: ${clean}`;
+    }
+    if (/^kb\/guide\//i.test(clean)) {
+      const slug = clean.slice("kb/guide/".length);
+      if (!/^[a-z0-9][a-z0-9-]*$/i.test(slug)) {
+        return `Invalid KB path: ${clean}`;
+      }
+      const cacheKey = `vercel-kb:/kb/guide/${slug}`;
+      const cached = await getCachedDoc(cacheKey);
+      console.log(`docs-cache ${cached ? "HIT" : "MISS"}: ${cacheKey}`);
+      if (cached) {
+        const body =
+          cached.length > 16000
+            ? cached.slice(0, 16000) + "\n…[truncated]"
+            : cached;
+        return `[docs-cache HIT ${cacheKey}]\n\n${body}`;
+      }
+      const md = await fetchPageAsMarkdown(
+        `https://vercel.com/kb/guide/${slug}`,
+      );
+      if (!md) return `Could not fetch https://vercel.com/kb/guide/${slug}.`;
+      const body =
+        md.length > 16000 ? md.slice(0, 16000) + "\n…[truncated]" : md;
+      return `[docs-cache MISS ${cacheKey} — fetched live]\n\n${body}`;
     }
     if (/^blog\//i.test(clean)) {
       const slug = clean.slice(5);
@@ -368,9 +391,9 @@ export async function POST(req: Request) {
       ? b.turn
       : null;
   const heard = typeof b.heard === "string" ? b.heard.slice(0, 500) : "";
-  // anything not exactly "customers" is the full KB — mode must fail closed
-  // to the default behavior, never to a broken filter
-  const mode: KbMode = b.mode === "customers" ? "customers" : "all";
+  // unknown mode values fail closed to all-sources — never to a broken filter
+  const mode: KbMode =
+    b.mode === "customers" || b.mode === "kb" ? b.mode : "all";
 
   // pre-call retrieval — infrastructure, not a model decision. Top-k excerpts
   // ride the FIRST turn, so the fast path cards in one generation.
@@ -550,7 +573,11 @@ export async function POST(req: Request) {
     if (storyRefs) send(encoder.encode(`${SOH}${JSON.stringify(storyRefs)}\n`));
     dbg(
       `model: ${MODEL} · throughput · retriever: ${retrieverBackend ?? "unavailable"}${
-        mode === "customers" ? " · mode: customer stories" : ""
+        mode === "customers"
+          ? " · mode: customer stories"
+          : mode === "kb"
+            ? " · mode: kb guides"
+            : ""
       }`,
     );
       if (coldInitMs != null) dbg(`❄ cold init ${coldInitMs}ms`);

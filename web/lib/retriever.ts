@@ -54,10 +54,12 @@ interface Index {
  *  the stories frame so weakness is visible, not hidden. */
 const TUNING: Record<
   Backend,
-  { floor: number; blogPenalty: number; customersFloor: number }
+  { floor: number; blogPenalty: number; kbPenalty: number; customersFloor: number }
 > = {
-  gateway: { floor: 0.45, blogPenalty: 0.03, customersFloor: 0 },
-  "in-process": { floor: 0.68, blogPenalty: 0.08, customersFloor: 0 },
+  // kbPenalty matches in-process: guide titles mirror question phrasing so
+  // the intrusion margin (~0.09) is prompt-shaped, not backend-shaped
+  gateway: { floor: 0.45, blogPenalty: 0.03, kbPenalty: 0.12, customersFloor: 0 },
+  "in-process": { floor: 0.68, blogPenalty: 0.08, kbPenalty: 0.12, customersFloor: 0 },
 };
 const PATH_BOOST = 0.1;
 const HEADING_BOOST = 0.05;
@@ -76,6 +78,7 @@ const STOPWORDS = new Set([
 const ORIGINS: Record<string, string> = {
   "vercel-docs": "https://vercel.com",
   "vercel-blog": "https://vercel.com",
+  "vercel-kb": "https://vercel.com",
   "ai-sdk-docs": "https://ai-sdk.dev",
   "chat-sdk-docs": "https://chat-sdk.dev",
   "workflows-docs": "https://workflow-sdk.dev",
@@ -204,8 +207,8 @@ function scan(
   q: Float32Array,
   utterance: string,
   k: number,
-  tuning: { floor: number; blogPenalty: number },
-  allow: Set<string> | null,
+  tuning: { floor: number; blogPenalty: number; kbPenalty: number },
+  allow: ((key: string) => boolean) | null,
 ) {
   const { meta, matrix, texts } = index;
   const { dims } = meta;
@@ -213,7 +216,7 @@ function scan(
   const scored: { i: number; rel: number; cos: number }[] = [];
   for (let i = 0; i < meta.rows; i++) {
     const c = meta.chunks[i];
-    if (allow && !allow.has(c.key)) continue;
+    if (allow && !allow(c.key)) continue;
     let dot = 0;
     const off = i * dims;
     for (let d = 0; d < dims; d++) dot += q[d] * matrix[off + d];
@@ -249,8 +252,14 @@ function scan(
       if (!named) rel -= SCOPED_PENALTY;
       break;
     }
-    // no blog penalty under an allow-list — the whole scope IS blog posts
-    if (!allow && c.key.startsWith("vercel-blog:")) rel -= tuning.blogPenalty;
+    // no source penalties under an allow-list — the scope IS that source.
+    // In all-sources mode Q&A-phrased KB guides outscore canonical docs on
+    // cosine (guide titles mirror SA questions); docs stay the default
+    // answer, KB Guides mode is where KB wins.
+    if (!allow) {
+      if (c.key.startsWith("vercel-blog:")) rel -= tuning.blogPenalty;
+      if (c.key.startsWith("vercel-kb:")) rel -= tuning.kbPenalty;
+    }
     scored.push({ i, rel, cos: dot });
   }
   scored.sort((a, b) => b.rel - a.rel);
@@ -297,12 +306,15 @@ export async function retrieveWithInfo(
   const order: Backend[] = FORCED
     ? [FORCED]
     : ["in-process", "gateway"];
-  // missing manifest throws — a silent fall-open to the full KB would break
+  // missing manifest throws — a silent fall-open to all sources would break
   // the mode's promise without anyone noticing
-  const allow =
-    mode === "customers"
-      ? new Set((await loadCustomerStories()).keys())
-      : null;
+  let allow: ((key: string) => boolean) | null = null;
+  if (mode === "customers") {
+    const keys = new Set((await loadCustomerStories()).keys());
+    allow = (key) => keys.has(key);
+  } else if (mode === "kb") {
+    allow = (key) => key.startsWith("vercel-kb:");
+  }
   let lastErr: unknown;
   for (const backend of order) {
     try {
@@ -316,7 +328,10 @@ export async function retrieveWithInfo(
       const index = await loadIndex(backend);
       const q = await embedQuery(backend, utterance, index.meta.model, embedTimeoutMs);
       const t = TUNING[backend];
-      const tuning = allow ? { ...t, floor: t.customersFloor } : t;
+      // customers pads to k floor-less; kb guides are docs-shaped Q&A and
+      // keep the calibrated floor
+      const tuning =
+        mode === "customers" ? { ...t, floor: t.customersFloor } : t;
       const result: RetrievalResult = {
         candidates: scan(index, q, utterance, k, tuning, allow),
         backend,
