@@ -12,6 +12,7 @@
     "start": "next start",
     "build:docs-cache": "node --conditions=react-server scripts/build-docs-cache.ts",
     "build:customers-manifest": "node --conditions=react-server scripts/build-customers-manifest.ts",
+    "build:kb-manifest": "node --conditions=react-server scripts/build-kb-manifest.ts",
     "build:embeddings": "node --conditions=react-server scripts/build-embeddings.ts",
     "build:embeddings-local": "node --conditions=react-server scripts/build-embeddings-local.ts",
     "eval:retriever": "node --conditions=react-server scripts/eval-retriever.ts"

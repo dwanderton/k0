@@ -13,6 +13,7 @@ const nextConfig: NextConfig = {
     "/api/agent": [
       "./docs-cache.br",
       "./customers-manifest.json",
+      "./kb-manifest.json",
       "./embeddings.bin.br",
       "./embeddings-meta.json.br",
       "./embeddings-local.bin",
