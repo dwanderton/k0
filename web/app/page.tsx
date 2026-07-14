@@ -130,12 +130,18 @@ export default function Home() {
     <div className="mx-auto w-full max-w-245 px-5 pt-8 pb-12">
       <OfflineBanner callLive={listening || streaming} />
       <header className="mb-6">
-        <div
+        {/* plain img, not next/image — the optimizer re-encodes and strips the
+            HLG tag that makes the mark glow on XDR; SDR displays render it
+            identical to the old text div */}
+        <img
+          src="/brand/k0-logo-shine.png"
+          alt=""
           aria-hidden="true"
-          className="mb-3 h-8.5 w-8.5 select-none rounded-lg bg-ink text-center font-mono text-[15px] font-bold leading-8.5 tracking-tight text-white"
-        >
-          k0
-        </div>
+          width={34}
+          height={34}
+          draggable={false}
+          className="mb-3 h-8.5 w-8.5 select-none"
+        />
         <h1 className="text-[26px] font-bold tracking-tight">
           Knowledge that{" "}
           <span className="rounded-[3px] bg-frag px-1.25 text-frag-ink">
