@@ -10,8 +10,7 @@
 
 name: pr-scorecard
 
-on:
-  deployment_status: {}
+on: [deployment_status]
 
 permissions:
   contents: read
