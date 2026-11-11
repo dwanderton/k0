@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   title: "k0",
   description,
   openGraph: {
-    title: "k0 — knowledge that follows your voice",
+    title: "k0: knowledge that follows your voice",
     description,
     url: "/",
     siteName: "k0",
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary",
-    title: "k0 — knowledge that follows your voice",
+    title: "k0: knowledge that follows your voice",
     description,
   },
 };

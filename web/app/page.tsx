@@ -91,7 +91,7 @@ export default function Home() {
         if (!activeRef.current) return;
         if (Date.now() - lastFinalRef.current > IDLE_CUTOFF_MS) {
           logSystem(
-            "mic idle for 10 minutes — transcription stopped to save cost; press Start Listening to resume",
+            "mic idle for 10 minutes: transcription stopped to save cost; press Start Listening to resume",
           );
           stop();
         }
@@ -100,7 +100,7 @@ export default function Home() {
       activeRef.current = false;
       if ((err as Error).name === "NotAllowedError") {
         setStatus("denied");
-        logSystem("mic error: not-allowed — allow the mic for this site");
+        logSystem("mic error: not-allowed. Allow the mic for this site");
       } else {
         setStatus("unavailable");
         logSystem(`mic error: ${String(err).slice(0, 140)}`);

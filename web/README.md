@@ -7,6 +7,8 @@ Live KB copilot for Vercel SAs. Mic → Gladia transcript → local retrieval �
 
 ## Run
 
+Node ≥26 (`.nvmrc`); pnpm 12 auto-selects via the `packageManager` field.
+
 ```bash
 pnpm install
 pnpm dev        # http://localhost:3000
@@ -14,7 +16,7 @@ pnpm build      # prod build (Turbopack)
 pnpm start      # serve prod build
 ```
 
-Needs `.env.local` — `cp .env.template .env.local` and fill (gitignored, never committed):
+Needs `.env.local`: `cp .env.template .env.local` and fill (gitignored, never committed):
 
 | var | for |
 |---|---|
@@ -24,17 +26,19 @@ Needs `.env.local` — `cp .env.template .env.local` and fill (gitignored, never
 | `SCORECARD_PROBE_SECRET` | scorecard bypass of BotID + rate limit |
 | `AI_GATEWAY_API_KEY` | AI Gateway auth (falls back to `VERCEL_OIDC_TOKEN` if unset) |
 
-Chrome/Safari + mic. BotID no-ops off-Vercel — local dev unaffected.
+Chrome/Safari + mic. BotID no-ops off-Vercel. Local dev unaffected.
 
 ## Data pipeline
 
-Committed artifacts (LFS) ship with deploys — runtime never crawls:
+Committed artifacts (LFS) ship with deploys. Runtime never crawls:
 
 ```bash
 pnpm build:docs-cache              # additive crawl → docs-cache.br
-REFRESH=1 pnpm build:docs-cache    # weekly mode — re-crawl all, prune dead pages
-pnpm build:embeddings              # gateway index (te3-small, int8) — costs ~cents
-pnpm build:embeddings-local        # in-process index (bge-small) — $0
+REFRESH=1 pnpm build:docs-cache    # weekly mode: re-crawl all, prune dead pages
+pnpm build:customers-manifest      # story membership from the sitemap + enrichment (gateway auth)
+pnpm build:kb-manifest             # KB guide fine print, hash-cached (gateway auth)
+pnpm build:embeddings              # gateway index (te3-small, int8), costs ~cents
+pnpm build:embeddings-local        # in-process index (bge-small), $0
 pnpm eval:retriever                # gate: hit@1 ≥4/5, hit@3 5/5. Run after any index change
 ```
 
@@ -45,18 +49,22 @@ Weekly refresh runs itself: `.github/workflows/corpus-refresh.yml` crawls, embed
 ```bash
 node ../scorecard/run.mjs                    # 10x per phrase vs prod
 node ../scorecard/run.mjs http://localhost:3000
-GATE=1 RUNS=5 node ../scorecard/run.mjs      # CI mode — exit 1 on groundedness/false-positive breach
+GATE=1 RUNS=5 node ../scorecard/run.mjs      # CI mode: exit 1 on groundedness/false-positive breach
 ```
 
-History + method: `../scorecard/SCORECARD.md`. Append-only — every agent change gets a run.
+History + method: `../scorecard/SCORECARD.md`. Append-only: every agent change gets a run.
 
 ## Map
 
-- `app/page.tsx` — call cockpit: transcript, cards, session restore, offline banner
-- `app/api/agent/route.ts` — retrieval → model → card; NONE-retry escalates to gpt-5.4; parks cards for reconnect
-- `app/api/transcribe-session/route.ts` — Gladia session mint (key stays server-side)
-- `app/api/session/[id]/route.ts` — backfill parked cards on resume
-- `lib/retriever.ts` — brute-force cosine, two backends, no vector DB
-- `lib/chunker.ts` — deterministic page → chunks; idx anchors additive rebuilds
-- `lib/gladia-live.ts` — mic → 16kHz PCM worklet → WS
-- `lib/session-store.ts` — Blob card parking
+- `app/page.tsx`: call cockpit: transcript, cards, session restore, offline banner
+- `app/api/agent/route.ts`: retrieval → model → card; NONE-retry escalates to gpt-5.4; parks cards for reconnect
+- `app/api/transcribe-session/route.ts`: Gladia session mint (key stays server-side)
+- `app/api/session/[id]/route.ts`: backfill parked cards on resume
+- `lib/retriever.ts`: brute-force cosine, two backends, no vector DB
+- `lib/chunker.ts`: deterministic page → chunks; idx anchors additive rebuilds
+- `lib/gladia-live.ts`: mic → 16kHz PCM worklet → WS
+- `lib/session-store.ts`: Blob card parking
+- `lib/docs-cache.ts`: sitemap crawl + brotli page cache; bundled copy is the fallback read
+- `lib/local-embedder.ts`: in-process bge-small via transformers.js, model vendored
+- `lib/customers.ts` / `lib/kb-guides.ts`: build-time manifest readers (stories, guide fine print)
+- `lib/call-shared.ts`: shared cockpit types + stream frame parsing

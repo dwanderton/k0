@@ -19,7 +19,7 @@ export default function ErrorBoundary({
       </div>
       <div className="rounded-[10px] border border-error/30 bg-card p-5">
         <h2 className="text-[17px] font-bold tracking-tight">
-          Something broke — your call is saved.
+          Something broke. Your call is saved.
         </h2>
         <p className="mt-1 text-sm text-muted">
           Reload and k0 will offer to resume this session exactly where it
@@ -36,7 +36,7 @@ export default function ErrorBoundary({
             onClick={() => window.location.reload()}
             className="rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white hover:bg-[#333]"
           >
-            Reload — resume call
+            Resume Call
           </button>
           <button
             type="button"
