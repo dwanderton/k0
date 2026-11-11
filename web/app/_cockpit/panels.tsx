@@ -43,7 +43,7 @@ export const TranscriptPanel = memo(function TranscriptPanel({
       className="flex min-h-105 flex-col rounded-[10px] border border-line bg-card"
     >
       <div className="flex items-center justify-between gap-2.5 border-b border-line px-3.5 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-muted">
-        <span>Live call — your side</span>
+        <span>Live call: your side</span>
         <span className="tabular-nums">{segments.length} lines</span>
       </div>
       <div
@@ -58,9 +58,9 @@ export const TranscriptPanel = memo(function TranscriptPanel({
               hour: "2-digit",
               minute: "2-digit",
             })}{" "}
-            — {resumeOffer.segments.filter((s) => !s.sys).length} lines,{" "}
+            ({resumeOffer.segments.filter((s) => !s.sys).length} lines,{" "}
             {resumeOffer.cards.length} card
-            {resumeOffer.cards.length === 1 ? "" : "s"}?
+            {resumeOffer.cards.length === 1 ? "" : "s"})?
             <div className="mt-2 flex gap-2">
               <button
                 type="button"
@@ -82,12 +82,12 @@ export const TranscriptPanel = memo(function TranscriptPanel({
         {segments.length === 0 && !interim && !resumeOffer ? (
           <p className="text-sm text-muted">
             {status === "denied"
-              ? "Microphone access denied (not-allowed). Allow the mic for this site — and check the browser has mic access in System Settings → Privacy & Security."
+              ? "Microphone access denied (not-allowed). Allow the mic for this site, and check the browser has mic access in System Settings → Privacy & Security."
               : status === "unsupported"
                 ? "Live transcription needs a modern browser (WebSocket + AudioWorklet + microphone). Update or switch browsers, then try again."
                 : status === "unavailable"
                   ? "Live transcription disconnected. Check your connection, then start listening again."
-                  : "Press Start Listening — your side of the call transcribes here."}
+                  : "Press Start Listening. Your side of the call transcribes here."}
           </p>
         ) : null}
         {segments.map((s) => (
@@ -245,7 +245,7 @@ export const SuggestionsPanel = memo(function SuggestionsPanel({
           </div>
         ) : !agentError ? (
           <p className="text-sm text-muted">
-            Start the conversation — k0 surfaces knowledge as you talk.
+            Start the conversation. k0 surfaces knowledge as you talk.
           </p>
         ) : null}
       </div>
@@ -266,7 +266,7 @@ export const TracePanel = memo(function TracePanel({
       className="mt-4.5 rounded-[10px] border border-line bg-card"
     >
       <div className="flex items-center justify-between gap-2.5 border-b border-line px-3.5 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-muted">
-        <span>Agent trace{trace ? ` — turn ${trace.turn}` : ""}</span>
+        <span>Agent trace{trace ? `: turn ${trace.turn}` : ""}</span>
         <span
           className={
             !trace
@@ -285,9 +285,9 @@ export const TracePanel = memo(function TracePanel({
               : trace.outcome === "card"
                 ? "card"
                 : trace.outcome === "none"
-                  ? "none — no doc needed"
+                  ? "none (no doc needed)"
                   : trace.outcome === "duplicate"
-                    ? "duplicate — already on a card"
+                    ? "duplicate (already on a card)"
                     : "failed"}
         </span>
       </div>

@@ -71,7 +71,7 @@ const readVercelDoc = tool({
       if (!md) return `Could not fetch https://vercel.com/kb/guide/${slug}.`;
       const body =
         md.length > 16000 ? md.slice(0, 16000) + "\n…[truncated]" : md;
-      return `[docs-cache MISS ${cacheKey} — fetched live]\n\n${body}`;
+      return `[docs-cache MISS ${cacheKey} (fetched live)]\n\n${body}`;
     }
     if (/^blog\//i.test(clean)) {
       const slug = clean.slice(5);
@@ -94,7 +94,7 @@ const readVercelDoc = tool({
       if (!md) return `Could not fetch https://vercel.com/blog/${slug}.`;
       const body =
         md.length > 16000 ? md.slice(0, 16000) + "\n…[truncated]" : md;
-      return `[docs-cache MISS ${cacheKey} — fetched live]\n\n${body}`;
+      return `[docs-cache MISS ${cacheKey} (fetched live)]\n\n${body}`;
     }
     const site = isNext
       ? { origin: "https://nextjs.org", host: "nextjs.org", source: "nextjs-docs" }
@@ -134,7 +134,7 @@ const readVercelDoc = tool({
       // cap tool result — context budget
       const body =
         md.length > 16000 ? md.slice(0, 16000) + "\n…[truncated]" : md;
-      return `[docs-cache MISS ${cacheKey} — fetched live]\n\n${body}`;
+      return `[docs-cache MISS ${cacheKey} (fetched live)]\n\n${body}`;
     } catch (err) {
       return `Could not fetch ${url}: ${String(err)}`;
     }
@@ -325,12 +325,12 @@ const OutputSchema = z
   // browser matches fragment against RENDERED text — code punctuation never
   // renders, highlight silently misses
   .refine((c) => !/[`\[\]{}|<>]/.test(c.ANCHOR), {
-    message: "ANCHOR must be plain prose — no backticks/brackets/pipes",
+    message: "ANCHOR must be plain prose (no backticks/brackets/pipes)",
   })
   // half-refusal: DOC filled but NONE stuffed into fields — should have
   // been a bare NONE reply
   .refine((c) => ![c.ANSWER, c.QUOTE, c.ANCHOR].some((v) => /^none$/i.test(v.trim())), {
-    message: "NONE inside card fields — reply must be bare NONE",
+    message: "NONE inside card fields: reply must be bare NONE",
   });
 
 function extractCard(text: string) {
@@ -719,7 +719,7 @@ export async function POST(req: Request) {
 
           const heldNone = holding && held.trim().toUpperCase().startsWith("NONE");
           if (heldNone && attempt === 1 && !retrievalFailed && topScore > RETRY_FLOOR) {
-            dbg(`⟲ NONE despite top candidate ${topScore} — escalating to ${ESCALATION_MODEL}`);
+            dbg(`⟲ NONE despite top candidate ${topScore}, escalating to ${ESCALATION_MODEL}`);
             continue; // discard the held NONE; second attempt streams fresh
           }
           if (holding) flushHeld(); // NONE (kept) or a short real answer

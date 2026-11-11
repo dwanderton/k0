@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>k0 — Live KB Copilot</title>
+<title>k0: Live KB Copilot</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23000'/%3E%3Ctext x='32' y='42' font-family='Menlo,monospace' font-size='28' font-weight='700' fill='%23fff' text-anchor='middle'%3Ek0%3C/text%3E%3C/svg%3E">
 <style>
   :root {
@@ -154,7 +154,7 @@
 
   <div class="stage">
     <section class="pane" aria-label="Conversation">
-      <div class="pane-head"><span>Live call — your side (SA mic)</span><span id="turn">0 / 3</span></div>
+      <div class="pane-head"><span>Live call: your side (SA mic)</span><span id="turn">0 / 3</span></div>
       <div class="pane-body" id="chat">
         <button class="next" id="next">Next Line</button>
       </div>
@@ -171,7 +171,7 @@
         </div>
       </div>
       <div class="pane-body" id="cards">
-        <p class="empty" id="emptyNote">Start the conversation — k0 surfaces knowledge as you talk.</p>
+        <p class="empty" id="emptyNote">Start the conversation. k0 surfaces knowledge as you talk.</p>
       </div>
     </section>
   </div>
@@ -186,7 +186,7 @@
   const script = [
     {
       who: "You (SA)",
-      text: "So your worry is paying for idle compute — what actually happens to your functions when traffic drops to nothing overnight.",
+      text: "So your worry is paying for idle compute: what actually happens to your functions when traffic drops to nothing overnight.",
       card: {
         doc: "vercel.com/docs/functions",
         section: "Functions · Scaling",
@@ -199,7 +199,7 @@
     },
     {
       who: "You (SA)",
-      text: "Right — your team got burned by cold starts on Lambda, so the real question is how Vercel handles cold starts differently.",
+      text: "Right. Your team got burned by cold starts on Lambda, so the real question is how Vercel handles cold starts differently.",
       card: {
         doc: "vercel.com/docs/functions",
         section: "Functions · Fluid compute",
@@ -329,8 +329,8 @@
     // so the text fragment fires and the highlight lands.
     const win = window.open(url, "k0Docs", "width=1100,height=800");
     navs++;
-    statusEl.innerHTML = "docs window: <b>" + (navs === 1 ? "opened" : "reused") + "</b> — navigations so far: <b>" + navs + "</b>" +
-      (win ? "" : " · <b>popup blocked</b> — allow popups for this page and click again.");
+    statusEl.innerHTML = "docs window: <b>" + (navs === 1 ? "opened" : "reused") + "</b> · navigations so far: <b>" + navs + "</b>" +
+      (win ? "" : " · <b>popup blocked</b>. Allow popups for this page and click again.");
   }
 
   render();

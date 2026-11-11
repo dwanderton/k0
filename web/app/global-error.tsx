@@ -31,7 +31,7 @@ export default function GlobalError({
           }}
         >
           <h2 style={{ fontWeight: 700, fontSize: 17, margin: 0 }}>
-            Something broke — your call is saved.
+            Something broke. Your call is saved.
           </h2>
           <p style={{ color: "#666", fontSize: 14, margin: "6px 0 0" }}>
             Reload and k0 will offer to resume this session exactly where it
@@ -57,7 +57,7 @@ export default function GlobalError({
               cursor: "pointer",
             }}
           >
-            Reload — resume call
+            Resume Call
           </button>
         </div>
       </body>

@@ -119,7 +119,7 @@ export async function startGladiaLive(opts: {
     ws.addEventListener("close", (ev) => {
       if (closing || ev.code === 1000) return;
       if (reconnectAttempt >= RECONNECT_BACKOFF_MS.length) {
-        onError("live transcription disconnected — stop and start again");
+        onError("live transcription disconnected. Stop and start again");
         return;
       }
       const delay = RECONNECT_BACKOFF_MS[reconnectAttempt++];

@@ -91,7 +91,7 @@ export function OfflineBanner({ callLive }: { callLive: boolean }) {
       <span>
         {offline
           ? callLive
-            ? "You're offline. k0 keeps your transcript — unanswered lines retry when the connection returns. Don't close this tab."
+            ? "You're offline. k0 keeps your transcript. Unanswered lines retry when the connection returns. Don't close this tab."
             : "You're offline."
           : "You are back online"}
       </span>
