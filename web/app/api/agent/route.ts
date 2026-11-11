@@ -156,6 +156,9 @@ const GATEWAY_OPTIONS = {
     // verbatim-quote contract; cross-vendor fallbacks fabricated quotes
     models: [ESCALATION_MODEL],
   },
+  // low reasoning (gpt-6 floor) — luna's default-effort thinking tripled card
+  // output and ~2×'d time-to-card; the card task is procedural
+  openai: { reasoningEffort: "low" as const },
 };
 
 /** MCP handshake once per warm instance — Fluid reuses instances; the
