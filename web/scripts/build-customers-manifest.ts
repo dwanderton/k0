@@ -41,7 +41,6 @@ const ENRICH_VERSION = 3;
 
 const sha1 = (s: string) => createHash("sha1").update(s).digest("hex");
 
-// ---- 1. enumerate stories from the sitemap ---------------------------------
 
 const found = new Set<string>();
 const res = await fetch(SITEMAP, { signal: AbortSignal.timeout(15000) });
@@ -58,7 +57,6 @@ if (found.size === 0) throw new Error("no posts found — sitemap shape changed?
 const paths = [...found].sort();
 console.log(`\n✓ category crawl: ${paths.length} posts`);
 
-// ---- 2. backfill posts the sitemap crawl missed ----------------------------
 
 const fresh = new Map<string, string>();
 const missing: string[] = [];
@@ -86,7 +84,6 @@ if (missing.length) {
   console.log("✓ all posts already in docs-cache — no backfill, indexes stay valid");
 }
 
-// ---- 3. enrich — hash-cached structured extraction -------------------------
 
 const StorySchema = z.object({
   customer: z
