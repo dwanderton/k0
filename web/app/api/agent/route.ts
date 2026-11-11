@@ -141,17 +141,17 @@ const readVercelDoc = tool({
   },
 });
 
-// sort throughput not ttft — pipeline generation-bound (~1s of a ~2s card is
+// sort tps not ttft — pipeline generation-bound (~1s of a ~2s card is
 // token writing once pre-call retrieval deleted the search turn).
-// gpt-5.4-mini: only model that reliably runs retrieval → quote; others loop
-// re-searching or fabricate quotes.
-const MODEL = "openai/gpt-5.4-mini";
+// model must hold retrieval → verbatim quote (scorecard-auditioned) —
+// off-contract models loop re-searching or fabricate quotes
+const MODEL = "openai/gpt-6-luna";
 // NONE-retry second attempt escalates here — a smarter judge for the ~1-2%
-// of turns mini refuses twice, not the same coin flipped again
-const ESCALATION_MODEL = "openai/gpt-5.4";
+// of turns luna refuses twice, not the same coin flipped again
+const ESCALATION_MODEL = "openai/gpt-6.1-sol";
 const GATEWAY_OPTIONS = {
   gateway: {
-    sort: "throughput" as const,
+    sort: "tps" as const,
     // outage insurance only — same-family fallback honors the retrieval →
     // verbatim-quote contract; cross-vendor fallbacks fabricated quotes
     models: [ESCALATION_MODEL],
@@ -602,7 +602,7 @@ export async function POST(req: Request) {
     if (storyRefs) send(encoder.encode(`${SOH}${JSON.stringify({ stories: storyRefs })}\n`));
     if (guideRefs) send(encoder.encode(`${SOH}${JSON.stringify({ guides: guideRefs })}\n`));
     dbg(
-      `model: ${MODEL} · throughput · retriever: ${retrieverBackend ?? "unavailable"}${
+      `model: ${MODEL} · ${GATEWAY_OPTIONS.gateway.sort} · retriever: ${retrieverBackend ?? "unavailable"}${
         mode === "customers"
           ? " · mode: customer stories"
           : mode === "kb"

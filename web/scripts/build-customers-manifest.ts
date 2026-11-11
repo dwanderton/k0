@@ -32,7 +32,7 @@ import type { CustomerStory } from "../lib/customers.ts";
 const BASE = "https://vercel.com/blog/category/customers";
 const MAX_PAGES = 30; // runaway guard — 9 pages as of 2026-07
 const MANIFEST = join(process.cwd(), "customers-manifest.json");
-const ENRICH_MODEL = "openai/gpt-5.4-mini";
+const ENRICH_MODEL = "openai/gpt-6-luna";
 const ENRICH_CONCURRENCY = 6;
 /** bump when the prompt/schema/canonicalization changes — hash-cached
  *  entries from older versions re-enrich */
