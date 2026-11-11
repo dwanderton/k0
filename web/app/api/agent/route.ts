@@ -333,11 +333,15 @@ const OutputSchema = z
     message: "NONE inside card fields: reply must be bare NONE",
   });
 
+// tail join of ≤15s utterances (~250 chars each): 8KB survives a ~30-turn
+// failure streak, and the slice keeps the newest line (the one answered)
+const TRANSCRIPT_HARD_MAX = 32_000;
+const TRANSCRIPT_KEEP = 8_000;
 const AgentBody = z.object({
   warmup: z.literal(true).optional(),
-  transcript: z.string().optional(),
+  transcript: z.string().max(TRANSCRIPT_HARD_MAX).optional(),
   sessionId: z.string().optional(),
-  turn: z.number().int().min(0).optional(),
+  turn: z.number().int().min(0).max(100_000).optional(),
   heard: z.string().optional(),
   // unknown mode values fail closed to all-sources — never to a broken filter
   mode: z.enum(["all", "customers", "kb"]).catch("all").optional(),
@@ -394,7 +398,7 @@ export async function POST(req: Request) {
     return new Response(null, { status: 204 });
   }
 
-  const transcript = b.transcript;
+  const transcript = b.transcript?.slice(-TRANSCRIPT_KEEP);
   if (!transcript?.trim()) {
     return Response.json({ error: "transcript required" }, { status: 400 });
   }
