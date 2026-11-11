@@ -26,9 +26,8 @@ jobs:
         with:
           lfs: true
 
+      # no version key — action-setup errors when it conflicts with packageManager
       - uses: pnpm/action-setup@v4
-        with:
-          version: 11
 
       - uses: actions/setup-node@v4
         with:

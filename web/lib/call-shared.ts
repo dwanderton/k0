@@ -3,7 +3,7 @@
 export type Status = "idle" | "listening" | "denied" | "unsupported" | "unavailable";
 
 /** knowledge scope — "customers" restricts retrieval to the posts in
- *  customers-manifest.json (vercel.com/blog/category/customers); "kb"
+ *  customers-manifest.json (vercel.com/customers); "kb"
  *  restricts to vercel.com/kb guides */
 export type KbMode = "all" | "customers" | "kb";
 
