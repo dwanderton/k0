@@ -333,6 +333,16 @@ const OutputSchema = z
     message: "NONE inside card fields: reply must be bare NONE",
   });
 
+const AgentBody = z.object({
+  warmup: z.literal(true).optional(),
+  transcript: z.string().optional(),
+  sessionId: z.string().optional(),
+  turn: z.number().int().min(0).optional(),
+  heard: z.string().optional(),
+  // unknown mode values fail closed to all-sources — never to a broken filter
+  mode: z.enum(["all", "customers", "kb"]).catch("all").optional(),
+});
+
 function extractCard(text: string) {
   const field = (k: string) =>
     text.match(new RegExp(`^${k}:\\s*(.*)$`, "mi"))?.[1]?.trim() ?? "";
@@ -372,34 +382,28 @@ export async function POST(req: Request) {
   } catch {
     return Response.json({ error: "invalid JSON body" }, { status: 400 });
   }
+  const parsedBody = AgentBody.safeParse(body);
+  if (!parsedBody.success) {
+    return Response.json({ error: "invalid request body" }, { status: 400 });
+  }
+  const b = parsedBody.data;
   // warm-up: client fires on Start Listening — ~3s one-time init (indexes +
   // ONNX) runs while the human is still talking. No LLM call, ~$0.
-  if ((body as { warmup?: unknown })?.warmup === true) {
+  if (b.warmup === true) {
     await retrieveWithInfo("warm up", 1).catch(() => {});
     return new Response(null, { status: 204 });
   }
 
-  const transcript = (body as { transcript?: unknown })?.transcript;
-  if (typeof transcript !== "string" || !transcript.trim()) {
+  const transcript = b.transcript;
+  if (!transcript?.trim()) {
     return Response.json({ error: "transcript required" }, { status: 400 });
   }
   // session parking: with a valid sessionId+turn the finished card is
   // written to the session store even if the client dropped mid-stream
-  const b = body as {
-    sessionId?: unknown;
-    turn?: unknown;
-    heard?: unknown;
-    mode?: unknown;
-  };
   const sessionId = isValidSessionId(b.sessionId) ? b.sessionId : null;
-  const turn =
-    typeof b.turn === "number" && Number.isInteger(b.turn) && b.turn >= 0
-      ? b.turn
-      : null;
-  const heard = typeof b.heard === "string" ? b.heard.slice(0, 500) : "";
-  // unknown mode values fail closed to all-sources — never to a broken filter
-  const mode: KbMode =
-    b.mode === "customers" || b.mode === "kb" ? b.mode : "all";
+  const turn = b.turn ?? null;
+  const heard = (b.heard ?? "").slice(0, 500);
+  const mode: KbMode = b.mode ?? "all";
 
   // pre-call retrieval — infrastructure, not a model decision. Top-k excerpts
   // ride the FIRST turn, so the fast path cards in one generation.
@@ -766,7 +770,8 @@ export async function POST(req: Request) {
             ...(storyRefs ? { stories: storyRefs } : {}),
             ...(guideRefs ? { guides: guideRefs } : {}),
           });
-          console.log(`parked card session=${sessionId} turn=${turn}`);
+          // log a prefix only — the full id is the backfill capability URL
+          console.log(`parked card session=${sessionId.slice(0, 8)}… turn=${turn}`);
         } catch (err) {
           console.error("card park failed:", err);
         }

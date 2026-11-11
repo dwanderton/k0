@@ -1,4 +1,7 @@
 import { checkBotId } from "botid/server";
+import { z } from "zod";
+
+const GladiaSession = z.object({ id: z.string(), url: z.url() });
 
 /** Mints a Gladia live-transcription session. The admin key stays server
  *  side — the returned WS URL embeds its own scoped auth, so the browser
@@ -21,7 +24,8 @@ export async function POST(req: Request) {
   const sessionId = (await req.json().catch(() => ({}) as Record<string, unknown>))
     ?.sessionId;
   if (typeof sessionId === "string") {
-    console.log(`transcribe-session mint for session=${sessionId.slice(0, 64)}`);
+    // log a prefix only — the full id keys the session's parked cards
+    console.log(`transcribe-session mint for session=${sessionId.slice(0, 8)}…`);
   }
   const resp = await fetch("https://api.gladia.io/v2/live", {
     method: "POST",
@@ -49,6 +53,13 @@ export async function POST(req: Request) {
       { status: 502 },
     );
   }
-  const session = (await resp.json()) as { id: string; url: string };
-  return Response.json({ wsUrl: session.url, sessionId: session.id });
+  // shape drift must 502 loudly, not ship wsUrl: undefined to the client
+  const session = GladiaSession.safeParse(await resp.json().catch(() => null));
+  if (!session.success) {
+    return Response.json(
+      { error: "session create failed", status: 502, detail: "unexpected provider response shape" },
+      { status: 502 },
+    );
+  }
+  return Response.json({ wsUrl: session.data.url, sessionId: session.data.id });
 }

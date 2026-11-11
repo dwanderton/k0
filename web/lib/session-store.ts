@@ -9,19 +9,51 @@
 // blob token must never reach a client bundle — poison client imports at build time
 import "server-only";
 import { put, list } from "@vercel/blob";
+import { z } from "zod";
 import type { KbGuideRef, StoryRef } from "./call-shared";
 
-export interface ParkedCard {
-  turn: number;
-  at: string;
-  heard: string;
-  text: string;
-  debug: string[];
+const StoryRefSchema = z.object({
+  customer: z.string(),
+  industry: z.string(),
+  vercelProducts: z.array(z.string()),
+  otherTech: z.array(z.string()),
+  outcome: z.string(),
+  journey: z
+    .object({
+      before: z.string(),
+      goal: z.string(),
+      change: z.string(),
+      solution: z.string(),
+    })
+    .optional(),
+  uri: z.string(),
+  score: z.number(),
+}) satisfies z.ZodType<StoryRef>;
+
+const KbGuideRefSchema = z.object({
+  title: z.string(),
+  products: z.array(z.string()),
+  value: z.string(),
+  tradeoffs: z.array(z.string()),
+  limitations: z.array(z.string()),
+  comparisons: z.array(z.string()),
+  uri: z.string(),
+  score: z.number(),
+}) satisfies z.ZodType<KbGuideRef>;
+
+const ParkedCardSchema = z.object({
+  turn: z.number().int().min(0),
+  at: z.string(),
+  heard: z.string(),
+  text: z.string(),
+  debug: z.array(z.string()),
   /** customers mode: the 4 retrieved stories behind this card */
-  stories?: StoryRef[];
+  stories: z.array(StoryRefSchema).optional(),
   /** kb mode: the retrieved guides behind this card */
-  guides?: KbGuideRef[];
-}
+  guides: z.array(KbGuideRefSchema).optional(),
+});
+
+export type ParkedCard = z.infer<typeof ParkedCardSchema>;
 
 const SESSION_ID_RE = /^[a-z0-9-]{8,64}$/i;
 
@@ -51,13 +83,14 @@ export async function listParkedCards(sessionId: string): Promise<ParkedCard[]> 
           signal: AbortSignal.timeout(10000),
         });
         if (!res.ok) return null;
-        return (await res.json()) as ParkedCard;
+        const parsed = ParkedCardSchema.safeParse(await res.json());
+        return parsed.success ? parsed.data : null;
       } catch {
         return null;
       }
     }),
   );
   return cards
-    .filter((c): c is ParkedCard => c !== null && typeof c.turn === "number")
+    .filter((c): c is ParkedCard => c !== null)
     .sort((a, b) => a.turn - b.turn);
 }
