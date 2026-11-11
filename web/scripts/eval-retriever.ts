@@ -10,7 +10,18 @@ import { join } from "path";
 import { retrieve } from "../lib/retriever.ts";
 
 const CASES: { phrase: string; gold: string[] }[] = [
-  { phrase: "So you are asking what is the AI gateway", gold: ["/docs/ai-gateway"] },
+  {
+    phrase: "So you are asking what is the AI gateway",
+    // docs split ai-gateway into a hub (2026-09): the root is link cards and
+    // no longer embeds competitively — overview subpages are the retrievable
+    // surface; the agent reads and cites from whichever lands
+    gold: [
+      "/docs/ai-gateway",
+      "/docs/ai-gateway/faq",
+      "/docs/ai-gateway/models-and-providers",
+      "/docs/ai-gateway/security-and-compliance",
+    ],
+  },
   {
     phrase: "You want to know how to enable fluid compute for a single deployment",
     gold: ["/docs/fluid-compute"],
@@ -21,7 +32,9 @@ const CASES: { phrase: string; gold: string[] }[] = [
   },
   {
     phrase: "So you are asking how preview deployments work on Vercel",
-    gold: ["/docs/deployments/environments"],
+    // deployments overview co-gold (2026-11): covers the preview flow and
+    // outranks environments on the gateway backend after the docs refresh
+    gold: ["/docs/deployments/environments", "/docs/deployments"],
   },
   {
     phrase: "You want to know how to add a custom domain to your project",
@@ -63,27 +76,26 @@ const CUSTOMER_CASES: { phrase: string; gold: string[] }[] = [
   {
     phrase: "They want an example of a customer building with v0",
     gold: [
-      "/blog/how-stripe-built-a-game-changing-app-in-a-single-flight-with-v0",
-      "/blog/how-zapier-scales-product-partnerships-with-v0",
-      "/blog/How-avalara-turns-pipedreams-into-patent-pending-with-v0",
-      "/blog/how-code-and-theory-cut-time-to-prototype-75-with-v0",
-      "/blog/cutting-delivery-times-in-half-with-v0",
-      "/blog/bridging-the-gap-between-design-and-code-with-v0",
+      "/customers/how-stripe-built-a-game-changing-app-in-a-single-flight-with-v0",
+      "/customers/how-avalara-turns-pipedreams-into-patent-pending-with-v0",
+      "/customers/how-code-and-theory-cut-time-to-prototype-75-with-v0",
+      "/customers/cutting-delivery-times-in-half-with-v0",
+      "/customers/bridging-the-gap-between-design-and-code-with-v0",
     ],
   },
   {
     phrase: "So you are asking who runs untrusted code at scale with Vercel Sandbox",
     gold: [
-      "/blog/notion-workers-vercel-sandbox",
-      "/blog/how-conductor-moved-parallel-coding-agents-from-the-laptop-to-the-cloud-with-vercel-sandbox",
+      "/customers/notion-workers-vercel-sandbox",
+      "/customers/how-conductor-moved-parallel-coding-agents-from-the-laptop-to-the-cloud-with-vercel-sandbox",
     ],
   },
   {
     phrase: "You want to know which customers built products with the AI SDK",
     gold: [
-      "/blog/how-chatbase-scaled-rapidly-with-vercels-developer-experience-and-ai-sdk",
-      "/blog/using-the-ai-sdk-to-build-sitecore-streams-ai-powered-brand-aware-assistant",
-      "/blog/leveraging-vercel-and-the-ai-sdk-to-deliver-a-seamless-ai-powered-experience",
+      "/customers/how-chatbase-scaled-rapidly-with-vercels-developer-experience-and-ai-sdk",
+      "/customers/using-the-ai-sdk-to-build-sitecore-streams-ai-powered-brand-aware-assistant",
+      "/customers/leveraging-vercel-and-the-ai-sdk-to-deliver-a-seamless-ai-powered-experience",
     ],
   },
 ];
