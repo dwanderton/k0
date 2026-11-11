@@ -256,7 +256,8 @@ async function loadCache(): Promise<Map<string, string>> {
   // freshest first: /tmp rebuild, else the repo-committed copy
   for (const file of [CACHE_FILE, BUNDLED_CACHE_FILE]) {
     try {
-      const compressed = await readFile(file);
+      // tracing unneeded — both paths covered by outputFileTracingIncludes or /tmp
+      const compressed = await readFile(/*turbopackIgnore: true*/ file);
       const decompressed = await decompress(compressed);
       const json = JSON.parse(decompressed.toString()) as Record<
         string,

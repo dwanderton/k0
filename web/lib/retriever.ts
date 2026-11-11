@@ -117,12 +117,23 @@ function loadCorpusTexts() {
   return corpus;
 }
 
+// keep literal — FILES[backend] defeats Next's file tracer, bundles whole project
+function readIndexFiles(backend: Backend) {
+  return backend === "in-process"
+    ? Promise.all([
+        readFile(join(process.cwd(), "embeddings-local-meta.json.br")),
+        readFile(join(process.cwd(), "embeddings-local.bin")),
+      ])
+    : Promise.all([
+        readFile(join(process.cwd(), "embeddings-meta.json.br")),
+        readFile(join(process.cwd(), "embeddings.bin.br")),
+      ]);
+}
+
 function loadIndex(backend: Backend) {
   indexes[backend] ??= (async () => {
-    const dir = process.cwd();
-    const [metaRaw, binRaw, texts] = await Promise.all([
-      readFile(join(dir, FILES[backend].meta)),
-      readFile(join(dir, FILES[backend].bin)),
+    const [[metaRaw, binRaw], texts] = await Promise.all([
+      readIndexFiles(backend),
       loadCorpusTexts(),
     ]);
     const meta: Meta = JSON.parse((await decompress(metaRaw)).toString());
