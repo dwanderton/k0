@@ -20,7 +20,7 @@ import { canonProducts } from "./product-canon.ts";
 import type { KbGuide } from "../lib/kb-guides.ts";
 
 const MANIFEST = join(process.cwd(), "kb-manifest.json");
-const ENRICH_MODEL = "openai/gpt-5.4-mini";
+const ENRICH_MODEL = "openai/gpt-6-luna";
 const ENRICH_CONCURRENCY = 6;
 /** bump when the prompt/schema/canonicalization changes — hash-cached
  *  entries from older versions re-enrich */
