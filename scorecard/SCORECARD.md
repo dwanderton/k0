@@ -383,7 +383,7 @@ the mandated reads run on excerpt-poor turns that previously returned
 nothing. Controls structurally fenced (small talk retrieves zero
 candidates) and empirically clean at 0/20.
 
-### PR #38 (corpus refresh 2026-11-11 + pipeline fixes) — weekly action unbroken (pnpm/action-setup version-key conflict killed every run since July) · stories re-sourced from the sitemap after the /blog → /customers move (119 stories) · chunker picks the new `summary:` frontmatter · 3707 → 5220 pages, both indexes rebuilt (39,339 rows) · eval golds follow the docs drift (ai-gateway hub split, deployments co-gold) · same model (gpt-5.4-mini, throughput)
+### PR #38 (corpus refresh 2026-11-11 + pipeline fixes): weekly action unbroken (pnpm/action-setup version-key conflict killed every run since July) · stories re-sourced from the sitemap after the /blog → /customers move (119 stories) · chunker picks the new `summary:` frontmatter · 3707 → 5220 pages, both indexes rebuilt (39,339 rows) · eval golds follow the docs drift (ai-gateway hub split, deployments co-gold) · same model (gpt-5.4-mini, throughput)
 
 # run 2026-11-11 · preview k0-<hash> · commit 2b320f9 · 5x per phrase, conc 1
 
@@ -399,7 +399,7 @@ embeds competitively, so the agent reads and cites overview subpages.
 The scorecard's exact-match gold still counts those as misses; the
 retriever eval co-golds them. Recorded, not hidden.
 
-### PR #36 (deps to latest: Node 26, pnpm 12, TS 7) — all deps to latest stable · onnxruntime-node pinned as a direct dep with a static import (transformers 4.3 loads it dynamically and the tracer dropped it from the bundle: every probe 500'd until fixed) · zod CVE GHSA-mrhx-c7xc-m3w5 closed via cli-config override · minimumReleaseAge 1440 supply-chain guard · same model (gpt-5.4-mini, throughput)
+### PR #36 (deps to latest: Node 26, pnpm 12, TS 7): all deps to latest stable · onnxruntime-node pinned as a direct dep with a static import (transformers 4.3 loads it dynamically and the tracer dropped it from the bundle: every probe 500'd until fixed) · zod CVE GHSA-mrhx-c7xc-m3w5 closed via cli-config override · minimumReleaseAge 1440 supply-chain guard · same model (gpt-5.4-mini, throughput)
 
 # run 2026-11-11 · commit 746576e (corpus of PR #38 merged in) · 5x per phrase, conc 1
 
@@ -412,7 +412,7 @@ faster, not just newer. The 500-crash audition along the way: the first
 two preview runs failed 25/25 at 0.1s (module-load crash, missing
 onnxruntime-node) before the trace fix landed.
 
-### PR #37 (gateway sort tps + model audit: 5.4-mini retained) — sort throughput → tps (providers ranked by measured token-gen speed) · gpt-6 line auditioned for the card slot and retained the incumbent · enrich scripts to gpt-6-luna (build-time only, ~7x cheaper) · model unchanged (gpt-5.4-mini, tps)
+### PR #37 (gateway sort tps + model audit: 5.4-mini retained): sort throughput → tps (providers ranked by measured token-gen speed) · gpt-6 line auditioned for the card slot and retained the incumbent · enrich scripts to gpt-6-luna (build-time only, ~7x cheaper) · model unchanged (gpt-5.4-mini, tps)
 
 # run 2026-11-11 · commit 6be2578 · 5x per phrase, conc 1
 
