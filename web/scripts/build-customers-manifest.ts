@@ -5,11 +5,13 @@
  *   pnpm build:customers-manifest
  *
  * Three stages:
- *   1. Crawl the vercel.com/blog/category/customers pagination — the
- *      category listing is the only source of "customers" membership.
- *   2. Backfill listed posts missing from docs-cache.br (the sitemap crawl
- *      misses some). A backfill changes chunk order — rebuild BOTH
- *      embedding indexes afterwards or the retriever refuses to load.
+ *   1. Enumerate /customers/<slug> story URLs from the root sitemap —
+ *      membership = living at /customers/ (stories moved there from
+ *      /blog/ in late 2026; the listing page is client-rendered now).
+ *   2. Backfill listed posts missing from docs-cache.br (the blog sitemap
+ *      crawl doesn't cover /customers/). A backfill changes chunk order —
+ *      rebuild BOTH embedding indexes afterwards or the retriever refuses
+ *      to load.
  *   3. Enrich every post into structured story metadata (customer,
  *      industry, vercelProducts, otherTech, outcome) — one cheap
  *      structured-output call per post, reused across runs while the
@@ -29,8 +31,7 @@ import { chunkPage } from "../lib/chunker.ts";
 import { canonProducts } from "./product-canon.ts";
 import type { CustomerStory } from "../lib/customers.ts";
 
-const BASE = "https://vercel.com/blog/category/customers";
-const MAX_PAGES = 30; // runaway guard — 9 pages as of 2026-07
+const SITEMAP = "https://vercel.com/sitemap.xml";
 const MANIFEST = join(process.cwd(), "customers-manifest.json");
 const ENRICH_MODEL = "openai/gpt-6-luna";
 const ENRICH_CONCURRENCY = 6;
@@ -40,27 +41,20 @@ const ENRICH_VERSION = 3;
 
 const sha1 = (s: string) => createHash("sha1").update(s).digest("hex");
 
-// ---- 1. crawl category pagination -----------------------------------------
+// ---- 1. enumerate stories from the sitemap ---------------------------------
 
 const found = new Set<string>();
-for (let page = 1; page <= MAX_PAGES; page++) {
-  const url = page === 1 ? BASE : `${BASE}/page/${page}`;
-  const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
-  if (res.status === 404) break; // one past the last page
-  if (!res.ok) throw new Error(`${url} → HTTP ${res.status}`);
-  const html = await res.text();
-  const before = found.size;
-  // relative + absolute hrefs; single path segment only, so category/nav
-  // links never match
-  for (const m of html.matchAll(
-    /href="(?:https:\/\/vercel\.com)?(\/blog\/[^"/?#]+)"/g,
-  )) {
-    found.add(m[1]);
-  }
-  console.log(`page ${page}: +${found.size - before} posts (${found.size} total)`);
-  await new Promise((r) => setTimeout(r, 300));
+const res = await fetch(SITEMAP, { signal: AbortSignal.timeout(15000) });
+if (!res.ok) throw new Error(`${SITEMAP} → HTTP ${res.status}`);
+const xml = await res.text();
+// single path segment only, so section/landing pages never match
+for (const m of xml.matchAll(
+  /<loc>https:\/\/vercel\.com(\/customers\/[a-z0-9-]+)<\/loc>/g,
+)) {
+  found.add(m[1]);
 }
-if (found.size === 0) throw new Error("no posts found — category markup changed?");
+console.log(`sitemap: ${found.size} customer stories`);
+if (found.size === 0) throw new Error("no posts found — sitemap shape changed?");
 const paths = [...found].sort();
 console.log(`\n✓ category crawl: ${paths.length} posts`);
 

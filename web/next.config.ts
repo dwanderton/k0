@@ -22,7 +22,6 @@ const nextConfig: NextConfig = {
       // onnxruntime-node's .node binding dlopens sibling libs nft can't
       // follow — CPU libs only (CUDA/TensorRT: hundreds of MB, unused)
       "./node_modules/.pnpm/onnxruntime-node@*/node_modules/onnxruntime-node/bin/napi-v6/linux/x64/libonnxruntime.so*",
-      "./node_modules/.pnpm/onnxruntime-node@*/node_modules/onnxruntime-node/bin/napi-v6/linux/x64/libonnxruntime_providers_shared.so",
     ],
   },
 };
