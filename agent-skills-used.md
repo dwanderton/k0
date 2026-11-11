@@ -20,3 +20,5 @@ The `.claude/skills/` folder (gitignored) holds the Claude Code agent skills ava
 - **skill-creator**: scaffolding, evals, and benchmarking for authoring skills; used to build and refine `k0-design-skill`.
 - **aggressive-dep-updater**: updates all npm/pnpm dependencies to latest majors and fixes the resulting breakage.
 - **mburry**: forensic, primary-source, adversarial research discipline for deep audits and stress-testing claims.
+- **comments-are-not-docs**: comment discipline: comments are rare one-line why-constraints, never narration; drove the repo-wide comment audit.
+- **hdr-shine**: HDR ICC tagging for image assets; produced the k0 mark's HLG shine variant.

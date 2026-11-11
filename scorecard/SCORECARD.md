@@ -382,3 +382,55 @@ a mandated read_vercel_doc. The priced tradeoff: median 0.9s → 1.3s —
 the mandated reads run on excerpt-poor turns that previously returned
 nothing. Controls structurally fenced (small talk retrieves zero
 candidates) and empirically clean at 0/20.
+
+### PR #38 (corpus refresh 2026-11-11 + pipeline fixes) — weekly action unbroken (pnpm/action-setup version-key conflict killed every run since July) · stories re-sourced from the sitemap after the /blog → /customers move (119 stories) · chunker picks the new `summary:` frontmatter · 3707 → 5220 pages, both indexes rebuilt (39,339 rows) · eval golds follow the docs drift (ai-gateway hub split, deployments co-gold) · same model (gpt-5.4-mini, throughput)
+
+# run 2026-11-11 · preview k0-<hash> · commit 2b320f9 · 5x per phrase, conc 1
+
+**overall: 25/25 ok (0.0% fail) · median time-to-card 1.2s · p95 7.1s (warm) · median cost/insight $0.0015 · total spend $0.0613**
+**gold-link precision: 20/25 (80%) · groundedness: 23/25 (92%) · controls: 0/10 false positives**
+**✓ gate passed: groundedness 92% · 0 false positives · fail 0.0%**
+
+First green gate since the July corpus froze. Offline retriever gates
+passed on both backends before the PR opened (hit@1 4/5, hit@3 5/5,
+customers 3/3, kb 3/3, 0 leaks). Gold-link precision stepped down from
+100% to 80%: the ai-gateway docs split into a hub whose root no longer
+embeds competitively, so the agent reads and cites overview subpages.
+The scorecard's exact-match gold still counts those as misses; the
+retriever eval co-golds them. Recorded, not hidden.
+
+### PR #36 (deps to latest: Node 26, pnpm 12, TS 7) — all deps to latest stable · onnxruntime-node pinned as a direct dep with a static import (transformers 4.3 loads it dynamically and the tracer dropped it from the bundle: every probe 500'd until fixed) · zod CVE GHSA-mrhx-c7xc-m3w5 closed via cli-config override · minimumReleaseAge 1440 supply-chain guard · same model (gpt-5.4-mini, throughput)
+
+# run 2026-11-11 · commit 746576e (corpus of PR #38 merged in) · 5x per phrase, conc 1
+
+**overall: 25/25 ok (0.0% fail) · median time-to-card 1.0s · p95 2.3s (warm) · median cost/insight $0.0015 · total spend $0.0371**
+**gold-link precision: 20/25 (80%) · groundedness: 23/25 (92%) · controls: 0/10 false positives**
+**✓ gate passed: groundedness 92% · 0 false positives · fail 0.0%**
+
+Fastest median in the history (1.0s card, 2.3s p95). The new stack is
+faster, not just newer. The 500-crash audition along the way: the first
+two preview runs failed 25/25 at 0.1s (module-load crash, missing
+onnxruntime-node) before the trace fix landed.
+
+### PR #37 (gateway sort tps + model audit: 5.4-mini retained) — sort throughput → tps (providers ranked by measured token-gen speed) · gpt-6 line auditioned for the card slot and retained the incumbent · enrich scripts to gpt-6-luna (build-time only, ~7x cheaper) · model unchanged (gpt-5.4-mini, tps)
+
+# run 2026-11-11 · commit 6be2578 · 5x per phrase, conc 1
+
+**overall: 25/25 ok (0.0% fail) · median time-to-card 1.3s · p95 7.7s (warm) · median cost/insight $0.0015 · total spend $0.0413**
+**gold-link precision: 21/25 (84%) · groundedness: 24/25 (96%) · controls: 0/10 false positives**
+**✓ gate passed: groundedness 96% · 0 false positives · fail 0.0%**
+
+The audition, all on the identical stale-corpus baseline so the numbers
+compare (card med · grounded · gold links):
+
+| candidate | card med · p95 | grounded | gold | verdict |
+|---|---|---|---|---|
+| gpt-5.4-mini (incumbent) | 1.8s · 4.6s | 68% | 100% | retained |
+| gpt-6-luna default | 3.7s · 7.1s | 76% | 100% | best grounding, reasoning tokens 2x card time |
+| gpt-6-luna low effort | 1.4s · 2.5s | 40% | 92% | fastest, paraphrases quotes |
+| gpt-5.6-luna | 2.5s · 6.0s | 58% | 79% | slower AND off the gold page, 1 timeout |
+
+Decision rule: a successor must beat the incumbent on speed and
+accuracy together. None did. Note the catalog ends mini naming at 5.4;
+later generations use named tiers (luna/terra/sol/astra), all auditioned
+here or eliminated by pricing tier.

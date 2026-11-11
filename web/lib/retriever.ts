@@ -1,6 +1,6 @@
 /**
  * Local hybrid retriever — brute-force cosine over a committed index +
- * path/heading keyword boost. No vector DB: ~16k rows scan in ~10–25ms with
+ * path/heading keyword boost. No vector DB: ~39k rows scan in ~25–60ms with
  * perfect recall; a DB adds a network RTT larger than the whole search.
  * Backends in order: in-process bge-small (~5ms, zero network) → gateway
  * text-embedding-3-small (~320ms hop) as fallback. Indexes and corpus load
