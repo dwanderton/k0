@@ -6,6 +6,8 @@
  */
 // ONNX runtime must never reach a client bundle — poison client imports at build time
 import "server-only";
+// keep static — transformers ≥4.3 requires it dynamically, tracer misses it, bundle ships without it
+import "onnxruntime-node";
 import { pipeline, env } from "@huggingface/transformers";
 import { join } from "path";
 

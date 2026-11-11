@@ -27,6 +27,7 @@
     "geist": "^1.9.2",
     "html-to-md": "^0.8.8",
     "next": "16.4.6",
+    "onnxruntime-node": "1.30.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "server-only": "^0.0.1",
