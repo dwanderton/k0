@@ -144,12 +144,11 @@ const readVercelDoc = tool({
 // sort tps not ttft — pipeline generation-bound (~1s of a ~2s card is
 // token writing once pre-call retrieval deleted the search turn).
 // model must hold retrieval → verbatim quote (scorecard-auditioned) —
-// off-contract models loop re-searching or fabricate quotes; reasoning
-// models paraphrase the quote at low effort and double card time at default
-const MODEL = "openai/gpt-5.6-luna";
+// off-contract models loop, fabricate, or drift off the gold page
+const MODEL = "openai/gpt-5.4-mini";
 // NONE-retry second attempt escalates here — a smarter judge for the ~1-2%
-// of turns luna refuses twice, not the same coin flipped again
-const ESCALATION_MODEL = "openai/gpt-6.1-sol";
+// of turns mini refuses twice, not the same coin flipped again
+const ESCALATION_MODEL = "openai/gpt-5.4";
 const GATEWAY_OPTIONS = {
   gateway: {
     sort: "tps" as const,

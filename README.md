@@ -7,7 +7,7 @@ k0 listens to your side of a live customer call and surfaces the right knowledge
 <img width="1280" height="720" alt="demo-1280-24fps" src="https://github.com/user-attachments/assets/85422039-cc3f-475c-8b59-9d4deac9f4f8" />
 
 ```
-mic → Gladia transcript → local retrieval (~66ms) → gpt-6-luna via AI Gateway → verbatim card with #:~:text= highlight
+mic → Gladia transcript → local retrieval (~66ms) → gpt-5.4-mini via AI Gateway → verbatim card with #:~:text= highlight
 ```
 
 The original concept for k0 is described [here](concept.md).
@@ -61,13 +61,13 @@ Two guardrails: sections greater than 3,200 chars (~800 tokens) are split on par
 
 ### Model choice
 
-- **Why `openai/gpt-6-luna`?** The scorecard picks models here, not leaderboards. The slot was originally auditioned on the same contract with `openai/gpt-5.4-mini` — the one candidate that reliably ran retrieval → verbatim quote while `openai/gpt-oss-20b` looped infinitely with tool use, `alibaba/qwen3.7-plus` hallucinated and refused tools, and `zai/glm-4.7` missed gold pages. `gpt-6-luna` is the mini-class successor (OpenAI's "efficient reasoning model for focused, high-volume tasks", ~7× cheaper per token) and held the same contract through the PR scorecard gate before landing.
+- **Why `openai/gpt-5.4-mini`?** The scorecard picked it, not a leaderboard — twice. In the original audition it was the one model that reliably ran retrieval → verbatim quote; `openai/gpt-oss-20b` looped infinitely with tool use, `alibaba/qwen3.7-plus` hallucinated and refused tools, `zai/glm-4.7` missed gold pages. When the gpt-6 line shipped, every successor tier was re-auditioned against the same gate (PR #37) and lost: `gpt-6-luna` grounded best but doubled time-to-card with reasoning tokens; `gpt-6-luna` at low effort hit 1.4s but paraphrased quotes (40% grounded); `gpt-5.6-luna` was slower *and* drifted off the gold page (79% link precision). 5.4-mini stays until a successor beats it on speed and accuracy together.
   → [`MODEL` — route.ts#L92](web/app/api/agent/route.ts#L92-L103)
 
-- **Why one OpenAI family?** k0's task is obedience, not brilliance: follow a numbered procedure, copy sentences exactly, refuse when unsure. Candidates are auditioned against that contract, and one family keeps the ladder coherent: `openai/gpt-6-luna` serves each card; `openai/gpt-6.1-sol` stands behind it for outages and stubborn refusals with the same output behavior. One contract, two sizes, no prompt surgery at the failover boundary. Routed via AI Gateway, so if the audition result ever flips, the swap is a string. → [model ladder — route.ts#L92](web/app/api/agent/route.ts#L92-L103), [audition history — SCORECARD.md (PR #3–#9)](scorecard/SCORECARD.md)
+- **Why the gpt-5.4 family at all?** k0's task is obedience, not brilliance: follow a numbered procedure, copy sentences exactly, refuse when unsure. Candidates were auditioned against that contract and the 5.4 family held it. One family also makes the ladder coherent: `openai/gpt-5.4-mini` serves at ~$0.0015/card; `openai/gpt-5.4` stands behind it for outages and stubborn refusals with the same output behavior. One contract, two sizes, no prompt surgery at the failover boundary. Routed via AI Gateway, so if the audition result ever flips, the swap is a string. → [model ladder — route.ts#L92](web/app/api/agent/route.ts#L92-L103), [audition history — SCORECARD.md (PR #3–#9)](scorecard/SCORECARD.md)
 
 - **Why is the retry a *different* model?** 
-Re-rolling `openai/gpt-6-luna` on a refusal is the same coin flipped twice; `openai/gpt-6.1-sol` runs only on the ~1–2% of turns luna already fumbled. Same-family only — cross-vendor fallbacks fabricated quotes. → [`ESCALATION_MODEL` — route.ts#L95](web/app/api/agent/route.ts#L92-L103), [`RETRY_FLOOR` — route.ts#L354](web/app/api/agent/route.ts#L354-L360)
+Re-rolling `openai/gpt-5.4-mini` on a refusal is the same coin flipped twice; `openai/gpt-5.4` runs only on the ~1–2% of turns mini already fumbled. Same-family only — cross-vendor fallbacks fabricated quotes. → [`ESCALATION_MODEL` — route.ts#L95](web/app/api/agent/route.ts#L92-L103), [`RETRY_FLOOR` — route.ts#L354](web/app/api/agent/route.ts#L354-L360)
 
 - **Why `Xenova/bge-small-en-v1.5` for embeddings?**
 MiniLM was auditioned first for the in-process embedding slot and failed (hit@1 3/5, hit@3 4/5, against floors of ≥4 and 5/5). It would have required significant tuning, whereas `Xenova/bge-small-en-v1.5`, untuned, was more effective at providing high-quality matches. → [the failed audition — SCORECARD.md (PR #9)](scorecard/SCORECARD.md)
