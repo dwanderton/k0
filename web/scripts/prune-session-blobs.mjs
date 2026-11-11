@@ -1,6 +1,6 @@
 /**
  * Delete parked session cards older than PRUNE_MAX_AGE_DAYS (default 7).
- * Blob has no native TTL — this runs weekly from corpus-refresh.yml.
+ * Blob has no native TTL — session-prune.yml runs this daily.
  * Sessions are "resumable for a week"; DRY_RUN=1 reports without deleting.
  */
 import { list, del } from "@vercel/blob";
