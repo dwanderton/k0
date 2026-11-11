@@ -22,7 +22,8 @@ function frontmatter(md: string): { title: string; body: string; fm: string } {
   const pick = (k: string) =>
     m[1].match(new RegExp(`^${k}:\\s*(.+)$`, "m"))?.[1]?.trim().replace(/^["']|["']$/g, "") ?? "";
   const title = pick("title");
-  const description = pick("description");
+  // 2026 docs frontmatter carries the aboutness line as `summary`
+  const description = pick("description") || pick("summary");
   // raw YAML embeds as noise; "Title — description" is the strongest
   // page-aboutness signal a first chunk can carry
   const fm = [title, description].filter(Boolean).join(" — ");
