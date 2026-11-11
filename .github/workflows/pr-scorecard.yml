@@ -23,22 +23,36 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      # deployment_status runs with repo secrets — never check out or execute
+      # the deployed commit: for a fork PR that is attacker-controlled code
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
           lfs: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 26
 
-      - name: Find PR for this deployment
+      # fork-PR previews run the fork author's server code — probing them
+      # would hand both probe secrets to that code. Same-repo heads only.
+      - name: Find PR for this deployment (same-repo only)
         id: pr
         env:
           GH_TOKEN: ${{ github.token }}
+          DEPLOY_SHA: ${{ github.event.deployment.sha }}
         run: |
-          PR=$(gh api "repos/${{ github.repository }}/commits/${{ github.event.deployment.sha }}/pulls" --jq '.[0].number' 2>/dev/null || true)
-          echo "number=$PR" >> "$GITHUB_OUTPUT"
+          PR=$(gh api "repos/${{ github.repository }}/commits/$DEPLOY_SHA/pulls" --jq '.[0].number' 2>/dev/null || true)
           if [ -z "$PR" ]; then echo "No PR for this deployment — skipping."; fi
+          if [ -n "$PR" ]; then
+            HEAD_REPO=$(gh api "repos/${{ github.repository }}/pulls/$PR" --jq '.head.repo.full_name')
+            if [ "$HEAD_REPO" != "${{ github.repository }}" ]; then
+              echo "Fork PR ($HEAD_REPO) — gate skipped, secrets stay home."
+              PR=""
+            fi
+          fi
+          echo "number=$PR" >> "$GITHUB_OUTPUT"
 
       - name: Scorecard against preview (gated)
         if: steps.pr.outputs.number != ''
@@ -46,32 +60,35 @@ jobs:
         env:
           SCORECARD_PROBE_SECRET: ${{ secrets.SCORECARD_PROBE_SECRET }}
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          TARGET_URL: ${{ github.event.deployment_status.target_url }}
           GATE: "1"
           RUNS: "5"
         run: |
           # pipefail: $? must be node's exit code, not tee's — without it the
           # gate result never reaches the Enforce step
           set +e -o pipefail
-          # probe headers carry secrets — never send them anywhere but our
-          # own preview domain
-          URL="${{ github.event.deployment_status.target_url }}"
-          case "$URL" in
-            https://*.vercel.app|https://*.vercel.app/*) ;;
-            *) echo "Unexpected deployment target_url: $URL"; echo "exit=1" >> "$GITHUB_OUTPUT"; exit 0 ;;
+          # probe headers carry secrets — host-anchored check, not a URL glob
+          # (case globs match "/" so https://evil.com/x.vercel.app would pass)
+          host="${TARGET_URL#https://}"; host="${host%%/*}"
+          case "$host" in
+            *.vercel.app) ;;
+            *) echo "Unexpected deployment host: $host"; echo "exit=1" >> "$GITHUB_OUTPUT"; exit 0 ;;
           esac
-          node scorecard/run.mjs "$URL" | tee /tmp/scorecard.md
+          node scorecard/run.mjs "$TARGET_URL" | tee /tmp/scorecard.md
           echo "exit=$?" >> "$GITHUB_OUTPUT"
 
       - name: Upsert PR comment with scorecard output
         if: steps.pr.outputs.number != ''
         env:
           GH_TOKEN: ${{ github.token }}
+          TARGET_URL: ${{ github.event.deployment_status.target_url }}
+          DEPLOY_SHA: ${{ github.event.deployment.sha }}
         run: |
           {
             echo "<!-- k0-scorecard -->"
             echo "### k0 scorecard — hallucination gate"
             echo
-            echo "Preview: ${{ github.event.deployment_status.target_url }} · commit \`${{ github.event.deployment.sha }}\`"
+            echo "Preview: $TARGET_URL · commit \`$DEPLOY_SHA\`"
             echo
             cat /tmp/scorecard.md
           } > /tmp/comment.md
