@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { Analytics } from "@vercel/analytics/next";
@@ -7,6 +7,13 @@ import "./globals.css";
 // the pitch, verbatim from the root README
 const description =
   'k0 listens to your side of a live customer call and surfaces the right knowledge-base passage as you speak. Restate the customer\'s question aloud and the answer lands on screen, highlighted and sourced, before you say "let me check."';
+
+// cover makes env(safe-area-inset-*) report real notch/status-bar insets
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://k0-omega.vercel.app"),
