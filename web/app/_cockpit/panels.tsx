@@ -33,22 +33,44 @@ export const TranscriptPanel = memo(function TranscriptPanel({
   onStartFresh: () => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  // mobile drawer; md+ ignores it and stays open
+  const [open, setOpen] = useState(false);
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
-  }, [segments, interim]);
+  }, [segments, interim, open]);
+  // resume offer renders in the body; a closed drawer would hide it
+  useEffect(() => {
+    if (resumeOffer) setOpen(true);
+  }, [resumeOffer]);
 
   return (
     <section
       aria-label="Live call transcript"
-      className="flex min-h-105 flex-col rounded-[10px] border border-line bg-card"
+      className="flex flex-col rounded-[10px] border border-line bg-card md:min-h-105"
     >
-      <div className="flex items-center justify-between gap-2.5 border-b border-line px-3.5 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-muted">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className={`flex w-full items-center justify-between gap-2.5 px-3.5 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-muted md:hidden ${
+          open ? "border-b border-line" : ""
+        }`}
+      >
+        <span>Live call: transcript</span>
+        <span className="flex items-center gap-2">
+          <span className="tabular-nums">{segments.length} lines</span>
+          <span aria-hidden="true">{open ? "▾" : "▸"}</span>
+        </span>
+      </button>
+      <div className="hidden items-center justify-between gap-2.5 border-b border-line px-3.5 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-muted md:flex">
         <span>Live call: your side</span>
         <span className="tabular-nums">{segments.length} lines</span>
       </div>
       <div
         ref={scrollRef}
-        className="flex max-h-115 flex-1 flex-col gap-3 overflow-y-auto p-4"
+        className={`max-h-115 flex-1 flex-col gap-3 overflow-y-auto p-4 md:flex ${
+          open ? "flex" : "hidden"
+        }`}
       >
         {resumeOffer && segments.length === 0 && status === "idle" ? (
           <div className="rounded-lg border border-line bg-[#f4f4f5] px-3 py-2.5 text-sm">
@@ -258,40 +280,55 @@ export const TracePanel = memo(function TracePanel({
 }: {
   trace: TraceState | null;
 }) {
-  // always mounted, fixed height — appearing/growing on first trace
-  // shifts the whole page (CLS)
+  // always mounted, fixed height: growing on first trace shifts the page (CLS)
+  // mobile drawer; md+ ignores it and stays open
+  const [open, setOpen] = useState(false);
+  const outcomeClass = !trace
+    ? "text-muted"
+    : trace.outcome === "failed"
+      ? "text-error"
+      : trace.outcome === "card"
+        ? "text-live"
+        : "text-muted";
+  const outcomeLabel = !trace
+    ? "idle"
+    : trace.outcome === "streaming"
+      ? "running…"
+      : trace.outcome === "card"
+        ? "card"
+        : trace.outcome === "none"
+          ? "none (no doc needed)"
+          : trace.outcome === "duplicate"
+            ? "duplicate (already on a card)"
+            : "failed";
   return (
     <section
       aria-label="Agent trace"
-      className="mt-4.5 rounded-[10px] border border-line bg-card"
+      className="rounded-[10px] border border-line bg-card md:order-last md:col-span-2"
     >
-      <div className="flex items-center justify-between gap-2.5 border-b border-line px-3.5 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-muted">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className={`flex w-full items-center justify-between gap-2.5 px-3.5 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-muted md:hidden ${
+          open ? "border-b border-line" : ""
+        }`}
+      >
         <span>Agent trace{trace ? `: turn ${trace.turn}` : ""}</span>
-        <span
-          className={
-            !trace
-              ? "text-muted"
-              : trace.outcome === "failed"
-                ? "text-error"
-                : trace.outcome === "card"
-                  ? "text-live"
-                  : "text-muted"
-          }
-        >
-          {!trace
-            ? "idle"
-            : trace.outcome === "streaming"
-              ? "running…"
-              : trace.outcome === "card"
-                ? "card"
-                : trace.outcome === "none"
-                  ? "none (no doc needed)"
-                  : trace.outcome === "duplicate"
-                    ? "duplicate (already on a card)"
-                    : "failed"}
+        <span className="flex items-center gap-2">
+          <span className={outcomeClass}>{outcomeLabel}</span>
+          <span aria-hidden="true">{open ? "▾" : "▸"}</span>
         </span>
+      </button>
+      <div className="hidden items-center justify-between gap-2.5 border-b border-line px-3.5 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-muted md:flex">
+        <span>Agent trace{trace ? `: turn ${trace.turn}` : ""}</span>
+        <span className={outcomeClass}>{outcomeLabel}</span>
       </div>
-      <div className="flex h-55 flex-col gap-0.5 overflow-y-auto p-4 font-mono text-[10px] leading-relaxed text-[#b6b6be]">
+      <div
+        className={`h-55 flex-col gap-0.5 overflow-y-auto p-4 font-mono text-[10px] leading-relaxed text-[#b6b6be] md:flex ${
+          open ? "flex" : "hidden"
+        }`}
+      >
         {!trace ? (
           <span className="text-muted">
             agent activity appears here as you talk
