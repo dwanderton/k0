@@ -126,22 +126,37 @@ export default function Home() {
   const listening = status === "listening";
   const streaming = session.current !== null;
 
+  const listenButton = (
+    <button
+      type="button"
+      onClick={toggleListening}
+      className={`rounded-lg px-4 py-2.75 text-sm font-semibold text-white ${
+        listening ? "bg-live hover:opacity-90" : "bg-ink hover:bg-[#333]"
+      }`}
+    >
+      {listening ? "Stop Listening" : "Start Listening"}
+    </button>
+  );
+
   return (
     <div className="mx-auto w-full max-w-245 px-5 pt-8 pb-12">
       <OfflineBanner callLive={listening || streaming} />
       <header className="mb-6">
-        {/* plain img, not next/image — the optimizer re-encodes and strips the
-            HLG tag that makes the mark glow on XDR; SDR displays render it
-            identical to the old text div */}
-        <img
-          src="/brand/k0-logo-shine.png"
-          alt=""
-          aria-hidden="true"
-          width={34}
-          height={34}
-          draggable={false}
-          className="mb-3 h-8.5 w-8.5 select-none"
-        />
+        <div className="mb-3 flex items-center justify-between">
+          {/* plain img, not next/image — the optimizer re-encodes and strips the
+              HLG tag that makes the mark glow on XDR; SDR displays render it
+              identical to the old text div */}
+          <img
+            src="/brand/k0-logo-shine.png"
+            alt=""
+            aria-hidden="true"
+            width={34}
+            height={34}
+            draggable={false}
+            className="h-8.5 w-8.5 select-none"
+          />
+          <div className="md:hidden">{listenButton}</div>
+        </div>
         <h1 className="text-[26px] font-bold tracking-tight">
           Knowledge that{" "}
           <span className="rounded-[3px] bg-frag px-1.25 text-frag-ink">
@@ -151,15 +166,7 @@ export default function Home() {
       </header>
 
       <div className="mb-4.5 flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          onClick={toggleListening}
-          className={`rounded-lg px-4 py-2.75 text-sm font-semibold text-white ${
-            listening ? "bg-live hover:opacity-90" : "bg-ink hover:bg-[#333]"
-          }`}
-        >
-          {listening ? "Stop Listening" : "Start Listening"}
-        </button>
+        <div className="hidden md:block">{listenButton}</div>
         <div
           role="group"
           aria-label="Knowledge scope"
@@ -189,6 +196,8 @@ export default function Home() {
         </div>
       </div>
 
+      {/* DOM order is the mobile order (transcript, trace, suggestions);
+          md:order-last restores trace to the bottom on desktop */}
       <div className="grid grid-cols-1 gap-4.5 md:grid-cols-2">
         {/* dev visual aid — the transcript feeds the agent */}
         <TranscriptPanel
@@ -199,6 +208,8 @@ export default function Home() {
           onResume={session.resumeSession}
           onStartFresh={session.startFresh}
         />
+        {/* survives NONE and failures, where no card dropdown ever lands */}
+        <TracePanel trace={session.trace} />
         <SuggestionsPanel
           cards={session.cards}
           current={session.current}
@@ -206,9 +217,6 @@ export default function Home() {
           agentError={session.agentError}
         />
       </div>
-
-      {/* survives NONE and failures, where no card dropdown ever lands */}
-      <TracePanel trace={session.trace} />
     </div>
   );
 }
