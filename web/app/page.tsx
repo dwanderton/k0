@@ -139,7 +139,7 @@ export default function Home() {
   );
 
   return (
-    <div className="mx-auto w-full max-w-245 px-5 pt-8 pb-12">
+    <div className="mx-auto w-full max-w-245 px-5 pt-[calc(env(safe-area-inset-top,0px)+3rem)] pb-12 md:pt-8">
       <OfflineBanner callLive={listening || streaming} />
       <header className="mb-6">
         <div className="mb-3 flex items-center justify-between">

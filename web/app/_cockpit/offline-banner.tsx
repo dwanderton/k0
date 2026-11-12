@@ -55,7 +55,7 @@ export function OfflineBanner({ callLive }: { callLive: boolean }) {
     <div
       role="status"
       aria-live="polite"
-      className={`fixed inset-x-0 top-0 z-50 flex items-center justify-center gap-2 border-b bg-card px-3 py-2 text-sm font-semibold transition-all duration-300 motion-reduce:transition-none ${
+      className={`fixed inset-x-0 top-0 z-50 flex items-center justify-center gap-2 border-b bg-card px-3 pt-[calc(env(safe-area-inset-top,0px)+0.5rem)] pb-2 text-sm font-semibold transition-all duration-300 motion-reduce:transition-none ${
         shown ? "opacity-100" : "opacity-0"
       } ${offline ? "border-error/30 text-error" : "border-live/30 text-live"}`}
     >
