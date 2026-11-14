@@ -119,3 +119,6 @@ jobs:
           gh pr create \
             --title "Corpus refresh $(date -u +%Y-%m-%d)" \
             --body-file /tmp/pr-body.md
+          # lands unattended once required checks (gate, scan) pass; the
+          # eval gates above already decided merge-worthiness
+          gh pr merge "$BRANCH" --squash --auto
