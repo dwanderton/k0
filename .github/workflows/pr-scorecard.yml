@@ -82,6 +82,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TARGET_URL: ${{ github.event.deployment_status.target_url }}
           DEPLOY_SHA: ${{ github.event.deployment.sha }}
+          PR: ${{ steps.pr.outputs.number }}
         run: |
           {
             echo "<!-- k0-scorecard -->"
@@ -91,7 +92,6 @@ jobs:
             echo
             cat /tmp/scorecard.md
           } > /tmp/comment.md
-          PR=${{ steps.pr.outputs.number }}
           EXISTING=$(gh api "repos/${{ github.repository }}/issues/$PR/comments?per_page=100" --jq '.[] | select(.body | startswith("<!-- k0-scorecard -->")) | .id' | head -1)
           if [ -n "$EXISTING" ]; then
             gh api -X PATCH "repos/${{ github.repository }}/issues/comments/$EXISTING" -F body=@/tmp/comment.md > /dev/null
@@ -101,4 +101,6 @@ jobs:
 
       - name: Enforce gate
         if: steps.pr.outputs.number != ''
-        run: exit ${{ steps.scorecard.outputs.exit }}
+        env:
+          GATE_EXIT: ${{ steps.scorecard.outputs.exit }}
+        run: exit "$GATE_EXIT"
