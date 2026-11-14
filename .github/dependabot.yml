@@ -4,6 +4,9 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # 7-day cooldown: a freshly-compromised release is usually yanked within days
+    cooldown:
+      default-days: 7
     groups:
       codeql:
         patterns:

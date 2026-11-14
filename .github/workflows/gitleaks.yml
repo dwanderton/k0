@@ -17,6 +17,7 @@ jobs:
         with:
           fetch-depth: 0 # full history — a deleted secret is still a live secret
           lfs: false
+          persist-credentials: false # nothing after checkout needs git auth
 
       - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:
