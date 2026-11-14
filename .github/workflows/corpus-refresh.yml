@@ -1,7 +1,9 @@
 # Weekly corpus refresh: re-crawl all doc sources, rebuild both embedding
 # indexes additively, run the retrieval eval gate, and open a PR with the
 # refreshed LFS artifacts. Gate failure = no PR, red run. Requires the
-# AI_GATEWAY_API_KEY repo secret for gateway embeddings.
+# AI_GATEWAY_API_KEY repo secret for gateway embeddings, and CORPUS_REFRESH_PAT
+# (fine-grained PAT: k0 contents+PRs write) so the PR's push/create events come
+# from a user, not GITHUB_TOKEN — otherwise required checks sit action_required.
 
 name: corpus-refresh
 
@@ -25,6 +27,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           lfs: true
+          token: ${{ secrets.CORPUS_REFRESH_PAT || github.token }}
 
       # no version key — action-setup errors when it conflicts with packageManager
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
@@ -90,7 +93,7 @@ jobs:
       - name: Commit artifacts and open PR
         if: steps.diff.outputs.changed == 'true'
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.CORPUS_REFRESH_PAT || github.token }}
         run: |
           BRANCH="corpus-refresh/$(date -u +%Y-%m-%d)"
           git config user.name "corpus-refresh[bot]"
